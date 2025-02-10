@@ -65,6 +65,8 @@ def plot_one_box(x, img, color=None, label=None, line_thickness=3):
         tf = max(tl - 1, 1)
         t_size = cv2.getTextSize(label, 0, fontScale=tl / 3, thickness=tf)[0]
         c2 = c1[0] + t_size[0], c1[1] - t_size[1] - 3
+        cv2.rectangle(img, c1, c2, [0, 255, 255], -1, cv2.LINE_AA)
+        cv2.putText(img, label, (c1[0], c1[1] - 2), 0, tl / 3, [0, 0, 0], thickness=tf, lineType=cv2.LINE_AA)
 
 class SegmentationMetric(object):
     def __init__(self, numClass):
@@ -328,7 +330,7 @@ class LoadCamera:
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
-        self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)  # AUTOFOCUS 끄기
+        self.cap.set(cv2.CAP_PROP_AUTOFOCUS, 1)  # AUTOFOCUS 끄기
 
         self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -347,13 +349,7 @@ class LoadCamera:
             raise StopIteration
         self.frame += 1
 
-       # 원 코드에서는 아래에서 letterbox -> (img_size) 변환
-        # 하지만, 이제는 bev_lane_thinning.py 내부에서
-        #   do_bev_transform를 쓰므로, 여기서는
-        #   "그냥 1280x720"을 반환해도 무방
-        # 다만 YOLO 모델에 그대로 넣는 경우를 고려하면
-        #   letterbox(img0, (self.img_size, self.img_size)) 해도 됨
-        # => 일단 지금은 아래처럼 "네트워크 입력용 img"를 만들긴 함
+        # YOLO 입력용 letterbox
         img = letterbox(img0, (self.img_size, self.img_size), stride=self.stride)[0]
         img = img[:, :, ::-1].transpose(2, 0, 1)
         img = np.ascontiguousarray(img)
@@ -388,7 +384,7 @@ class LoadImages:
         self.nf = ni + nv
         self.video_flag = [False] * ni + [True] * nv
         self.mode = 'image'
-        self.count = 0  # <-- 추가: 객체 생성 시 카운터를 0으로 초기화
+        self.count = 0  # <-- 객체 생성 시 카운터를 0으로 초기화
         self.cap = None
 
         if any(videos):
@@ -399,7 +395,7 @@ class LoadImages:
         assert self.nf > 0, f'No images or videos found in {p}. '
 
     def __iter__(self):
-        self.count = 0  # <-- 추가: 매번 순회(iter) 시작 시 0으로 초기화
+        self.count = 0  # <-- 매번 순회(iter) 시작 시 0으로 초기화
         return self
 
     def __next__(self):
@@ -484,9 +480,66 @@ def driving_area_mask(seg=None):
     da_seg_mask = da_seg_mask.int().squeeze().cpu().numpy()
     return da_seg_mask
 
-def lane_line_mask(ll=None, threshold=0.5):
-    ll_predict = ll[:, :, 12:372, :]
-    ll_seg_mask = F.interpolate(ll_predict, scale_factor=2, mode='bilinear')
-    ll_seg_mask = (ll_seg_mask > threshold).int().squeeze(1)
-    ll_seg_mask = ll_seg_mask.squeeze().cpu().numpy()
-    return ll_seg_mask
+def lane_line_mask(ll=None, threshold=0.5, method='otsu'):
+    """
+    차선 세그멘테이션 결과로부터 이진 마스크를 생성합니다.
+    
+    Parameters:
+        ll: torch.Tensor
+            네트워크의 차선 세그멘테이션 출력 (배치, 채널, 높이, 너비)
+        threshold: float
+            고정 임계값 방식 사용 시 적용할 임계값 (0~1 사이)
+        method: str, 선택 사항
+            'fixed'   : 고정 임계값 방식 (기본값)
+            'otsu'    : Otsu thresholding 방식
+             
+    Returns:
+        binary_mask: numpy.ndarray
+            0과 255로 구성된 이진 마스크
+    """
+    # (1) 관심 영역(crop) 선택 및 해상도 보정
+    ll_predict = ll[:, :, 12:372, :]  # 원래 코드와 동일
+    ll_seg_map = F.interpolate(ll_predict, scale_factor=2, mode='bilinear')
+    ll_seg_map = ll_seg_map.squeeze(1)  # shape: (B, H, W)
+    
+    # 배치 사이즈가 1이라고 가정하고 첫 번째 결과 사용
+    ll_seg_map = ll_seg_map[0]  # shape: (H, W)
+    # tensor → numpy (GPU tensor인 경우 .cpu() 필요)
+    ll_seg_map = ll_seg_map.cpu().numpy()
+    
+    # guided filter 적용: 먼저 0~255 범위의 8비트 이미지로 변환
+    ll_seg_map_8u = (ll_seg_map * 255).astype(np.uint8)
+    # guided filter 파라미터: radius와 eps는 데이터에 따라 튜닝 필요
+    guided = cv2.ximgproc.guidedFilter(guide=ll_seg_map_8u, src=ll_seg_map_8u, radius=4, eps=1e-1)
+    
+    if method == 'fixed':
+        binary_mask = (guided > threshold * 255).astype(np.uint8) * 255
+    elif method == 'otsu':
+        ret, binary_mask = cv2.threshold(guided, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    else:
+        raise ValueError("Invalid method for binarization. Choose 'fixed' or 'otsu'.")
+    
+    return binary_mask
+
+
+def apply_clahe(image):
+    """
+    CLAHE를 사용하여 이미지의 대비를 향상시킵니다.
+    
+    Parameters:
+        image (numpy.ndarray): 입력 이미지. 컬러(BGR) 또는 그레이스케일.
+        
+    Returns:
+        enhanced_image (numpy.ndarray): 대비가 향상된 이미지.
+    """
+    if len(image.shape) == 3 and image.shape[2] == 3:
+        # 컬러 이미지인 경우 YUV 색 공간으로 변환 후 Y 채널에 CLAHE 적용
+        yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        yuv[:, :, 0] = clahe.apply(yuv[:, :, 0])
+        enhanced_image = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+    else:
+        # 그레이스케일 이미지인 경우 직접 CLAHE 적용
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+        enhanced_image = clahe.apply(image)
+    return enhanced_image
