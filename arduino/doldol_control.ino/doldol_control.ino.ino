@@ -3,14 +3,41 @@
 
 ros::NodeHandle nh;
 
-float auto_steer_angle = 0.0;  // ROS에서 받은 AUTO 모드 각도
+float auto_steer_angle_lane = 0.0;
+float auto_steer_angle_cone = 0.0;
+float auto_steer_angle_tunnel = 0.0;
 
-void steerCallback(const std_msgs::Float32& msg) {
-  auto_steer_angle = msg.data;  // 각도 값 업데이트
+bool lane_received = false;
+bool cone_received = false;
+bool tunnel_received = false;
+
+unsigned long last_lane_time = 0;
+unsigned long last_cone_time = 0;
+unsigned long last_tunnel_time = 0;
+
+void laneCallback(const std_msgs::Float32& msg) {
+  auto_steer_angle_lane = msg.data;
+  lane_received = true;
+  last_lane_time = millis();
 }
 
+void coneCallback(const std_msgs::Float32& msg) {
+  auto_steer_angle_cone = msg.data;
+  cone_received = true;
+  last_cone_time = millis();
+}
+
+void tunnelCallback(const std_msgs::Float32& msg) {
+  auto_steer_angle_tunnel = msg.data;
+  tunnel_received = true;
+  last_tunnel_time = millis();
+}
+
+
 // "steering_angle" 토픽을 구독하도록 설정
-ros::Subscriber<std_msgs::Float32> sub("auto_steer_angle", steerCallback);
+ros::Subscriber<std_msgs::Float32> sub_lane("auto_steer_angle_lane", laneCallback);
+ros::Subscriber<std_msgs::Float32> sub_cone("auto_steer_angle_cone", coneCallback);
+ros::Subscriber<std_msgs::Float32> sub_tunnel("auto_steer_angle_tunnel", tunnelCallback);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #define PULSE_MAX               2200
@@ -40,12 +67,12 @@ ros::Subscriber<std_msgs::Float32> sub("auto_steer_angle", steerCallback);
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 858
-#define POT_MIN                 212
-#define MAX_STEER_TIRE_DEG      20
+#define POT_MAX                 882
+#define POT_MIN                 228
+#define MAX_STEER_TIRE_DEG      18
 
-#define KP                      0.38
-#define KI                      0.000002
+#define KP                      0.08
+#define KI                      0.0002
 #define KD                      0
 
 volatile long Steering_Edge_now_us = DETECTION_ERR;
@@ -88,6 +115,8 @@ unsigned long prev_t_us = 0;
 
 // throttle 입력값
 double torqueVal = 0.0;
+
+float auto_steer_angle = 0.0;
 
 float Mapping(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -197,7 +226,9 @@ void setup() {
   // rosserial 통신에 맞추어 Serial 통신 속도를 57600으로 설정합니다.
   Serial.begin(57600);
   nh.initNode();
-  nh.subscribe(sub);
+  nh.subscribe(sub_lane);
+  nh.subscribe(sub_cone);
+  nh.subscribe(sub_tunnel);
   
   // 디버깅을 위한 시리얼 출력 (옵션)
   Serial.println("Arduino ROS Node Started");
@@ -228,7 +259,22 @@ void setup() {
 
 void loop() {
   nh.spinOnce();
-  
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  unsigned long current_time = millis();
+
+  if (lane_received && (current_time - last_lane_time > 500)) {
+    lane_received = false;
+  }
+
+  if (cone_received && (current_time - last_cone_time > 500)) {
+    cone_received = false;
+  }
+
+  if (tunnel_received && (current_time - last_tunnel_time > 500)) {
+    tunnel_received = false;
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   static int prev_t_us = 0;
   int t_us = micros();
 
@@ -271,6 +317,9 @@ void loop() {
       }
     }
   }
+  else {
+    Mode_val = BREAK_MODE;
+  }
   sei();
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -295,6 +344,16 @@ void loop() {
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  if (lane_received == true) {
+    auto_steer_angle = auto_steer_angle_lane;
+  }
+  else if (lane_received == false && cone_received == true) {
+    auto_steer_angle = auto_steer_angle_cone;
+  }
+  else if (lane_received == false && cone_received == false && tunnel_received == true) {
+    auto_steer_angle = auto_steer_angle_tunnel;
+  }
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   if (Mode_val == BREAK_MODE){
     StopMotor();
   }
@@ -309,7 +368,7 @@ void loop() {
     Steer(pid_return);
   }
   else if (Mode_val == AUTO_MODE) {
-    float ref_steer_deg = auto_steer_angle;  // ROS에서 받은 조향각 사용
+    float ref_steer_deg = auto_steer_angle;
     double pid_return = PID(ref_steer_deg, deg, dt);
     if (Speed_val == ONESTEP_MODE){
       MoveForward(0.3);
