@@ -110,7 +110,6 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   LIBRARIES control
  CATKIN_DEPENDS geometry_msgs nav_msgs roscpp rospy sensor_msgs std_msgs tf ackermann_msgs
- DEPENDS system_lib
 )
 
 ###########
