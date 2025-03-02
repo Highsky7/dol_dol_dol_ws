@@ -1,4 +1,5 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+
 import torch
 import numpy as np
 import open3d as o3d
