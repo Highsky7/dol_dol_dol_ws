@@ -1,4 +1,5 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+
 
 import torch
 from pcdet.config import cfg, cfg_from_yaml_file
@@ -55,7 +56,7 @@ def load_voxelnext_model(config_path, model_checkpoint):
     return model, dataset  # 모델과 데이터셋을 반환
     print("✅ 실시간 LiDAR 처리를 위한 VoxelNeXt 모델이 로드되었습니다!")
     
-# 실행 코드
+# # 실행 코드
 # if __name__ == "__main__":
     
 #     config_path = "tools/cfgs/nuscenes_models/cbgs_voxel0075_voxelnext.yaml"

@@ -1,4 +1,5 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+
 import torch
 import numpy as np
 from voxelnext_load import load_voxelnext_model  # 기존의 모델 로드 함수 재사용

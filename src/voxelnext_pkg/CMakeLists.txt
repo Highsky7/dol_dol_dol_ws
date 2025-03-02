@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(voxelnext_pkg)
 
+# vehicle_msgs를 하위 디렉토리로 포함
+#add_subdirectory(vehicle_msgs)
+
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
@@ -14,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   std_msgs
   visualization_msgs
+  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +110,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs visualization_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs sensor_msgs visualization_msgs geometry_msgs vehicle_msgs
 )
 
 ###########
@@ -205,6 +209,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 # Python 실행 파일 등록
-catkin_install_python(PROGRAMS scripts/lidar_ros_node.py
+catkin_install_python(PROGRAMS
+  scripts/lidar_ros_node.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

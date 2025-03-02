@@ -1,4 +1,4 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
 
 import sys
 import os
@@ -9,8 +9,10 @@ from sensor_msgs.msg import PointCloud2, PointField
 from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import Header
 import sensor_msgs.point_cloud2 as pc2  # ros_numpy 대신 사용
-from voxelnext_pkg.voxelnext_load import load_voxelnext_model
-import open3d as o3d
+from voxelnext_load import load_voxelnext_model
+from vehicle_msgs.msg import Track, TrackCone  # Track과 TrackCone 임포트
+
+
 
 # -------------------------
 # 클래스별 색상 정의
@@ -55,28 +57,6 @@ def pointcloud2_to_numpy(msg):
     
     return points_with_timestamp
 
-# -------------------------
-# 함수: VoxelNeXt 박스 정보를 Open3D OrientedBoundingBox로 변환
-# -------------------------
-def create_bounding_box(box):
-    """
-    box: [x, y, z, w, l, h, θ, vx, vy]
-    """
-    x, y, z, w, l, h, theta, vx, vy = box
-    x = x.cpu().item()
-    y = y.cpu().item()
-    z = z.cpu().item()
-    w = w.cpu().item()
-    l = l.cpu().item()
-    h = h.cpu().item()
-    theta = theta.cpu().item()
-
-    box_obb = o3d.geometry.OrientedBoundingBox()
-    box_obb.center = [x, y, z]
-    box_obb.extent = [w, l, h]
-    R = box_obb.get_rotation_matrix_from_xyz((0, 0, theta))
-    box_obb.R = R
-    return box_obb
 
 
 # -------------------------
@@ -112,33 +92,43 @@ def detect_objects(points, voxelnext_model, lidar_dataset):
         output_dicts, _ = voxelnext_model(batch_dict)
     return output_dicts
 
+
+
 # -------------------------
-# 기존 함수: 트래픽 콘만 Marker로 발행 (바운딩박스)
+# 함수: 트래픽 콘만 Marker로 발행 (바운딩박스)
 # -------------------------
-def publish_markers(output_dicts, pub_detected_objects, class_names):
+def publish_markers(output_dicts, pub_detected_objects, pub_2d_detected_objects, class_names):
     rospy.loginfo("📡 탐지된 객체를 퍼블리시 중...")
+    
     marker_array = MarkerArray()
+    marker_array_2d = MarkerArray()
+    
+    
+    
     for i, output in enumerate(output_dicts):
         for j, (box, label, score) in enumerate(zip(output["pred_boxes"], output["pred_labels"], output["pred_scores"])):
             label = label.cpu().item()
             score = score.cpu().item()
+            
             # x, y 좌표 추출 (box의 첫 번째와 두 번째 값)
             x_coord = box[0].cpu().item()
             y_coord = box[1].cpu().item()
             rospy.loginfo(f"🔍 객체 {j+1}: 클래스 {label}, 점수 {score:.2f}, 좌표 ({x_coord:.2f}, {y_coord:.2f})")
-                    
-                    
-                    
-            # rospy.loginfo(f"🔍 객체 {j+1}: 클래스 {label}, 점수 {score:.2f}")
-            class_name = class_names[label - 1]
-            # traffic_cone만 표시
+            class_name = class_names[label - 1] # 객체 종류의 레이블이 1부터 시작해서 보정
+            
+            # traffic_cone만 표시하기 위해
+            # 예외처리 1
             if class_name != 'traffic_cone':
                 continue
+            # 예외처리 2
             color = color_map.get(class_name, default_color)
             if color == default_color:
                 continue
+            
+            # traffic_cone만 표시
             marker = Marker()
             marker.header = Header()
+            marker.header.stamp = rospy.Time.now()
             marker.header.frame_id = "velodyne"
             marker.ns = "detected_objects"
             marker.id = i * 1000 + j
@@ -154,16 +144,53 @@ def publish_markers(output_dicts, pub_detected_objects, class_names):
             marker.color.r = color[0]
             marker.color.g = color[1]
             marker.color.b = color[2]
-            marker.lifetime = rospy.Duration(0.3)
+            marker.lifetime = rospy.Duration(0.1)
+            
             marker_array.markers.append(marker)
-    if len(marker_array.markers) > 0:
         pub_detected_objects.publish(marker_array)
+        
+        
+        
+        # -------------------------
+        # 추가: SORT-ROS 패키지 요구형태 (/markers_detected)
+        # -------------------------
+        # 원본 MarkerArray 를 복제하여 2D 형식으로 변환
+        # 원본 MarkerArray 는 예외처리 1, 2로 인해서 traffic_cone만 보유
+        for marker in marker_array.markers:
+            new_marker = Marker()
+            new_marker.header = marker.header
+            new_marker.header.stamp = rospy.Time.now()
+            new_marker.ns = marker.ns
+            new_marker.id = marker.id
+            new_marker.type = marker.type
+            new_marker.action = marker.action
+            # 2D 평면용: z 좌표를 0으로 강제
+            new_marker.pose.position.x = marker.pose.position.x
+            new_marker.pose.position.y = marker.pose.position.y
+            new_marker.pose.position.z = 0.0
+            new_marker.pose.orientation = marker.pose.orientation
+            new_marker.scale.x = marker.scale.x
+            new_marker.scale.y = marker.scale.y
+            
+            # scale.z를 0.0 (평면) (또는 SORT-ROS에서 요구하는 고정값)으로 설정
+            new_marker.scale.z = 0.0
+            new_marker.color.a = 0.5
+            new_marker.color.r = color[0]
+            new_marker.color.g = color[0]
+            new_marker.color.b = color[1]
+            new_marker.lifetime = rospy.Duration(0.1)
+            
+            marker_array_2d.markers.append(new_marker)
+        pub_2d_detected_objects.publish(marker_array_2d)
+        
+        
+        
 
 
 # -------------------------
 # 함수: 바운딩박스 중심 좌표를 초록색 점으로 Marker 토픽에 발행
 # -------------------------
-def publish_center_markers(output_dicts, pub_center_markers, class_names):
+def publish_center_markers(output_dicts, pub_detected_objects_center, class_names):
     """
     탐지된 객체 중 'traffic_cone'의 바운딩박스 중심 좌표를 초록색 점(SPHERE)으로 발행
     """
@@ -185,13 +212,11 @@ def publish_center_markers(output_dicts, pub_center_markers, class_names):
             marker = Marker()
             marker.header = Header()
             marker.header.frame_id = "velodyne"
-            marker.ns = "center_markers"
+            marker.ns = "detected_objects_center"
             marker.id = marker_id
-            marker_id += 1
+            marker_id += 1  
             
-            
-            
-            # # SPHERE
+            # # SPHERE 시각화
             marker.type = Marker.SPHERE
             marker.action = Marker.ADD
             marker.pose.position.x = center_x
@@ -202,44 +227,49 @@ def publish_center_markers(output_dicts, pub_center_markers, class_names):
             marker.pose.orientation.z = 0.0
             marker.pose.orientation.w = 1.0
             # 크기 (필요에 따라 조정)
-            marker.scale.x = 0.2
-            marker.scale.y = 0.2
-            marker.scale.z = 0.2
+            marker.scale.x = 0.5
+            marker.scale.y = 0.5
+            marker.scale.z = 0.5
             # 초록색
             marker.color.a = 1.0
             marker.color.r = 0.0
             marker.color.g = 1.0
             marker.color.b = 0.0
-            
-            
-            
-            # # CYLINDER
-            # marker.type = Marker.CYLINDER
-            # marker.action = Marker.ADD
-            # marker.pose.position.x = center_x
-            # marker.pose.position.y = center_y
-            # marker.pose.position.z = center_z
-            # marker.pose.orientation.x = 0.0
-            # marker.pose.orientation.y = 0.0
-            # marker.pose.orientation.z = 0.0
-            # marker.pose.orientation.w = 1.0
-            # # 크기 (필요에 따라 조정)
-            # marker.scale.x = 0.3
-            # marker.scale.y = 0.3
-            # marker.scale.z = 0.7
-            # # 초록색
-            # marker.color.a = 0.3
-            # marker.color.r = 0.0
-            # marker.color.g = 1.0
-            # marker.color.b = 0.0
-            
-            
-            
-            
+                        
             marker.lifetime = rospy.Duration(0.1)
             marker_array.markers.append(marker)
-    if len(marker_array.markers) > 0:
-        pub_center_markers.publish(marker_array)
+            
+        pub_detected_objects_center.publish(marker_array)
+        
+        
+        
+def publish_track_message(output_dicts, pub_track, class_names):
+    """
+    탐지된 객체 중 traffic_cone에 해당하는 정보를 기반으로 Track 메시지를 생성 후 발행합니다.
+    """
+    track_msg = Track()  # Track 메시지 생성
+
+    # 각 검출 결과에서 traffic_cone만 처리
+    for output in output_dicts:
+        for box, label, score in zip(output["pred_boxes"], output["pred_labels"], output["pred_scores"]):
+            label_val = label.cpu().item()
+            obj_class = class_names[label_val - 1]  # 1부터 시작하는 경우 보정
+            if obj_class != 'traffic_cone':
+                continue
+
+            cone = TrackCone()
+            cone.x = box[0].cpu().item()  # x 좌표
+            cone.y = box[1].cpu().item()  # y 좌표
+            cone.type = obj_class         # 예: "traffic_cone"
+            track_msg.cones.append(cone)
+
+    pub_track.publish(track_msg)
+    rospy.loginfo("📡 /track 메시지 발행 완료")
+
+        
+        
+        
+        
 
 
 # -------------------------
@@ -251,10 +281,9 @@ def lidar_callback(msg, args):
       1. PointCloud2 메시지를 NumPy 배열 (ROI 적용)로 변환
       2. 객체 탐지 (detect_objects)
       3. 트래픽 콘만 Marker로 발행 (publish_markers)
-      4. 바운딩박스 중심 좌표를 초록색 점으로 발행 (publish_center_markers)
+      4. 바운딩박스 중심 좌표를 초록색 점으로 발행 (detected_objects_center)
     """
-    # args: (voxelnext_model, lidar_dataset, pub_detected_objects, pub_center_markers)
-    voxelnext_model, lidar_dataset, pub_detected_objects, pub_center_markers = args
+    voxelnext_model, lidar_dataset, pub_detected_objects, pub_2d_detected_objects, pub_detected_objects_center, pub_track = args
     rospy.loginfo("📡 LiDAR 데이터 수신 중...")
 
     try:
@@ -269,8 +298,11 @@ def lidar_callback(msg, args):
 
     try:
         output_dicts = detect_objects(points, voxelnext_model, lidar_dataset)
-        publish_markers(output_dicts, pub_detected_objects, voxelnext_model.class_names)
-        publish_center_markers(output_dicts, pub_center_markers, voxelnext_model.class_names)
+        publish_markers(output_dicts, pub_detected_objects, pub_2d_detected_objects, voxelnext_model.class_names)
+        publish_center_markers(output_dicts, pub_detected_objects_center, voxelnext_model.class_names)
+        
+        # 추가: /track 메시지 발행
+        publish_track_message(output_dicts, pub_track, voxelnext_model.class_names)
     except Exception as e:
         rospy.logerr(f"❌ 객체 탐지/퍼블리싱 오류: {e}")
 
@@ -293,10 +325,10 @@ def main():
     
     model_checkpoint = os.path.join(project_dir, 'checkpoints', 'voxelnext_nuscenes_kernel1.pth')
 
-    rospy.loginfo(f"Config Path: {config_path}")
-    rospy.loginfo(f"Model Checkpoint Path: {model_checkpoint}")
-    rospy.loginfo(f"Config file exists: {os.path.exists(config_path)}")
-    rospy.loginfo(f"Model checkpoint exists: {os.path.exists(model_checkpoint)}")
+    # rospy.loginfo(f"Config Path: {config_path}")
+    # rospy.loginfo(f"Model Checkpoint Path: {model_checkpoint}")
+    # rospy.loginfo(f"Config file exists: {os.path.exists(config_path)}")
+    # rospy.loginfo(f"Model checkpoint exists: {os.path.exists(model_checkpoint)}")
 
     if not os.path.exists(config_path):
         rospy.logerr(f"Config file not found: {config_path}")
@@ -317,17 +349,31 @@ def main():
     # ROS 퍼블리셔 생성 (기존: 바운딩박스 MarkerArray)
     pub_detected_objects = rospy.Publisher('/detected_objects', MarkerArray, queue_size=10)
     rospy.loginfo("Publisher '/detected_objects' 생성 완료")
+    
+    
+     # 새 ROS 퍼블리셔 생성: SORT-ROS 패키지 요구 형태용 (/markers_detected, 2D 정보)
+    pub_2d_detected_objects = rospy.Publisher('/markers_detected', MarkerArray, queue_size=10)
+    rospy.loginfo("Publisher '/markers_detected' 생성 완료")
+    
 
     # 새 ROS 퍼블리셔 생성: 바운딩박스 중심 좌표를 위한 MarkerArray (초록색 점)
-    pub_center_markers = rospy.Publisher('/center_markers', MarkerArray, queue_size=10)
-    rospy.loginfo("Publisher '/center_markers' 생성 완료")
+    pub_detected_objects_center = rospy.Publisher('/detected_objects_center', MarkerArray, queue_size=10)
+    rospy.loginfo("Publisher '/detected_objects_center' 생성 완료")
+    
+    
+    # 새 ROS 퍼블리셔 생성: /track 메시지 Publisher 생성
+    pub_track = rospy.Publisher('/track', Track, queue_size=10)
+    rospy.loginfo("Publisher '/track' 생성 완료")
+    
+    
+    
 
     # ROS 구독자 생성 (PointCloud2 메시지 수신)
     rospy.Subscriber(
         '/velodyne_points',
         PointCloud2,
         lidar_callback,
-        callback_args=(voxelnext_model, lidar_dataset, pub_detected_objects, pub_center_markers),
+        callback_args=(voxelnext_model, lidar_dataset, pub_detected_objects, pub_2d_detected_objects, pub_detected_objects_center, pub_track),
         queue_size=1,
         buff_size=2**24
     )
