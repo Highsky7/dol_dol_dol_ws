@@ -501,11 +501,6 @@ def detect_and_publish(opt, pub_mask, pub_steering):
             shifted_poly_points = [(pt[0] + translation[0], pt[1] + translation[1]) for pt in poly_points]
 
             # 4. 이미지 좌표 -> 차량 좌표 변환 (새로운 좌표계)
-            # 좌측 상단 (0,0), 우측 하단 (640,640)인 프레임에서
-            # 프레임 중앙 최하단 (320,640)을 (0,0)으로 두고,
-            # 전방(세로 방향)은 x축, 좌우(가로 방향)은 y축(좌측이 양수)으로 변환.
-            # 가로 픽셀당 0.003125 m, 세로 픽셀당 0.00234375 m 사용.
-            # 후륜축이 프레임 하단에서 1.4 m 뒤에 있으므로 x값에 1.4 m를 추가.
             def image_to_vehicle(pt):
                 u, v = pt  # 이미지 좌표 (u,v)
                 x_vehicle = (640 - v) * 0.00234375 + 1.4
