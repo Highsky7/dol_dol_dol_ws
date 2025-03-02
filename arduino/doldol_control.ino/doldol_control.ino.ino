@@ -67,12 +67,12 @@ ros::Subscriber<std_msgs::Float32> sub_tunnel("auto_steer_angle_tunnel", tunnelC
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 882
-#define POT_MIN                 228
+#define POT_MAX                 908
+#define POT_MIN                 264
 #define MAX_STEER_TIRE_DEG      18
 
 #define KP                      0.08
-#define KI                      0.0002
+#define KI                      0.00002
 #define KD                      0
 
 volatile long Steering_Edge_now_us = DETECTION_ERR;
