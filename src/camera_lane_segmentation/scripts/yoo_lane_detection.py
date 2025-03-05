@@ -38,10 +38,10 @@ from utils.utils import (
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str,
-                        default='/home/yoo/yoo_camera_ws/src/YOLOPv2/weights/yolopv2.pt',
+                        default='/home/highsky/yolopv2.pt',
                         help='model.pt 경로')
     parser.add_argument('--source', type=str,
-                        #default='/home/yoo/source/test_video1.mp4',
+                        # default='/home/highsky/Videos/Webcam/직선.mp4',
                         default='2',
                         help='source: 0(webcam) 또는 영상/이미지 파일 경로')
     parser.add_argument('--img-size', type=int, default=640,
@@ -61,7 +61,7 @@ def make_parser():
     parser.add_argument('--frame-skip', type=int, default=0,
                         help='프레임 건너뛰기 (0이면 건너뛰지 않음)')
     parser.add_argument('--param-file', type=str,
-                        default='/home/yoo/yoo_camera_ws/bev_params.npz',
+                        default='/home/highsky/dol_dol_dol_ws/bev_params.npz',
                         help='BEV 파라미터 (src_points, dst_points, warp_w, warp_h)')
     # 디버그 옵션: matplotlib을 이용해 차량 좌표계에서 차선 시각화
     parser.add_argument('--debug', action='store_true',
@@ -255,7 +255,7 @@ def keep_top2_components(binary_mask, min_area=50):
     for idx in keep_indices:
         cleaned[labels == idx] = 255
     return cleaned
-"""
+
 def line_fit_filter(binary_mask, max_line_fit_error=2.0, min_angle_deg=70.0, max_angle_deg=110.0):
     h, w = binary_mask.shape
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
@@ -283,12 +283,13 @@ def line_fit_filter(binary_mask, max_line_fit_error=2.0, min_angle_deg=70.0, max
         if (dist_sum / len(pts)) <= max_line_fit_error:
             out_mask[labels == i] = 255
     return out_mask
-"""
+
 def final_filter(bev_mask):
     # f1 = morph_open(bev_mask, ksize=3)
     f2 = morph_close(bev_mask, ksize=5)
     f3 = remove_small_components(f2, min_size=300)
     f4 = keep_top2_components(f3, min_area=300)
+    # f5 = line_fit_filter(f4, max_line_fit_error=2.0, min_angle_deg=10.0, max_angle_deg=170.0)
     return f4
 
 # ===================================================
@@ -509,7 +510,7 @@ def detect_and_publish(opt, pub_mask, pub_steering):
 
             # 5. Pure Pursuit: 전방주시거리 (lookahead) 이상 떨어진 목표점 선택
     
-            lookahead = 200.0 # cm 단위
+            lookahead = 210.0 # cm 단위
             lookahead_m = lookahead/100.0
             wheelbase = 75.0  # cm 단위
             wheelbase_m = wheelbase/100.0
@@ -536,7 +537,7 @@ def detect_and_publish(opt, pub_mask, pub_steering):
                     steering_angle = np.arctan((2 * wheelbase_m * np.sin(alpha)) / d)
                 
                 # 라디안 값을 degree로 변환 후 퍼블리시
-                steering_angle_deg = np.degrees(steering_angle)
+                steering_angle_deg = -np.degrees(steering_angle)
                 pub_steering.publish(Float32(data=steering_angle_deg))
                 rospy.loginfo("[INFO] Published auto_steer_angle_lane: %.2f deg", steering_angle_deg)
 
