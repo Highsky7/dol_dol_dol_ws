@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>yolopv2_ros</name>
+  <name>camera_lane_segmentation</name>
   <version>0.0.0</version>
-  <description>The yolopv2_ros package</description>
+  <description>The camera_lane_segmentation package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
