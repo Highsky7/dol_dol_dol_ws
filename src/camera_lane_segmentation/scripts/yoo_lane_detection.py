@@ -256,33 +256,33 @@ def keep_top2_components(binary_mask, min_area=50):
         cleaned[labels == idx] = 255
     return cleaned
 
-def line_fit_filter(binary_mask, max_line_fit_error=2.0, min_angle_deg=70.0, max_angle_deg=110.0):
-    h, w = binary_mask.shape
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
-    out_mask = np.zeros_like(binary_mask)
-    for i in range(1, num_labels):
-        comp_mask = (labels == i).astype(np.uint8)
-        if stats[i, cv2.CC_STAT_AREA] < 5:
-            continue
-        ys, xs = np.where(comp_mask > 0)
-        pts = np.column_stack((xs, ys)).astype(np.float32)
-        if len(pts) < 2:
-            continue
-        line_param = cv2.fitLine(pts, distType=cv2.DIST_L2, param=0, reps=0.01, aeps=0.01)
-        vx, vy, x0, y0 = line_param.flatten()
-        angle_deg = abs(degrees(atan2(vy, vx)))
-        if angle_deg > 180:
-            angle_deg -= 180
-        if not (min_angle_deg <= angle_deg <= max_angle_deg):
-            continue
-        norm_len = (vx**2 + vy**2)**0.5
-        if norm_len < 1e-12:
-            continue
-        vx_n, vy_n = vx/norm_len, vy/norm_len
-        dist_sum = sum(abs((xx - x0)*(-vy_n) + (yy - y0)*vx_n) for xx, yy in pts)
-        if (dist_sum / len(pts)) <= max_line_fit_error:
-            out_mask[labels == i] = 255
-    return out_mask
+# def line_fit_filter(binary_mask, max_line_fit_error=2.0, min_angle_deg=70.0, max_angle_deg=110.0):
+#     h, w = binary_mask.shape
+#     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+#     out_mask = np.zeros_like(binary_mask)
+#     for i in range(1, num_labels):
+#         comp_mask = (labels == i).astype(np.uint8)
+#         if stats[i, cv2.CC_STAT_AREA] < 5:
+#             continue
+#         ys, xs = np.where(comp_mask > 0)
+#         pts = np.column_stack((xs, ys)).astype(np.float32)
+#         if len(pts) < 2:
+#             continue
+#         line_param = cv2.fitLine(pts, distType=cv2.DIST_L2, param=0, reps=0.01, aeps=0.01)
+#         vx, vy, x0, y0 = line_param.flatten()
+#         angle_deg = abs(degrees(atan2(vy, vx)))
+#         if angle_deg > 180:
+#             angle_deg -= 180
+#         if not (min_angle_deg <= angle_deg <= max_angle_deg):
+#             continue
+#         norm_len = (vx**2 + vy**2)**0.5
+#         if norm_len < 1e-12:
+#             continue
+#         vx_n, vy_n = vx/norm_len, vy/norm_len
+#         dist_sum = sum(abs((xx - x0)*(-vy_n) + (yy - y0)*vx_n) for xx, yy in pts)
+#         if (dist_sum / len(pts)) <= max_line_fit_error:
+#             out_mask[labels == i] = 255
+#     return out_mask
 
 def final_filter(bev_mask):
     # f1 = morph_open(bev_mask, ksize=3)
