@@ -1,0 +1,23 @@
+서로 다른 터미널에서 진행
+
+1. 콘 디텍션 결과
+rosrun voxelnext_pkg lidar_ros_node.py 
+
+2. rrt 켜서 rviz 토픽명 준비
+source ~/ma_rrt_ws/devel/setup.bash
+roslaunch ma_rrt_path_plan startExploring.launch
+
+3. rviz 켜기. 이후에 토픽명 지정
+source ~/legoloam_ws/devel/setup.bash
+roslaunch lego_loam run.launch
+
+4. rrt 껐다가 다시 실행
+
+5. 로스백 실행
+rosbag play new1.bag --clock --topic /
+
+6. 현우 퓨어퍼슛
+rosrun ma_rrt_path_plan ma_rrt_purepursuit.py
+
+6. 기타
+rostopic echo /odometry
