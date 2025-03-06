@@ -370,7 +370,7 @@ class MaRRTPathPlanNode:
             newWaypointsMarker.scale.y = 0.3
             newWaypointsMarker.scale.z = 0.3
 
-            newWaypointsMarker.color.a = 0.65
+            newWaypointsMarker.color.a = 1.0
             newWaypointsMarker.color.b = 1.0
 
             for waypoint in newWaypoints:
@@ -453,7 +453,7 @@ class MaRRTPathPlanNode:
 
         marker.pose.orientation.w = 1
 
-        marker.color.a = 0.3
+        marker.color.a = 1.0
         marker.color.r = 1.0
         marker.color.b = 1.0
 
@@ -556,7 +556,7 @@ class MaRRTPathPlanNode:
 
         marker.pose.orientation.w = 1
 
-        marker.color.a = 0.7
+        marker.color.a = 1.0
         marker.color.r = 1.0
 
         node = leafNode
@@ -592,7 +592,7 @@ class MaRRTPathPlanNode:
 
         marker.pose.orientation.w = 1
 
-        marker.color.a = 0.5
+        marker.color.a = 1.0
         marker.color.b = 1.0
 
         for i in range(len(self.filteredBestBranch)):
@@ -625,7 +625,7 @@ class MaRRTPathPlanNode:
 
         treeMarker.pose.orientation.w = 1
 
-        treeMarker.color.a = 0.5
+        treeMarker.color.a = 1.0
         treeMarker.color.g = 0.7
 
         treeMarker.lifetime = rospy.Duration(0.2)
@@ -654,7 +654,7 @@ class MaRRTPathPlanNode:
         leavesMarker.scale.y = 0.15
         leavesMarker.scale.z = 0.15
 
-        leavesMarker.color.a = 0.5
+        leavesMarker.color.a = 1.0
         leavesMarker.color.b = 0.1
 
         for node in leafNodes:
