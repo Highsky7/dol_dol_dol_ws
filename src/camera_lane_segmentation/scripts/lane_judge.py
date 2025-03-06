@@ -324,8 +324,8 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
             if opt.debug:
                 debug_plot_lane(shifted_poly_points, image_to_vehicle, goal_point)
-        else:
-            rospy.logwarn("[WARNING] Lane not detected, skipping auto_steer_angle_lane publish")
+        # else:
+        #     rospy.logwarn("[WARNING] Lane not detected, skipping auto_steer_angle_lane publish")
 
         cv2.imshow("BEV + Polyfit", bev_im_color)
         cv2.imshow("final+mask", final_mask)
