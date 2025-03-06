@@ -1,0 +1,10 @@
+터미널 8개 필요
+아두이노 메가 업로드
+1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
+2터미널: rosrun judgement judgement.py
+3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
+4터미널: rv (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
+5터미널: rosrun voxelnext_pkg lidar_ros_node.py
+6터미널: roslaunch lego_loam run.launch
+7터미널: roslaunch ma_rrt_path_plan startExploring.launch
+8터미널: rosrun ma_rrt_path_plan ma_rrt_purepursuit.py
