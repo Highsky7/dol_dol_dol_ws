@@ -9,7 +9,7 @@ class Judgement:
         self.sub_cone = rospy.Subscriber('auto_steer_angle_cone', Float32, self.cone_callback)
         self.sub_tunnel = rospy.Subscriber('auto_steer_angle_tunnel', Float32, self.tunnel_callback)
         self.sub_lane_status = rospy.Subscriber('lane_detection_status', Bool, self.lane_status_callback)
-
+        self.sub_dynamic_obstacle = rospy.Subscriber("dynamic_obstacle", Bool, self.obstacle_callback)
         # 퍼블리셔 설정: 판단된 조향각을 발행
         self.pub_steering = rospy.Publisher("steering_angle", Float32, queue_size=10)
 
@@ -21,6 +21,7 @@ class Judgement:
         self.cone_angle = None  # 콘 기반 조향각
         self.tunnel_angle = None  # 터널 기반 조향각
         self.lane_detected = False  # 차선 감지 상태
+        self.dynamic_obstacle = False # 동적 장애물 감지 상태
 
         # 주기적 퍼블리시를 위한 타이머 (10Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timer_callback)
@@ -41,17 +42,26 @@ class Judgement:
         """차선 감지 상태 콜백 함수"""
         self.lane_detected = msg.data
 
+    def obstacle_callback(self, msg):
+        """동적 장애물 감지 콜백 함수"""
+        self.dynamic_obstacle = msg.data
+
     def publish_throttle(self, event):
         """쓰로틀 퍼블리시 로직"""
-        throttle = 0.4
+        if self.dynamic_obstacle is True:
+            throttle = 0.0
+            rospy.loginfo("Dynamic obstacle is detected")
+        else:
+            throttle = 0.4
         self.pub_throttle.publish(Float32(data=throttle))
+        rospy.loginfo("Current throttle: %.2f", throttle)
 
     def publish_steering(self, event):
         """조향각 판단 및 퍼블리시 로직"""
         steering_angle = None
 
         # 1. lane_detected가 True이면 lane_angle 사용
-        if self.lane_detected and self.lane_angle is not None:
+        if self.lane_detected is True and self.lane_angle is not None:
             steering_angle = self.lane_angle
             rospy.loginfo("Using lane angle: %.2f", steering_angle)
         # 2. lane_detected가 False이고 cone_angle이 있으면 cone_angle 사용
