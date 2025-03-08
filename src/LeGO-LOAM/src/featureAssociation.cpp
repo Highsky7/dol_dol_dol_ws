@@ -48,7 +48,7 @@ private:
     ros::Subscriber subLaserCloud;
     ros::Subscriber subLaserCloudInfo;
     ros::Subscriber subOutlierCloud;
-    ros::Subscriber subImu;
+    // ros::Subscriber subImu;
 
     ros::Publisher pubCornerPointsSharp;
     ros::Publisher pubCornerPointsLessSharp;
@@ -136,10 +136,11 @@ private:
 
 
 
-    ros::Publisher pubLaserCloudCornerLast;
-    ros::Publisher pubLaserCloudSurfLast;
+    // 아래 네 가지 토픽에 관한 퍼블리셔를 주석 처리함
+    // ros::Publisher pubLaserCloudCornerLast;
+    // ros::Publisher pubLaserCloudSurfLast;
+    // ros::Publisher pubOutlierCloudLast;
     ros::Publisher pubLaserOdometry;
-    ros::Publisher pubOutlierCloudLast;
 
     int skipFrameNum;
     bool systemInitedLM;
@@ -195,16 +196,17 @@ public:
         subLaserCloud = nh.subscribe<sensor_msgs::PointCloud2>("/segmented_cloud", 1, &FeatureAssociation::laserCloudHandler, this);
         subLaserCloudInfo = nh.subscribe<cloud_msgs::cloud_info>("/segmented_cloud_info", 1, &FeatureAssociation::laserCloudInfoHandler, this);
         subOutlierCloud = nh.subscribe<sensor_msgs::PointCloud2>("/outlier_cloud", 1, &FeatureAssociation::outlierCloudHandler, this);
-        subImu = nh.subscribe<sensor_msgs::Imu>(imuTopic, 50, &FeatureAssociation::imuHandler, this);
+        // subImu = nh.subscribe<sensor_msgs::Imu>(imuTopic, 50, &FeatureAssociation::imuHandler, this);
 
         pubCornerPointsSharp = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_sharp", 1);
         pubCornerPointsLessSharp = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_sharp", 1);
         pubSurfPointsFlat = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_flat", 1);
         pubSurfPointsLessFlat = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_less_flat", 1);
 
-        pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 2);
-        pubLaserCloudSurfLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 2);
-        pubOutlierCloudLast = nh.advertise<sensor_msgs::PointCloud2>("/outlier_cloud_last", 2);
+        // 아래 네 가지 토픽에 관한 퍼블리셔를 주석 처리함
+        // pubLaserCloudCornerLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_corner_last", 2);
+        // pubLaserCloudSurfLast = nh.advertise<sensor_msgs::PointCloud2>("/laser_cloud_surf_last", 2);
+        // pubOutlierCloudLast = nh.advertise<sensor_msgs::PointCloud2>("/outlier_cloud_last", 2);
         pubLaserOdometry = nh.advertise<nav_msgs::Odometry> ("/laser_odom_to_init", 5);
         
         initializationValue();
@@ -1012,8 +1014,7 @@ public:
                      + cbcx*cbcz*((saly*salz + caly*calz*salx)*(sbly*sblz + cbly*cblz*sblx) 
                      + (caly*salz - calz*salx*saly)*(cbly*sblz - cblz*sblx*sbly) 
                      + calx*calz*cblx*cblz) - cbcx*sbcz*((saly*salz + caly*calz*salx)*(cblz*sbly 
-                     - cbly*sblx*sblz) + (caly*salz - calz*salx*saly)*(cbly*cblz + sblx*sbly*sblz) 
-                     - calx*calz*cblx*sblz);
+                     - cbly*sblx*sblz) + (caly*salz - calz*salx*saly)*(cbly*cblz+sblx*sbly*sblz) - calx*calz*cblx*sblz);
         acz = atan2(srzcrx / cos(acx), crzcrx / cos(acx));
     }
 
@@ -1623,17 +1624,18 @@ public:
         laserCloudCornerLastNum = laserCloudCornerLast->points.size();
         laserCloudSurfLastNum = laserCloudSurfLast->points.size();
 
-        sensor_msgs::PointCloud2 laserCloudCornerLast2;
-        pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
-        laserCloudCornerLast2.header.stamp = cloudHeader.stamp;
-        laserCloudCornerLast2.header.frame_id = "camera";
-        pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
+        // 아래 네 가지 토픽에 관한 퍼블리셔로의 퍼블리싱을 주석 처리함
+        // sensor_msgs::PointCloud2 laserCloudCornerLast2;
+        // pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
+        // laserCloudCornerLast2.header.stamp = cloudHeader.stamp;
+        // laserCloudCornerLast2.header.frame_id = "camera";
+        // pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
 
-        sensor_msgs::PointCloud2 laserCloudSurfLast2;
-        pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
-        laserCloudSurfLast2.header.stamp = cloudHeader.stamp;
-        laserCloudSurfLast2.header.frame_id = "camera";
-        pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
+        // sensor_msgs::PointCloud2 laserCloudSurfLast2;
+        // pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
+        // laserCloudSurfLast2.header.stamp = cloudHeader.stamp;
+        // laserCloudSurfLast2.header.frame_id = "camera";
+        // pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
 
         transformSum[0] += imuPitchStart;
         transformSum[2] += imuRollStart;
@@ -1799,23 +1801,26 @@ public:
             frameCount = 0;
 
             adjustOutlierCloud();
-            sensor_msgs::PointCloud2 outlierCloudLast2;
-            pcl::toROSMsg(*outlierCloud, outlierCloudLast2);
-            outlierCloudLast2.header.stamp = cloudHeader.stamp;
-            outlierCloudLast2.header.frame_id = "camera";
-            pubOutlierCloudLast.publish(outlierCloudLast2);
+            // 아래 토픽 "/outlier_cloud_last" 관련 퍼블리싱을 주석 처리함
+            // sensor_msgs::PointCloud2 outlierCloudLast2;
+            // pcl::toROSMsg(*outlierCloud, outlierCloudLast2);
+            // outlierCloudLast2.header.stamp = cloudHeader.stamp;
+            // outlierCloudLast2.header.frame_id = "camera";
+            // pubOutlierCloudLast.publish(outlierCloudLast2);
 
-            sensor_msgs::PointCloud2 laserCloudCornerLast2;
-            pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
-            laserCloudCornerLast2.header.stamp = cloudHeader.stamp;
-            laserCloudCornerLast2.header.frame_id = "camera";
-            pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
+            // 아래 토픽 "/laser_cloud_corner_last" 관련 퍼블리싱을 주석 처리함
+            // sensor_msgs::PointCloud2 laserCloudCornerLast2;
+            // pcl::toROSMsg(*laserCloudCornerLast, laserCloudCornerLast2);
+            // laserCloudCornerLast2.header.stamp = cloudHeader.stamp;
+            // laserCloudCornerLast2.header.frame_id = "camera";
+            // pubLaserCloudCornerLast.publish(laserCloudCornerLast2);
 
-            sensor_msgs::PointCloud2 laserCloudSurfLast2;
-            pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
-            laserCloudSurfLast2.header.stamp = cloudHeader.stamp;
-            laserCloudSurfLast2.header.frame_id = "camera";
-            pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
+            // 아래 토픽 "/laser_cloud_surf_last" 관련 퍼블리싱을 주석 처리함
+            // sensor_msgs::PointCloud2 laserCloudSurfLast2;
+            // pcl::toROSMsg(*laserCloudSurfLast, laserCloudSurfLast2);
+            // laserCloudSurfLast2.header.stamp = cloudHeader.stamp;
+            // laserCloudSurfLast2.header.frame_id = "camera";
+            // pubLaserCloudSurfLast.publish(laserCloudSurfLast2);
         }
     }
 
