@@ -109,15 +109,15 @@ void SortRos::rectArrayCallback (const visualization_msgs::MarkerArray::ConstPtr
         marker.scale.y = 0.25;
         marker.scale.z = 0.25;
 
-        // 기존: 속도가 임계값 미만이면 파란색, 이상이면 주황색
+        // 기존: 속도가 임계값 미만이면 파란색, 이상이면 pink
         if (speed < speed_threshold) {
             marker.color.r = 0.0;
             marker.color.g = 0.0;
             marker.color.b = 1.0;
         } else {
             marker.color.r = 1.0;
-            marker.color.g = 0.5;
-            marker.color.b = 0.0;
+            marker.color.g = 0.4;
+            marker.color.b = 0.7;                       
             // dynamic (else) 분기: 동적 장애물이 존재함을 표시
             dynamic_found = true;
         }
