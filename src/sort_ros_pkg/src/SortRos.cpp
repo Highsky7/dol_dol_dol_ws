@@ -116,8 +116,8 @@ void SortRos::rectArrayCallback (const visualization_msgs::MarkerArray::ConstPtr
             marker.color.b = 1.0;
         } else {
             marker.color.r = 1.0;
-            marker.color.g = 0.4;
-            marker.color.b = 0.7;                       
+            marker.color.g = 0.0784;
+            marker.color.b = 0.5765;                                 
             // dynamic (else) 분기: 동적 장애물이 존재함을 표시
             dynamic_found = true;
         }
