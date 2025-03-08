@@ -27,7 +27,7 @@ private:
     ros::Publisher pubMovingVector;
 
     ros::Subscriber subLaserOdometry;
-    ros::Subscriber subOdomAftMapped;
+    // ros::Subscriber subOdomAftMapped;
   
     nav_msgs::Odometry laserOdometry2;
     tf::StampedTransform laserOdometryTrans2;
@@ -50,7 +50,7 @@ public:
         pubMovingVector = nh.advertise<geometry_msgs::Vector3>("/moving_vector", 5);
 
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
-        subOdomAftMapped = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
+        // subOdomAftMapped = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
 
         laserOdometry2.header.frame_id = "velodyne_init";
         laserOdometry2.child_frame_id = "velodyne";
