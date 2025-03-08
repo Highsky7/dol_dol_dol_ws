@@ -3,43 +3,16 @@
 
 ros::NodeHandle nh;
 
-float auto_steer_angle_lane = 0.0;
-float auto_steer_angle_cone = 0.0;
-float auto_steer_angle_tunnel = 0.0;
+float auto_steer_angle
 
-bool lane_received = false;
-bool cone_received = false;
-bool tunnel_received = false;
-
-unsigned long last_lane_time = 0;
-unsigned long last_cone_time = 0;
-unsigned long last_tunnel_time = 0;
-
-void laneCallback(const std_msgs::Float32& msg) {
-  auto_steer_angle_lane = msg.data;
-  lane_received = true;
-  last_lane_time = millis();
+void steeringCallback(const std_msgs::Float32& msg) {
+  auto_steer_angle = msg.data;
 }
 
-void coneCallback(const std_msgs::Float32& msg) {
-  auto_steer_angle_cone = msg.data;
-  cone_received = true;
-  last_cone_time = millis();
-}
-
-void tunnelCallback(const std_msgs::Float32& msg) {
-  auto_steer_angle_tunnel = msg.data;
-  tunnel_received = true;
-  last_tunnel_time = millis();
-}
-
-
-// "steering_angle" 토픽을 구독하도록 설정
-ros::Subscriber<std_msgs::Float32> sub_lane("auto_steer_angle_lane", laneCallback);
-ros::Subscriber<std_msgs::Float32> sub_cone("auto_steer_angle_cone", coneCallback);
-ros::Subscriber<std_msgs::Float32> sub_tunnel("auto_steer_angle_tunnel", tunnelCallback);
+ros::Subscriber<std_msgs::Float32> sub_steering("steering_angle", steeringCallback);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #define PULSE_MAX               2200
 #define PULSE_MIN               800
 #define DETECTION_ERR           -1
@@ -75,6 +48,8 @@ ros::Subscriber<std_msgs::Float32> sub_tunnel("auto_steer_angle_tunnel", tunnelC
 #define KI                      0.00002
 #define KD                      0
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 volatile long Steering_Edge_now_us = DETECTION_ERR;
 volatile long Steering_Edge_before_us = DETECTION_ERR;
 volatile long Steering_us = DETECTION_ERR;
@@ -107,16 +82,12 @@ int DIR3 = 8;
 int PWM3 = 9;
 
 int POTval = 0;
-int POTPin = A0; // 가변저항이 연결된 아날로그 핀
+int POTPin = A0;
 
-// 시간 측정 변수
 unsigned long t_us = 0;
 unsigned long prev_t_us = 0;
 
-// throttle 입력값
-double torqueVal = 0.0;
-
-float auto_steer_angle = 0.0;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float Mapping(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -164,7 +135,7 @@ void AutoPulseInt() {
 
 double PID(double ref, double sense, double dt_us) {
   static double prev_err = 0.0;
-  static double integral = 0.0; // 오차 누적값
+  static double integral = 0.0;
   double err = ref - sense;
   double dt_s = dt_us * 1.0e-6;
   integral += err * dt_s;
@@ -174,6 +145,8 @@ double PID(double ref, double sense, double dt_us) {
   prev_err = err;
   return P + I + D;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void StopMotor() {
   digitalWrite(DIR1, HIGH);
@@ -222,16 +195,12 @@ void Steer(double throttle) {
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void setup() {
-  // rosserial 통신에 맞추어 Serial 통신 속도를 57600으로 설정합니다.
   Serial.begin(57600);
   nh.initNode();
-  nh.subscribe(sub_lane);
-  nh.subscribe(sub_cone);
-  nh.subscribe(sub_tunnel);
-  
-  // 디버깅을 위한 시리얼 출력 (옵션)
-  Serial.println("Arduino ROS Node Started");
+  nh.subscribe(sub_steering);
 
   pinMode(STEERING_PULSE_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(STEERING_PULSE_PIN), SteeringPulseInt, CHANGE);
@@ -259,21 +228,19 @@ void setup() {
 
 void loop() {
   nh.spinOnce();
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  /*
   unsigned long current_time = millis();
-
   if (lane_received && (current_time - last_lane_time > 500)) {
     lane_received = false;
   }
-
   if (cone_received && (current_time - last_cone_time > 500)) {
     cone_received = false;
   }
-
   if (tunnel_received && (current_time - last_tunnel_time > 500)) {
     tunnel_received = false;
   }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  */
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   static int prev_t_us = 0;
   int t_us = micros();
@@ -283,7 +250,8 @@ void loop() {
   int Mode_val;
   int Speed_val;
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   cli();
   if ((Steering_us > PULSE_MIN) && (Steering_us < PULSE_MAX)) {
     Steering_val = Steering_us;
@@ -322,19 +290,24 @@ void loop() {
   }
   sei();
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   float Throttle_input = Mapping(Accel_val, 984, 1972.0, -1.0, 1.0);
   if (Accel_val >= 1470 && Accel_val <= 1480) {
     Throttle_input = 0;
   }
   float Steer_input = Mapping(Steering_val, 992.2, 1964.0, -1.0, 1.0);
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   double ref_steer_deg = Mapping(Steer_input, -1.0, 1.0, MAX_STEER_TIRE_DEG, -MAX_STEER_TIRE_DEG);
 
   POTval = analogRead(POTPin);
+  
   double deg = Mapping(POTval, POT_MIN, POT_MAX, -MAX_STEER_TIRE_DEG, MAX_STEER_TIRE_DEG);
+  
   int dt = t_us - prev_t_us;
+  
   double pid_return = PID(ref_steer_deg, deg, dt);
   if (pid_return > 1.0){
     pid_return = 1.0;
@@ -343,7 +316,9 @@ void loop() {
     pid_return = -1.0;
   }
 
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  /*
   if (lane_received == true) {
     auto_steer_angle = auto_steer_angle_lane;
   }
@@ -353,7 +328,10 @@ void loop() {
   else if (lane_received == false && cone_received == false && tunnel_received == true) {
     auto_steer_angle = auto_steer_angle_tunnel;
   }
-  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   if (Mode_val == BREAK_MODE){
     StopMotor();
   }
@@ -368,8 +346,10 @@ void loop() {
     Steer(pid_return);
   }
   else if (Mode_val == AUTO_MODE) {
+    
     float ref_steer_deg = auto_steer_angle;
     double pid_return = PID(ref_steer_deg, deg, dt);
+
     if (Speed_val == ONESTEP_MODE){
       MoveForward(0.3);
       Steer(pid_return);
@@ -384,8 +364,11 @@ void loop() {
     }
   }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  /*
   static unsigned long lastPrint = 0;
-  if (millis() - lastPrint > 200) {  // 200ms마다 출력
+  if (millis() - lastPrint > 200) {
     Serial.print("ref: "); Serial.println(ref_steer_deg);
     Serial.print("deg: "); Serial.println(deg);
     Serial.print("Steering_us: "); Serial.println(Steering_us);
@@ -399,5 +382,7 @@ void loop() {
     Serial.println("////////////////////////////////////////");
     lastPrint = millis();
   }
+  */
+
   prev_t_us = t_us;
 }
