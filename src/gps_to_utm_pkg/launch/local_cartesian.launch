@@ -1,0 +1,13 @@
+<launch>
+  <!-- gps_to_local_cartesian.py: /ublox_gps/fix 데이터를 받아 위도/경도를 로컬 좌표로 변환하고 /local_xy를 publish -->
+  <node pkg="gps_to_utm_pkg" type="gps_to_local_cartesian.py" name="gps_to_local_cartesian" output="screen" />
+
+  <!-- local_cartesian_path_publisher.py: course1.csv를 읽어 정적 경로를 /resampled_path 및 /local_xy로 publish -->
+  <node pkg="gps_to_utm_pkg" type="local_cartesian_path_publisher.py" name="local_cartesian_path_publisher" output="screen" />
+
+  <!-- global_yaw_estimator.py: /local_xy를 구독하여 global yaw를 계산하고 /global_yaw, /raw_global_yaw를 publish -->
+  <node pkg="gps_to_utm_pkg" type="global_yaw_estimator.py" name="global_yaw_estimator" output="screen" />
+
+  <!-- vehicle_tf_broadcaster.py: /local_xy와 /global_yaw를 구독하여 기준(reference)과 vehicle frame의 TF를 publish -->
+  <node pkg="gps_to_utm_pkg" type="vehicle_tf_broadcaster.py" name="vehicle_tf_broadcaster" output="screen" />
+</launch>
