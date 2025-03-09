@@ -522,24 +522,24 @@ def lane_line_mask(ll=None, threshold=0.5, method='otsu'):
     return binary_mask
 
 
-def apply_clahe(image):
-    """
-    CLAHE를 사용하여 이미지의 대비를 향상시킵니다.
+# def apply_clahe(image):
+#     """
+#     CLAHE를 사용하여 이미지의 대비를 향상시킵니다.
     
-    Parameters:
-        image (numpy.ndarray): 입력 이미지. 컬러(BGR) 또는 그레이스케일.
+#     Parameters:
+#         image (numpy.ndarray): 입력 이미지. 컬러(BGR) 또는 그레이스케일.
         
-    Returns:
-        enhanced_image (numpy.ndarray): 대비가 향상된 이미지.
-    """
-    if len(image.shape) == 3 and image.shape[2] == 3:
-        # 컬러 이미지인 경우 YUV 색 공간으로 변환 후 Y 채널에 CLAHE 적용
-        yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        yuv[:, :, 0] = clahe.apply(yuv[:, :, 0])
-        enhanced_image = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
-    else:
-        # 그레이스케일 이미지인 경우 직접 CLAHE 적용
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced_image = clahe.apply(image)
-    return enhanced_image
+#     Returns:
+#         enhanced_image (numpy.ndarray): 대비가 향상된 이미지.
+#     """
+#     if len(image.shape) == 3 and image.shape[2] == 3:
+#         # 컬러 이미지인 경우 YUV 색 공간으로 변환 후 Y 채널에 CLAHE 적용
+#         yuv = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
+#         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+#         yuv[:, :, 0] = clahe.apply(yuv[:, :, 0])
+#         enhanced_image = cv2.cvtColor(yuv, cv2.COLOR_YUV2BGR)
+#     else:
+#         # 그레이스케일 이미지인 경우 직접 CLAHE 적용
+#         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+#         enhanced_image = clahe.apply(image)
+#     return enhanced_image
