@@ -5,16 +5,23 @@ ros::NodeHandle nh;
 
 // 기존: 여러 조향각 변수와 플래그 제거, 단일 조향각만 유지
 float auto_steer_angle = 0.0;
+float auto_throttle = 0.0;
 
 // 새로운 콜백 함수: steering_angle 토픽에서 직접 auto_steer_angle 업데이트
 void steeringCallback(const std_msgs::Float32& msg) {
   auto_steer_angle = msg.data;
 }
 
+void throttleCallback(const std_msgs::Float32& msg) {
+  auto_throttle = msg.data;
+}
+
 // 새로운 구독자: steering_angle 토픽 구독
 ros::Subscriber<std_msgs::Float32> sub_steering("steering_angle", steeringCallback);
+ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallback);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 #define PULSE_MAX               2200
 #define PULSE_MIN               800
 #define DETECTION_ERR           -1
@@ -49,6 +56,8 @@ ros::Subscriber<std_msgs::Float32> sub_steering("steering_angle", steeringCallba
 #define KP                      0.08
 #define KI                      0.00002
 #define KD                      0
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 volatile long Steering_Edge_now_us = DETECTION_ERR;
 volatile long Steering_Edge_before_us = DETECTION_ERR;
@@ -87,7 +96,7 @@ int POTPin = A0;
 unsigned long t_us = 0;
 unsigned long prev_t_us = 0;
 
-double torqueVal = 0.0;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 float Mapping(float x, float in_min, float in_max, float out_min, float out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
@@ -146,6 +155,8 @@ double PID(double ref, double sense, double dt_us) {
   return P + I + D;
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void StopMotor() {
   digitalWrite(DIR1, HIGH);
   analogWrite(PWM1, 0);
@@ -193,13 +204,13 @@ void Steer(double throttle) {
   }
 }
 
-void setup() {
-  Serial.begin(57600); // ROSserial 통신을 위해 유지
-  nh.initNode();
-  nh.subscribe(sub_steering); // 새로운 토픽 구독으로 변경
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  // 디버깅 출력 제거
-  // Serial.println("Arduino ROS Node Started");
+void setup() {
+  Serial.begin(57600);
+  nh.initNode();
+  nh.subscribe(sub_steering);
+  nh.subscribe(sub_throttle);
 
   pinMode(STEERING_PULSE_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(STEERING_PULSE_PIN), SteeringPulseInt, CHANGE);
@@ -227,8 +238,6 @@ void setup() {
 
 void loop() {
   nh.spinOnce();
-
-  // 제거: 타임아웃 체크 및 플래그 업데이트
   /*
   unsigned long current_time = millis();
   if (lane_received && (current_time - last_lane_time > 500)) {
@@ -241,6 +250,7 @@ void loop() {
     tunnel_received = false;
   }
   */
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   static int prev_t_us = 0;
   int t_us = micros();
@@ -249,6 +259,8 @@ void loop() {
   int Accel_val;
   int Mode_val;
   int Speed_val;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   cli();
   if ((Steering_us > PULSE_MIN) && (Steering_us < PULSE_MAX)) {
@@ -288,17 +300,24 @@ void loop() {
   }
   sei();
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   float Throttle_input = Mapping(Accel_val, 984, 1972.0, -1.0, 1.0);
   if (Accel_val >= 1470 && Accel_val <= 1480) {
     Throttle_input = 0;
   }
   float Steer_input = Mapping(Steering_val, 992.2, 1964.0, -1.0, 1.0);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   double ref_steer_deg = Mapping(Steer_input, -1.0, 1.0, MAX_STEER_TIRE_DEG, -MAX_STEER_TIRE_DEG);
 
   POTval = analogRead(POTPin);
+  
   double deg = Mapping(POTval, POT_MIN, POT_MAX, -MAX_STEER_TIRE_DEG, MAX_STEER_TIRE_DEG);
+  
   int dt = t_us - prev_t_us;
+  
   double pid_return = PID(ref_steer_deg, deg, dt);
   if (pid_return > 1.0){
     pid_return = 1.0;
@@ -307,7 +326,8 @@ void loop() {
     pid_return = -1.0;
   }
 
-  // 제거: 조향각 판단 로직
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   /*
   if (lane_received == true) {
     auto_steer_angle = auto_steer_angle_lane;
@@ -319,6 +339,8 @@ void loop() {
     auto_steer_angle = auto_steer_angle_tunnel;
   }
   */
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   if (Mode_val == BREAK_MODE){
     StopMotor();
@@ -334,8 +356,10 @@ void loop() {
     Steer(pid_return);
   }
   else if (Mode_val == AUTO_MODE) {
-    float ref_steer_deg = auto_steer_angle; // 파이썬 노드에서 받은 값 사용
+    
+    float ref_steer_deg = auto_steer_angle;
     double pid_return = PID(ref_steer_deg, deg, dt);
+
     if (Speed_val == ONESTEP_MODE){
       MoveForward(0.3);
       Steer(pid_return);
@@ -345,12 +369,13 @@ void loop() {
       Steer(pid_return);
     }
     if (Speed_val == THREESTEP_MODE){
-      MoveForward(0.7);
+      MoveForward(auto_throttle);
       Steer(pid_return);
     }
   }
 
-  // 제거: 디버깅 출력
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
   /*
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 200) {
