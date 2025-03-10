@@ -39,15 +39,15 @@ pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)  
 # argparse 설정
 def make_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='/home/highsky/yolopv2.pt', help='model.pt 경로')
-    parser.add_argument('--source', type=str, default='0', help='source: 0(webcam) 또는 파일 경로')
+    parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
+    parser.add_argument('--source', type=str, default='2', help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
     parser.add_argument('--project', default='runs/detect', help='결과 저장 폴더')
     parser.add_argument('--name', default='exp', help='결과 저장 폴더 이름')
     parser.add_argument('--frame-skip', type=int, default=0, help='프레임 건너뛰기')
-    parser.add_argument('--param-file', type=str, default='/home/highsky/dol_dol_dol_ws/bev_params.npz', help='BEV 파라미터')
+    parser.add_argument('--param-file', type=str, default='./bev_params.npz', help='BEV 파라미터')
     parser.add_argument('--debug', action='store_true', help='차량 좌표계 시각화')
     return parser
 

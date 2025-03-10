@@ -36,7 +36,7 @@ from utils.utils import (
 # argparse 설정
 def make_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='/home/highsky/yolopv2.pt', help='model.pt 경로')
+    parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
     parser.add_argument('--source', type=str, default='2', help='source: 0(webcam) 또는 영상/이미지 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
@@ -46,7 +46,7 @@ def make_parser():
     parser.add_argument('--name', default='exp', help='결과 저장 폴더 이름')
     parser.add_argument('--exist-ok', action='store_false', help='기존 폴더 사용 허용')
     parser.add_argument('--frame-skip', type=int, default=0, help='프레임 건너뛰기 (0이면 건너뛰지 않음)')
-    parser.add_argument('--param-file', type=str, default='/home/highsky/dol_dol_dol_ws/bev_params.npz', help='BEV 파라미터')
+    parser.add_argument('--param-file', type=str, default='./bev_params.npz', help='BEV 파라미터')
     parser.add_argument('--debug', action='store_true', help='Matplotlib을 사용하여 차선 시각화')
     return parser
 
