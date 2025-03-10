@@ -1,4 +1,4 @@
-#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+#!/home/highsky/lidar_env/bin/python3
 
 import sys
 import os
