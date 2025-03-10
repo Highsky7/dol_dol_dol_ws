@@ -3,9 +3,9 @@
 1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
 2터미널: rosrun judgement judgement.py
 3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
-4터미널: rv (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
+4터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
 5터미널: rosrun voxelnext_pkg lidar_ros_node.py
-6터미널: roslaunch lego_loam run.launch
+6터미널: roslaunch lego_loam run.launch   (뒤에  yaw_init:=100 조건 추가하면 /global_yaw_lidar 토픽 발행됨)
 7터미널: roslaunch ma_rrt_path_plan startExploring.launch
 8터미널: rosrun ma_rrt_path_plan ma_rrt_purepursuit.py
 9터미널: rosrun sort_ros_pkg sort_ros_node
