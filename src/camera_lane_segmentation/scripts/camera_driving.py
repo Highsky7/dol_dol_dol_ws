@@ -1,4 +1,4 @@
-#!/home/yoo/doldol/bin/python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 import rospy
@@ -18,7 +18,7 @@ import os
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Bool  # Bool 추가
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
@@ -27,28 +27,27 @@ from utils.utils import (
     AverageMeter, LoadCamera, LoadImages, letterbox,
 )
 
-# ROS 퍼블리셔 정의
+# ROS 퍼블리셔 정의 (lane_detection_status 추가)
 pub_lane_marker = rospy.Publisher('lane_data_marker', MarkerArray, queue_size=1)
 pub_path_marker = rospy.Publisher('lane_path_marker', MarkerArray, queue_size=1)
 pub_goal_marker = rospy.Publisher('goal_point_marker', Marker, queue_size=1)
 pub_steering = rospy.Publisher('auto_steer_angle_lane', Float32, queue_size=1)
 pub_mask = rospy.Publisher('camera_lane_segmentation/lane_mask', Image, queue_size=1)
 pub_binary = rospy.Publisher('camera_lane_segmentation/binary_mask', Image, queue_size=1)
+pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)  # 추가
 
 # argparse 설정
 def make_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='/home/yoo/yoo_camera_ws/src/YOLOPv2/weights/yolopv2.pt', help='model.pt 경로')
-    parser.add_argument('--source', type=str, #default='/home/yoo/source/test_video3.mp4', 
-                                              default='0',
-                                              help='source: 0(webcam) 또는 파일 경로')
+    parser.add_argument('--weights', type=str, default='/home/highsky/yolopv2.pt', help='model.pt 경로')
+    parser.add_argument('--source', type=str, default='0', help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
     parser.add_argument('--project', default='runs/detect', help='결과 저장 폴더')
     parser.add_argument('--name', default='exp', help='결과 저장 폴더 이름')
     parser.add_argument('--frame-skip', type=int, default=0, help='프레임 건너뛰기')
-    parser.add_argument('--param-file', type=str, default='/home/yoo/dol_dol_dol_ws/bev_params.npz', help='BEV 파라미터')
+    parser.add_argument('--param-file', type=str, default='/home/highsky/dol_dol_dol_ws/bev_params.npz', help='BEV 파라미터')
     parser.add_argument('--debug', action='store_true', help='차량 좌표계 시각화')
     return parser
 
@@ -232,8 +231,8 @@ def debug_plot_lane(path_points, goal_point=None):
         plt.show(block=False)
         plt.pause(0.001)
 
-# 메인 처리 함수
-def detect_and_publish(opt, pub_mask, pub_steering):
+# 메인 처리 함수 (lane_detection_status 퍼블리시 추가)
+def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):  # 인자 추가
     cv2.setUseOptimized(True)
     cv2.setNumThreads(0)
     cudnn.benchmark = True
@@ -261,7 +260,7 @@ def detect_and_publish(opt, pub_mask, pub_steering):
         net_input_img = np.ascontiguousarray(net_input_img)
         img_t = torch.from_numpy(net_input_img).to(device).float() / 255.0
         if half:
-            img_t = img_t.half()  # 반정밀도로 변환
+            img_t = img_t.half()
         if img_t.ndimension() == 3:
             img_t = img_t.unsqueeze(0)
 
@@ -283,6 +282,10 @@ def detect_and_publish(opt, pub_mask, pub_steering):
         lane_data = extract_lane_functions(final_mask, poly_degree=3)
         path_coeff = create_path_function(lane_data, offset_right=0.75, offset_left=-0.75)
         path_points = sample_path_points(path_coeff) if path_coeff is not None else []
+
+        # 차선 검출 여부 판단 및 퍼블리시
+        lane_detected = path_coeff is not None and len(path_points) > 0
+        pub_lane_status.publish(Bool(data=lane_detected))
 
         bev_im = do_bev_transform(im0s, bev_param_file)
         bev_im_color = overlay_polyline(bev_im, path_points)
@@ -332,11 +335,10 @@ def detect_and_publish(opt, pub_mask, pub_steering):
             pub_goal_marker.publish(delete_marker)
             pub_path_marker.publish(MarkerArray())
 
-        # ROS 퍼블리시 추가
+        # ROS 퍼블리시
         pub_mask.publish(bridge.cv2_to_imgmsg(bev_im_color, "bgr8"))
         pub_binary.publish(bridge.cv2_to_imgmsg(final_mask, "mono8"))
 
-        # GUI가 있는 경우에만 표시
         if 'DISPLAY' in os.environ:
             cv2.imshow("BEV + Polyfit", bev_im_color)
             cv2.imshow("Final Mask", final_mask)
@@ -395,7 +397,7 @@ def ros_main():
     opt, _ = parser.parse_known_args()
     if opt.debug:
         plt.ion()
-    detect_and_publish(opt, pub_mask, pub_steering)
+    detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status)  # 인자 추가
 
 if __name__ == '__main__':
     try:
