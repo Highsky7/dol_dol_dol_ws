@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(voxelnext_pkg)
-
+set(PYTHON_EXECUTABLE /home/highsky/lidar_env/bin/python)
 # vehicle_msgs를 하위 디렉토리로 포함
 #add_subdirectory(vehicle_msgs)
 

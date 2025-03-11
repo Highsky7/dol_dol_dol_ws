@@ -10,7 +10,7 @@ from scipy.interpolate import CubicSpline
 
 # CSV 파일 경로 (course1.csv; 대회측 제공 CSV)
 # csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "~/git/gnss/src/gps_to_utm_pkg/data/course1.csv"))
-csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "~/git/gnss/src/gps_to_utm_pkg/data/ilgam_lake.csv"))
+csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "/home/highsky/dol_dol_dol_ws/src/gps_to_utm_pkg/data/ilgam_lake.csv"))
 # csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "~/git/gnss/src/gps_to_utm_pkg/data/smart_factory1.csv"))
 
 # rosparam으로 설정 가능한 파라미터들

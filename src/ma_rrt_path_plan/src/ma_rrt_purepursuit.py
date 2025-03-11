@@ -40,7 +40,7 @@ class MaRRTPurePursuit:
         self.control_points = []  
         
         # 퍼블리셔
-        # 아두이노가 std_msgs/Float32를 구독하므로, 해당 타입으로 publish합니다.
+        # 판단노드가 std_msgs/Float32를 구독하므로, 해당 타입으로 publish합니다.
         self.cmd_pub              = rospy.Publisher("/auto_steer_angle_cone", Float32, queue_size=10)
         self.lookahead_marker_pub = rospy.Publisher("/lookahead_marker", Marker, queue_size=10)
         self.final_waypoints_pub  = rospy.Publisher("/final_waypoints", Path, queue_size=10)
