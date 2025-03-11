@@ -60,13 +60,8 @@ class PurePursuit:
         
         # 차량 좌표계에서는 전방이 x축이므로, alpha = arctan2(y, x)
         alpha = math.atan2(lookahead_pt.y, lookahead_pt.x)
-<<<<<<< HEAD
-        # Pure pursuit 조향각 공식: δ = arctan( 2L sin(α) / L_d )
-        steer_angle = -math.atan2(2 * self.wheelbase * math.sin(alpha), dist)
-=======
         # Pure pursuit 조향각 공식: δ = arctan( 2L sin(α) / d )
         steer_angle = math.atan2(2 * self.wheelbase * math.sin(alpha), dist)
->>>>>>> origin/dev
         
         # 라디안으로 계산된 조향각을 degree로 변환
         steer_angle_deg = math.degrees(steer_angle)
