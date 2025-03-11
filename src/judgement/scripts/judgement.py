@@ -68,12 +68,7 @@ class Judgement:
         elif self.cone_angle is not None:
             steering_angle = self.cone_angle
             rospy.loginfo("Using cone angle: %.2f", steering_angle)
-        # 3. 위 조건이 모두 안 되면 tunnel_angle 사용 (원래 조건 복구)
-        elif self.tunnel_angle is not None:
-            steering_angle = self.tunnel_angle
-            rospy.loginfo("Using tunnel angle: %.2f", steering_angle)
-        else:
-            rospy.logwarn("No valid steering angle available")
+        # 3. 위 조건이 모두 안 되면 tunnel_angle 사용 (원lidar_ld.e")
          # 유효한 조향각이 있으면 퍼블리시
         if steering_angle is not None:
             self.pub_steering.publish(Float32(data=steering_angle))
