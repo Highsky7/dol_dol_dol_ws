@@ -49,9 +49,9 @@ ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallbac
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 908
-#define POT_MIN                 264
-#define MAX_STEER_TIRE_DEG      18
+#define POT_MAX                 545
+#define POT_MIN                 0
+#define MAX_STEER_TIRE_DEG      18 
 
 #define KP                      0.08
 #define KI                      0.00002
@@ -376,7 +376,7 @@ void loop() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  /*
+  
   static unsigned long lastPrint = 0;
   if (millis() - lastPrint > 200) {
     Serial.print("ref: "); Serial.println(ref_steer_deg);
@@ -392,7 +392,7 @@ void loop() {
     Serial.println("////////////////////////////////////////");
     lastPrint = millis();
   }
-  */
+  
 
   prev_t_us = t_us;
 }

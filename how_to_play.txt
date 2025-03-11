@@ -2,16 +2,16 @@
 jecs@jecs-Default-string:~/git/gnss/src/gps_to_utm_pkg/data$ rosbag play 2025-03-06-22-05-02.bag --loop
 
 2. gps_to_utm_node 실행
-rosrun gps_to_utm_pkg gps_to_utm_node.py 
+rosrun gps_to_utm_pkg gps_to_utm_node.py
 
 3. utm_csv_visualizer_path.py 실행
-rosrun gps_to_utm_pkg utm_csv_visualizer_path.py 
+rosrun gps_to_utm_pkg utm_csv_visualizer_path.py
 
 4. global_yaw_estimator.py 실행
-rosrun gps_to_utm_pkg global_yaw_estimator.py 
+rosrun gps_to_utm_pkg global_yaw_estimator.py
 
 5. vehicle_tf_broadcaster.py 실행
-rosrun gps_to_utm_pkg vehicle_tf_broadcaster.py 
+rosrun gps_to_utm_pkg vehicle_tf_broadcaster.py
 
 ---------------------------------------------------------
 
@@ -25,10 +25,10 @@ rosrun gps_to_utm_pkg local_cartesian_path_publisher.py
 rosrun gps_to_utm_pkg gps_to_local_cartesian.py
 
 4. global_yaw_estimator.py 실행
-rosrun gps_to_utm_pkg global_yaw_estimator.py 
+rosrun gps_to_utm_pkg global_yaw_estimator.py
 
 5. vehicle_tf_broadcaster.py 실행
-rosrun gps_to_utm_pkg vehicle_tf_broadcaster.py 
+rosrun gps_to_utm_pkg vehicle_tf_broadcaster.py
 
 ---------------------------------------------------------
 

@@ -61,7 +61,7 @@ class PurePursuit:
         # 차량 좌표계에서는 전방이 x축이므로, alpha = arctan2(y, x)
         alpha = math.atan2(lookahead_pt.y, lookahead_pt.x)
         # Pure pursuit 조향각 공식: δ = arctan( 2L sin(α) / L_d )
-        steer_angle = math.atan2(2 * self.wheelbase * math.sin(alpha), dist)
+        steer_angle = -math.atan2(2 * self.wheelbase * math.sin(alpha), dist)
         
         self.steer_pub.publish(Float32(data=steer_angle))
         rospy.loginfo_throttle(1, "Lookahead: (%.2f, %.2f), dist: %.2f m, α: %.2f deg, steer: %.2f deg",
