@@ -7,6 +7,7 @@ frame_id: gps
 
 uart1:
   baudrate: 460800
+  # baudrate: 38400
 
 # Enable u-blox message publishers
 publish:
