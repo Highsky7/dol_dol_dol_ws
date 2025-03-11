@@ -119,4 +119,8 @@ class ntripclient:
 
 if __name__ == '__main__':
     c = ntripclient()
+<<<<<<< HEAD
     c.run()
+=======
+    c.run()
+>>>>>>> origin/dev
