@@ -38,11 +38,8 @@ jecs@jecs-Default-string:~/git/gnss/src/gps_to_utm_pkg/data$ rosbag play 2025-03
 2. launch 파일 실행
 roslaunch gps_to_utm_pkg local_cartesian.launch
 
-3. roi_path_publisher 실행
-rosrun gps_to_utm_pkg roi_path_publisher.py
+(gps_to_local_cartesian.py와 local_cartesian_path_publisher.py에서 둘 다 reference 위치 바꿔야함
+추후 수정하자!!!)
 
-gps_to_local_cartesian.py와 local_cartesian_path_publisher.py에서 둘 다 reference 위치 바꿔야함
-추후 수정하자!!!
-
-4. purepursuit 실행
+3. purepursuit 실행
 rosrun gps_to_utm_pkg purepursuit.py

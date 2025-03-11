@@ -17,7 +17,7 @@ class PurePursuit:
         # ROI Marker를 구독하여 최신 데이터를 저장
         rospy.Subscriber("roi_path_marker", Marker, self.roi_callback)
         
-        # 조향각을 publish할 토픽 (Float32, 단위 rad)
+        # 조향각을 publish할 토픽 (Float32, 단위: degree)
         self.steer_pub = rospy.Publisher("/auto_steer_angle_cone", Float32, queue_size=10)
         
         # Lookahead point Marker를 publish할 토픽
@@ -60,13 +60,17 @@ class PurePursuit:
         
         # 차량 좌표계에서는 전방이 x축이므로, alpha = arctan2(y, x)
         alpha = math.atan2(lookahead_pt.y, lookahead_pt.x)
-        # Pure pursuit 조향각 공식: δ = arctan( 2L sin(α) / L_d )
+        # Pure pursuit 조향각 공식: δ = arctan( 2L sin(α) / d )
         steer_angle = math.atan2(2 * self.wheelbase * math.sin(alpha), dist)
         
-        self.steer_pub.publish(Float32(data=steer_angle))
+        # 라디안으로 계산된 조향각을 degree로 변환
+        steer_angle_deg = math.degrees(steer_angle)
+        
+        # 좌회전이면 양수, 우회전이면 음수로 degree 단위로 publish
+        self.steer_pub.publish(Float32(data=steer_angle_deg))
         rospy.loginfo_throttle(1, "Lookahead: (%.2f, %.2f), dist: %.2f m, α: %.2f deg, steer: %.2f deg",
                                 lookahead_pt.x, lookahead_pt.y, dist,
-                                math.degrees(alpha), math.degrees(steer_angle))
+                                math.degrees(alpha), steer_angle_deg)
         
         # Lookahead point Marker (SPHERE)
         lookahead_marker = Marker()
