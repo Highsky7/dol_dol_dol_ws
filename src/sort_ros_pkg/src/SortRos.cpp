@@ -95,7 +95,7 @@ void SortRos::rectArrayCallback (const visualization_msgs::MarkerArray::ConstPtr
         marker.action = visualization_msgs::Marker::ADD;
 
         // marker.type = visualization_msgs::Marker::CUBE;
-        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.type = visualization_msgs::Marker::CYLINDER;
 
         marker.pose.position.x = rect.centerX;
         marker.pose.position.y = rect.centerY;
@@ -105,9 +105,9 @@ void SortRos::rectArrayCallback (const visualization_msgs::MarkerArray::ConstPtr
         marker.pose.orientation.z = 0.0;
         marker.pose.orientation.w = 1.0;
 
-        marker.scale.x = 0.25;
-        marker.scale.y = 0.25;
-        marker.scale.z = 0.25;
+        marker.scale.x = 0.4;
+        marker.scale.y = 0.4;
+        marker.scale.z = 0.8;
 
         // 기존: 속도가 임계값 미만이면 파란색, 이상이면 pink
         if (speed < speed_threshold) {
@@ -121,7 +121,7 @@ void SortRos::rectArrayCallback (const visualization_msgs::MarkerArray::ConstPtr
             // dynamic (else) 분기: 동적 장애물이 존재함을 표시
             dynamic_found = true;
         }
-        marker.color.a = 1.0;
+        marker.color.a = 0.6;
 
         markerArrayOutput.markers.push_back(marker);
     }
