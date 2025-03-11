@@ -526,6 +526,7 @@ bool Gps::setUseAdr(bool enable) {
 
 bool Gps::sendRtcm(const std::vector<uint8_t>& rtcm) {
   worker_->send(rtcm.data(), rtcm.size());
+  std::cout << "send rtcm" << std::endl;
   return true;
 }
 
