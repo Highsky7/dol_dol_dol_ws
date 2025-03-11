@@ -9,12 +9,6 @@ from geometry_msgs.msg import PoseStamped
 from scipy.interpolate import CubicSpline
 import rospkg
 
-<<<<<<< HEAD
-# CSV 파일 경로 (course1.csv; 대회측 제공 CSV)
-# csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "~/git/gnss/src/gps_to_utm_pkg/data/course1.csv"))
-csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "/home/highsky/dol_dol_dol_ws/src/gps_to_utm_pkg/data/ilgam_lake.csv"))
-# csv_filename = os.path.expanduser(rospy.get_param("~csv_filename", "~/git/gnss/src/gps_to_utm_pkg/data/smart_factory1.csv"))
-=======
 # rospkg를 이용하여 패키지 gps_to_utm_pkg의 경로를 가져옵니다.
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path("gps_to_utm_pkg")
@@ -26,7 +20,6 @@ default_csv = os.path.join(pkg_path, "data", "ilgam_lake.csv")
 
 # rosparam으로 설정 가능한 파라미터; 기본값은 위에서 설정한 default_csv입니다.
 csv_filename = rospy.get_param("~csv_filename", default_csv)
->>>>>>> origin/dev
 
 # rosparam으로 설정 가능한 파라미터들
 TARGET_SPACING = rospy.get_param("~target_spacing", 0.2)  # 보간 후 resampling 간격 (미터)
