@@ -116,11 +116,12 @@ class MaRRTPathPlanNode:
         coneObstacleList = []
         rrtConeTargets = []
         
-        # 차량으로부터 일정 비율(예, 12m의 50%인 6m) 이상 떨어진 콘들을 "원격 목표(remote targets)"로 선정하기 위한 기준
+        # 차량으로부터 일정 비율(예, 12m의 50%인 6m) 이상 떨어진 콘들을 목표로 선정하기 위한 기준
         coneTargetsDistRatio = 0.5
 
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
+            # coneObstacleSize: 목표점을 그대로 추종하는 대신, 목표물(콘)의 물리적인 크기를 고려하여 경로 계획 시 차량이 콘에 직접 충돌하지 않고 일정 안전 거리를 유지하도록 하기 위함
 
             coneDist = self.dist(self.carPosX, self.carPosY, cone.x, cone.y)
 

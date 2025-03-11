@@ -10,4 +10,10 @@
 
   <!-- vehicle_tf_broadcaster.py: /local_xy와 /global_yaw를 구독하여 기준(reference)과 vehicle frame의 TF를 publish -->
   <node pkg="gps_to_utm_pkg" type="vehicle_tf_broadcaster.py" name="vehicle_tf_broadcaster" output="screen" />
+
+  <!-- roi_path_publisher.py: 차량 전방 ROI Marker를 publish (scripts 폴더 내 실행 파일) -->
+  <node pkg="gps_to_utm_pkg" type="roi_path_publisher.py" name="roi_path_publisher" output="screen" />
+
+  <!-- purepursuit.py: Pure Pursuit 제어 노드, 좌회전은 양수, 우회전은 음수, 조향각은 degree 단위로 publish (scripts 폴더 내 실행 파일) -->
+  <node pkg="gps_to_utm_pkg" type="purepursuit.py" name="purepursuit" output="screen" />
 </launch>
