@@ -49,8 +49,8 @@ ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallbac
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 545
-#define POT_MIN                 0
+#define POT_MAX                 732
+#define POT_MIN                  85
 #define MAX_STEER_TIRE_DEG      18 
 
 #define KP                      0.08
@@ -353,7 +353,7 @@ void loop() {
       Throttle_input *= -1.0;
       MoveBackward(Throttle_input);
     }
-    Steer(pid_return);
+    Steer(-pid_return);
   }
   else if (Mode_val == AUTO_MODE) {
     
@@ -362,15 +362,15 @@ void loop() {
 
     if (Speed_val == ONESTEP_MODE){
       MoveForward(0.3);
-      Steer(pid_return);
+      Steer(-pid_return);
     }
     if (Speed_val == TWOSTEP_MODE){
       MoveForward(0.5);
-      Steer(pid_return);
+      Steer(-pid_return);
     }
     if (Speed_val == THREESTEP_MODE){
       MoveForward(auto_throttle);
-      Steer(pid_return);
+      Steer(-pid_return);
     }
   }
 
@@ -395,4 +395,4 @@ void loop() {
   
 
   prev_t_us = t_us;
-}
+}`
