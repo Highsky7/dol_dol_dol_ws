@@ -43,3 +43,6 @@ rosrun gps_to_utm_pkg roi_path_publisher.py
 
 gps_to_local_cartesian.py와 local_cartesian_path_publisher.py에서 둘 다 reference 위치 바꿔야함
 추후 수정하자!!!
+
+4. purepursuit 실행
+rosrun gps_to_utm_pkg purepursuit.py
