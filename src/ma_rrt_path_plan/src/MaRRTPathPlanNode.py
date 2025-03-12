@@ -17,7 +17,7 @@ from vehicle_msgs.msg import TrackCone, Track, Command, Waypoint, WaypointsArray
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
 from geometry_msgs.msg import Point
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import Point, PoseStamped, PointStamped
 from nav_msgs.msg import Odometry
 from nav_msgs.msg import Path
 from scipy.spatial import Delaunay
@@ -52,7 +52,14 @@ class MaRRTPathPlanNode:
         rospy.Subscriber("/track", Track, self.mapCallback)
         
         # 새로 추가: /odometry 토픽 구독하여 차량 위치를 업데이트
-        rospy.Subscriber(self.odometry_topic, Odometry, self.odometryCallback)
+        rospy.Subscriber(self.odometry_topic, Odometry, self.odometryCallback)   
+        
+         # /rrt_target 토픽 구독 (ROIPathPublisher에서 퍼블리시한, roi_arc_length 경로의 끝 지점 좌표)
+        rospy.Subscriber("/rrt_target", PointStamped, self.rrtTargetCallback)
+        self.rrt_target = None  # 수신한 목표 좌표 저장
+        
+        # rrt 목표점 시각화를 위한 퍼블리셔 (/visual/rrt_target)
+        self.rrtTargetVisualPub = rospy.Publisher("/visual/rrt_target", Marker, queue_size=1)               
 
         self.waypointsPub = rospy.Publisher("/waypoints", WaypointsArray, queue_size=0)
         self.newwaypointsPub = rospy.Publisher("/newwaypoints", WaypointsArray, queue_size=5)
@@ -63,7 +70,7 @@ class MaRRTPathPlanNode:
         self.delaunayLinesVisualPub = rospy.Publisher("/visual/delaunay_lines", Marker, queue_size=1)
         self.waypointsVisualPub = rospy.Publisher("/visual/waypoints", MarkerArray, queue_size=1)
 
-        # 차량의 현재 위치 및 자세 초기값 (실시간 /odometry로 업데이트됨)
+        # 차량의 현재 위치 및 자세 초기값 (in velodyne frame)
         self.carPosX = 0.0
         self.carPosY = 0.0
         self.carPosYaw = 0.0
@@ -75,15 +82,17 @@ class MaRRTPathPlanNode:
         self.rrt = None
         self.filteredBestBranch = []
         self.discardAmount = 0
+        
+        
+    def rrtTargetCallback(self, msg):
+        # /rrt_target 토픽으로부터 받은 좌표를 저장 (메시지는 velodyne_frame 기준)
+        self.rrt_target = msg.point
 
     def __del__(self):
         print('MaRRTPathPlanNode: Destructor called.')
 
     def odometryCallback(self, odometry):
         # # /odometry 토픽으로부터 받은 Odometry 메시지를 이용하여 차량 위치 업데이트
-        # self.carPosX = odometry.pose.pose.position.x
-        # self.carPosY = odometry.pose.pose.position.y
-        
         self.carPosX = 0.0
         self.carPosY = 0.0
         
@@ -99,6 +108,7 @@ class MaRRTPathPlanNode:
     def mapCallback(self, track):
         self.map = track.cones
 
+
     def sampleTree(self):
         if self.loopClosure and len(self.savedWaypoints) > 0:
             self.publishWaypoints()
@@ -111,22 +121,51 @@ class MaRRTPathPlanNode:
         frontConesDist = 12
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
+
         # 콘으로부터 유도하는 장애물 반지름 크기
         coneObstacleSize = 0.75 #height 68cm, base 37*37(cm2)
         coneObstacleList = []
-        rrtConeTargets = []
-        
-        # 차량으로부터 일정 비율(예, 12m의 50%인 6m) 이상 떨어진 콘들을 목표로 선정하기 위한 기준
-        coneTargetsDistRatio = 0.5
-
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
-            # coneObstacleSize: 목표점을 그대로 추종하는 대신, 목표물(콘)의 물리적인 크기를 고려하여 경로 계획 시 차량이 콘에 직접 충돌하지 않고 일정 안전 거리를 유지하도록 하기 위함
 
+
+        rrtTarget = []
+            
+        # /rrt_target에서 수신한 좌표가 있다면 RRT 목표점에 추가하고 시각화도 수행
+        if self.rrt_target is not None:
+            rrtTarget.append((self.rrt_target.x, self.rrt_target.y, coneObstacleSize))
+            rospy.loginfo("/rrt_target: (%.2f, %.2f)", self.rrt_target.x, self.rrt_target.y)
+            # rrt 목표점 시각화
+            marker = Marker()
+            marker.header.stamp = rospy.Time.now()
+            marker.header.frame_id = self.world_frame
+            marker.ns = "rrt_target"
+            marker.id = 0
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.scale.x = 1.0
+            marker.scale.y = 1.0
+            marker.scale.z = 1.0
+            marker.color.a = 1.0
+            marker.color.r = 1.0
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            marker.pose.position.x = self.rrt_target.x
+            marker.pose.position.y = self.rrt_target.y
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.w = 1.0
+            self.rrtTargetVisualPub.publish(marker)            
+            
+            
+            
+        
+        # 수신 못 했다면 기존처럼 멀리 있는 콘들을 목표점으로 함    
+        else: 
             coneDist = self.dist(self.carPosX, self.carPosY, cone.x, cone.y)
+            if coneDist > 6:
+                rrtTarget.append((cone.x, cone.y, coneObstacleSize))     
+            
 
-            if coneDist > frontConesDist * coneTargetsDistRatio:
-                rrtConeTargets.append((cone.x, cone.y, coneObstacleSize))
 
         start = [self.carPosX, self.carPosY, self.carPosYaw]
         iterationNumber = 1000
@@ -135,12 +174,12 @@ class MaRRTPathPlanNode:
         planDistance = 12
         
         # RRT 노드 간 이동 거리 (스텝 길이)
-        expandDistance = 1.0
+        expandDistance = 0.5
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
         expandAngle = 30
 
-        rrt = ma_rrt.RRT(start, planDistance, obstacleList=coneObstacleList, expandDis=expandDistance, turnAngle=expandAngle, maxIter=iterationNumber, rrtTargets = rrtConeTargets)
+        rrt = ma_rrt.RRT(start, planDistance, obstacleList=coneObstacleList, expandDis=expandDistance, turnAngle=expandAngle, maxIter=iterationNumber, rrtTargets = rrtTarget)
         nodeList, leafNodes = rrt.Planning()
 
         self.publishTreeVisual(nodeList, leafNodes)
