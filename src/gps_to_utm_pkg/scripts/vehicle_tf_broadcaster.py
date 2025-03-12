@@ -33,7 +33,7 @@ class VehicleTFBroadcaster:
         t = TransformStamped()
         t.header.stamp = rospy.Time.now()
         t.header.frame_id = "reference"
-        t.child_frame_id = "vehicle"
+        t.child_frame_id = "velodyne"
         t.transform.translation.x = self.vehicle_x
         t.transform.translation.y = self.vehicle_y
         t.transform.translation.z = self.vehicle_z
