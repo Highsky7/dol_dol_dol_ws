@@ -11,7 +11,7 @@ import cv2.ximgproc as ximgproc
 import torch.backends.cudnn as cudnn
 import threading
 import queue
-from math import atan2, degrees
+from math import atan2, degrees, pi
 from pathlib import Path
 import matplotlib.pyplot as plt
 import os
@@ -47,7 +47,7 @@ def make_parser():
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
     parser.add_argument('--source', type=str,
                         #default='2',
-                        default='/home/yoo/source/test_video4.mp4',
+                        default='/home/yoo/source/test_video3.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
@@ -104,7 +104,22 @@ def find_positive_x_intercept(poly_coeff):
     positive_roots = real_roots[real_roots > 0]
     return positive_roots[0] if len(positive_roots) > 0 else 2.0
 
-def create_path_function(lane_coeffs, offset_right=0.75, offset_left=-0.75):
+def shift_poly(poly_coeff, dx, dy):
+    """
+    다항식 f(x)=poly_coeff (numpy.poly1d 형식)을 f_new(x)= f(x-dx)+dy로 평행이동하여
+    새로운 계수를 반환.
+    """
+    p = np.poly1d(poly_coeff)
+    # np.poly1d([1, -dx]) 는 x - dx 를 의미합니다.
+    shifted_poly = p(np.poly1d([1, -dx])) + dy
+    return shifted_poly.coeffs
+
+def create_path_function(lane_coeffs, d=0.75 , lookahead=2.1):
+    """
+    유효한 차선 함수만 선택한 후,
+      - 두 개의 차선이면 단순 평균하여 중앙 경로를 생성하고,
+      - 단일 차선인 경우 lookahead(2.1m) 지점에서의 기울기를 이용해 법선 방향으로 평행이동하여 경로 함수를 생성한다.
+    """
     valid_lane_coeffs = []
     for poly_coeff in lane_coeffs:
         x_intercept = find_positive_x_intercept(poly_coeff)
@@ -120,20 +135,32 @@ def create_path_function(lane_coeffs, offset_right=0.75, offset_left=-0.75):
         return None
 
     if len(valid_lane_coeffs) == 2:
+        # 두 개의 차선이면 단순 평균(중앙 경로)
         path_coeff = np.mean(np.array(valid_lane_coeffs), axis=0)
     elif len(valid_lane_coeffs) == 1:
         poly_coeff = valid_lane_coeffs[0]
+        # 절편에서의 기울기
         x_intercept = find_positive_x_intercept(poly_coeff)
         slope = compute_derivative(poly_coeff, x_intercept)
-        path_coeff = poly_coeff.copy()
-        path_coeff[-1] += offset_right if slope > 0 else offset_left
+        # lookahead 거리(2.1m)에서의 기울기 계산
+        m = compute_derivative(poly_coeff, lookahead)
+        # m이 0이면 특수 처리: 법선 방향을 -pi/2로 설정
+        a = np.arctan(-1/m) if m != 0 else -pi/2
+        # slope > 0이면 우측 차선, slope <= 0이면 좌측 차선으로 판단
+        if slope > 0:  # 우측 차선
+            dx = - d * np.cos(a)
+            dy = d * np.sin(a)
+        else:      # 좌측 차선
+            dx = - d * np.cos(a)
+            dy = - d * np.sin(a)
+        # 평행이동된 경로 함수 생성: f_new(x)= f(x - dx)+dy
+        path_coeff = shift_poly(poly_coeff, dx, dy)
         pub_slope.publish(Float32(data=slope))
     else:
-        # 원래 코드에서는 1개나 2개의 차선만 처리하므로 그 외의 경우는 None 반환
+        # 1개 또는 2개 외의 경우는 처리하지 않음
         return None
 
     return path_coeff
-
 
 # 차선 튜플 샘플링
 def sample_path_points(poly_coeff, x_start=1.4, x_end=2.9, num_points=50):
@@ -209,7 +236,7 @@ def create_path_marker(path_points, frame_id="velodyne"):
         marker.action = Marker.ADD
         marker.scale.x = 0.1
         marker.scale.y = 0.1
-        marker.scale.z = 0.2
+        marker.scale.z = 0.5
         marker.color.r = 1.0
         marker.color.g = 0.0
         marker.color.b = 0.0
@@ -286,13 +313,11 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
     plt.title("Lane & Path Functions in Vehicle Coordinates")
     plt.legend()
     plt.gca().invert_xaxis()
-    plt.xlim(1.0, -1.0)
-    plt.ylim(0.0, 3.0)
+    plt.xlim(3.0, -3.0)
+    plt.ylim(0.0, 6.0)
     plt.grid(True)
     plt.show(block=False)
     plt.pause(0.001)
-
-
 
 ##############################################
 # 메인 처리 함수 (EKF 제거)
@@ -346,7 +371,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
 
         # 차선 다항식 계수 추출 (3차)
         lane_data = extract_lane_functions(final_mask, poly_degree=3)
-        measured_path_coeff = create_path_function(lane_data, offset_right=0.75, offset_left=-0.75)
+        measured_path_coeff = create_path_function(lane_data, d=0.75, lookahead=2.1)
         
         # EKF 제거: 측정된 경로 함수 계수를 그대로 사용
         if measured_path_coeff is not None:
