@@ -9,6 +9,15 @@ from geometry_msgs.msg import PoseStamped
 from scipy.interpolate import CubicSpline
 import rospkg
 
+
+"""""
+이 코드는 ROS 환경에서 CSV 파일로부터 경로 데이터를 읽어와서,
+GPS 좌표(위도/경도)를 로컬 카르테시안 좌표로 변환한 후,
+보간(interpolation)과 재샘플링(resampling)을 통해 부드러운 경로를 생성하고.
+이를 ROS 메시지로 퍼블리시하는 역할을 합니다. 
+"""
+
+
 # rospkg를 이용하여 패키지 gps_to_utm_pkg의 경로를 가져옵니다.
 rospack = rospkg.RosPack()
 pkg_path = rospack.get_path("gps_to_utm_pkg")
@@ -108,11 +117,12 @@ class LocalPathPublisher:
         filtered_points = filter_points_by_distance(raw_points, MIN_DISTANCE)
         self.resampled_points = compute_cubic_spline(filtered_points, TARGET_SPACING)
         rospy.loginfo("Resampled local path has %d points", len(self.resampled_points))
-        rospy.Timer(rospy.Duration(5.0), self.timer_callback)
+        rospy.Timer(rospy.Duration(0.1), self.timer_callback)
 
     def timer_callback(self, event):
         current_time = rospy.Time.now()
         path_msg = Path()
+        "현재 시간을 기준으로 Path 메시지를 생성하고, 프레임 아이디를 reference로 설정합니다."
         path_msg.header.frame_id = "reference"
         path_msg.header.stamp = current_time
         for (x, y) in self.resampled_points:
