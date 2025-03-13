@@ -29,7 +29,7 @@ class MaRRTPurePursuit:
         self.desired_speed = rospy.get_param('~desired_speed', 2.0)
         self.wheelbase     = rospy.get_param('~wheelbase', 0.75)
         # Lookahead distance는 고정값 (예: 1.4m)
-        self.Ld = rospy.get_param('~lookahead_distance', 1.2)
+        self.Ld = rospy.get_param('~lookahead_distance', 3.5)
         
         # 차량의 현재 위치 (velodyne 좌표계, 라이다/후륜축 중심)
         self.vehicle_x = 0.0
