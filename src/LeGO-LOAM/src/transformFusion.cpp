@@ -2,7 +2,9 @@
 #include <tf/transform_datatypes.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Vector3.h>
+#include <std_msgs/Float64.h>
 #include <deque>
+#include <cstdlib>  // atof
 
 #ifndef NULL
 #define NULL 0
@@ -26,6 +28,9 @@ private:
     // 이동벡터 토픽 퍼블리셔 (geometry_msgs::Vector3 사용)
     ros::Publisher pubMovingVector;
 
+    // global yaw 퍼블리셔 (이제 이름이 /global_yaw_legoloam)
+    ros::Publisher pubGlobalYaw;
+
     ros::Subscriber subLaserOdometry;
     // ros::Subscriber subOdomAftMapped;
   
@@ -44,10 +49,15 @@ private:
     // 오도메트리 데이터를 저장하는 버퍼 (1초 전 데이터를 위한)
     std::deque<OdomData> odomBuffer;
 
+    // yaw 초기값 (단위: degree)
+    double yaw_init_;
+
 public:
-    TransformFusion(){
+    // 생성자에서 yaw_init 값을 전달받습니다.
+    TransformFusion(double yaw_init) : yaw_init_(yaw_init) {
         pubOdom = nh.advertise<nav_msgs::Odometry>("/odometry", 5);
         pubMovingVector = nh.advertise<geometry_msgs::Vector3>("/moving_vector", 5);
+        pubGlobalYaw = nh.advertise<std_msgs::Float64>("/global_yaw_legoloam", 5);
 
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
         // subOdomAftMapped = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);
@@ -131,7 +141,7 @@ public:
                      - calx*calz*(sbly*sblz + cbly*cblz*sblx) + cblx*cbly*salx)
                      - (cbcy*cbcz + sbcx*sbcy*sbcz)*(calx*calz*(cbly*sblz - cblz*sblx*sbly)
                      - calx*salz*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sbly)
-                     + cbcx*sbcz*(salx*sblx + calx*cblx*salz*sblz + calx*calz*cblx*cblz);
+                     + cbcx*sbcz*(salx*sblx + calx*cblx*salz*sblz+ calx*calz*cblx*cblz);
         float crzcrx = (cbcy*sbcz - cbcz*sbcx*sbcy)*(calx*calz*(cbly*sblz - cblz*sblx*sbly)
                      - calx*salz*(cbly*cblz + sblx*sbly*sblz) + cblx*salx*sbly)
                      - (sbcy*sbcz + cbcy*cbcz*sbcx)*(calx*salz*(cblz*sbly - cbly*sblx*sblz)
@@ -139,7 +149,7 @@ public:
                      + cbcx*cbcz*(salx*sblx + calx*cblx*salz*sblz+ calx*calz*cblx*cblz);
         transformMapped[2] = atan2(srzcrx / cos(transformMapped[0]), crzcrx / cos(transformMapped[0]));
 
-        // 주의: 아래 변수들은 이미 위쪽에서 선언된 x1,y1,z1,x2,y2,z2를 재사용합니다.
+        // x1, y1, z1, x2, y2, z2 재사용
         x1 = cos(transformMapped[2]) * transformIncre[3] - sin(transformMapped[2]) * transformIncre[4];
         y1 = sin(transformMapped[2]) * transformIncre[3] + cos(transformMapped[2]) * transformIncre[4];
         z1 = transformIncre[5];
@@ -192,15 +202,22 @@ public:
             double y_deg = y * 180.0 / M_PI;
             ROS_INFO("----------------------------------");
             ROS_INFO("----------------------------------");
-            double x_pos = laserOdometry2.pose.pose.position.x;
-            double y_pos = laserOdometry2.pose.pose.position.y;
-            double z_pos = laserOdometry2.pose.pose.position.z;
-            ROS_INFO("X (pos): %.10f", x_pos);
-            ROS_INFO("Y (pos): %.10f", y_pos);
-            ROS_INFO("Z (pos): %.10f", z_pos);
+            ROS_INFO("X (pos): %.10f", laserOdometry2.pose.pose.position.x);
+            ROS_INFO("Y (pos): %.10f", laserOdometry2.pose.pose.position.y);
+            ROS_INFO("Z (pos): %.10f", laserOdometry2.pose.pose.position.z);
             ROS_INFO("Roll (deg): %.10f", r_deg);
             ROS_INFO("Pitch (deg): %.10f", p_deg);
             ROS_INFO("Yaw (deg): %.10f", y_deg);
+
+            // global yaw 계산: 측정된 yaw(도)에 yaw_init_을 더합니다.
+            double global_yaw_deg = y_deg + yaw_init_;
+            // ROS_INFO에서는 도 단위로 출력
+            ROS_INFO("Global Yaw (deg): %.10f", global_yaw_deg);
+            // 실제로 발행되는 값은 라디안으로 변환
+            double global_yaw_rad = global_yaw_deg * M_PI / 180.0;
+            std_msgs::Float64 yaw_msg;
+            yaw_msg.data = global_yaw_rad;
+            pubGlobalYaw.publish(yaw_msg);
         }
 
         nav_msgs::Odometry odom_msg;
@@ -229,13 +246,13 @@ public:
         currData.y = laserOdometry2.pose.pose.position.y;
         odomBuffer.push_back(currData);
 
-        // 버퍼에서 현재 시각보다 1초보다 오래된 데이터는 제거
+        // 버퍼에서 현재 시각보다 1.5초 이상 지난 데이터 제거
         ros::Time currentTime = laserOdometry2.header.stamp;
         while (!odomBuffer.empty() && (currentTime - odomBuffer.front().stamp).toSec() > 1.5) {
             odomBuffer.pop_front();
         }
 
-        // 실시간으로 현재 시각과 1초 전 데이터를 이용해 이동벡터 계산 및 발행
+        // 실시간 이동벡터 계산 및 발행 (현재 시각과 1초 전 위치 차분)
         publishMovingVectorRealTime();
     }
 
@@ -260,7 +277,6 @@ public:
         transformBefMapped[5] = odomAftMapped->twist.twist.linear.z;
     }
 
-    // 실시간 이동벡터 계산: 현재 시각에서 정확히 1초 전의 위치를 보간하여 차분 계산
     void publishMovingVectorRealTime()
     {
         if (odomBuffer.empty()) return;
@@ -309,7 +325,14 @@ public:
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "transformFusion");
-    TransformFusion TFusion;
+
+    // roslaunch를 사용할 경우, private 파라미터에서 yaw_init 값을 읽어옵니다.
+    ros::NodeHandle nh("~");
+    double yaw_init = 0.0;
+    nh.param("yaw_init", yaw_init, 0.0);
+    ROS_INFO("Yaw init set to: %.3f deg", yaw_init);
+
+    TransformFusion TFusion(yaw_init);
     ROS_INFO("\033[1;32m---->\033[0m Transform Fusion Started.");
     ros::spin();
     return 0;
