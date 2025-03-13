@@ -34,7 +34,7 @@ class GlobalYawEstimator:
         if self.prev_x is not None and self.prev_y is not None:
             dx = x - self.prev_x
             dy = y - self.prev_y
-            if math.hypot(dx, dy) > 0.01:
+            if math.hypot(dx, dy) > 0.1:
                 raw_yaw = math.atan2(dy, dx)
                 raw_yaw = wrap_angle(raw_yaw)
                 self.raw_yaw_pub.publish(Float32(data=raw_yaw))
