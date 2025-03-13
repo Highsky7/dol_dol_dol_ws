@@ -47,7 +47,7 @@ def make_parser():
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
     parser.add_argument('--source', type=str,
                         #default='2',
-                        default='/home/yoo/source/test_video1.mp4',
+                        default='/home/yoo/source/test_video4.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
@@ -187,25 +187,53 @@ def do_bev_transform(image, bev_param_file):
     M = cv2.getPerspectiveTransform(src_points, dst_points)
     return cv2.warpPerspective(image, M, (warp_w, warp_h), flags=cv2.INTER_LINEAR)
 
-def final_filter(bev_mask):
-    f1 = cv2.morphologyEx(bev_mask, cv2.MORPH_CLOSE, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)))
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(f1, connectivity=8)
-    cleaned = np.zeros_like(f1)
-    if num_labels > 2:
-        comps = [(i, stats[i, cv2.CC_STAT_AREA]) for i in range(1, num_labels)]
-        comps.sort(key=lambda x: x[1], reverse=True)
-        for idx in [i for i, area in comps[:2] if area >= 300]:
-            cleaned[labels == idx] = 255
-    else:
-        cleaned = f1
+def morph_close(binary_mask, ksize=5):
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (ksize, ksize))
+    return cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
+
+def remove_small_components(binary_mask, min_size=100):
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+    cleaned = np.zeros_like(binary_mask)
+    for i in range(1, num_labels):
+        if stats[i, cv2.CC_STAT_AREA] >= min_size:
+            cleaned[labels == i] = 255
     return cleaned
+
+def keep_top2_components(binary_mask, min_area=50):
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
+    if num_labels <= 2:
+        return binary_mask
+    comps = [(i, stats[i, cv2.CC_STAT_AREA]) for i in range(1, num_labels)]
+    comps.sort(key=lambda x: x[1], reverse=True)
+    keep_indices = [i for i, area in comps[:2] if area >= min_area]
+    cleaned = np.zeros_like(binary_mask)
+    for idx in keep_indices:
+        cleaned[labels == idx] = 255
+    return cleaned
+
+def final_filter(bev_mask):
+    # f1 = morph_open(bev_mask, ksize=3)
+    f2 = morph_close(bev_mask, ksize=5)
+    f3 = remove_small_components(f2, min_size=300)
+    f4 = keep_top2_components(f3, min_area=300)
+    return f4
 
 ##############################################
 # RViz 마커 생성 함수들
 ##############################################
 def create_lane_marker(lane_coeffs, frame_id="velodyne", x_start=1.4, x_end=2.9, num_points=50):
     marker_array = MarkerArray()
-    for i, coeff in enumerate(lane_coeffs):
+    valid_lane_coeffs = []
+    # 유효한 차선 함수만 필터링 (기울기가 -10에서 10 사이인 경우)
+    for coeff in lane_coeffs:
+        x_int = find_positive_x_intercept(coeff)
+        slope = compute_derivative(coeff, x_int)
+        if -10.0 <= slope <= 10.0:
+            valid_lane_coeffs.append(coeff)
+        else:
+            rospy.logwarn("[WARNING] Discarding lane function with invalid slope for RViz: %.2f", slope)
+
+    for i, coeff in enumerate(valid_lane_coeffs):
         marker = Marker()
         marker.header.frame_id = frame_id
         marker.header.stamp = rospy.Time.now()
@@ -358,7 +386,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
             [_, _], _, ll = model(img_t)
 
         binary_mask = lane_line_mask(ll, threshold=lane_threshold, method='otsu')
-        thin_mask = ximgproc.thinning(binary_mask)
+        thin_mask = ximgproc.thinning(binary_mask, thinningType=ximgproc.THINNING_ZHANGSUEN)
         if thin_mask is None or thin_mask.size == 0:
             rospy.logwarn("[WARNING] Thinning 결과 비어 있음 → binary_mask 사용")
             thin_mask = binary_mask
