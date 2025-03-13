@@ -52,7 +52,7 @@ class Judgement:
             throttle = 0.0
             rospy.loginfo("Dynamic obstacle is detected")
         else:
-            throttle = 0.4
+            throttle = 0.5
         self.pub_throttle.publish(Float32(data=throttle))
         rospy.loginfo("Current throttle: %.2f", throttle)
 

@@ -15,7 +15,7 @@ pkg_path = rospack.get_path("gps_to_utm_pkg")
 
 # CSV 파일 경로 (ilgam_lake.csv; 대회측 제공 CSV)
 # 만약 다른 csv 파일을 사용하고 싶다면 주석 처리된 smart_factory1.csv 줄을 사용할 수 있습니다.
-default_csv = os.path.join(pkg_path, "data", "konkuk123.csv")
+default_csv = os.path.join(pkg_path, "data", "aaaa.csv")
 # default_csv = os.path.join(pkg_path, "data", "smart_factory1.csv")
 
 # rosparam으로 설정 가능한 파라미터; 기본값은 위에서 설정한 default_csv입니다.
@@ -26,8 +26,8 @@ TARGET_SPACING = rospy.get_param("~target_spacing", 0.2)  # 보간 후 resamplin
 MIN_DISTANCE = rospy.get_param("~min_distance", 0.3)        # 인접 점 필터링 최소 거리 (미터)
 # 와우도 : 37.540085 127.076543
 # 스마트팩토리 주차장 : 37.540603 127.079843
-REF_LAT = rospy.get_param("~ref_lat", 37.540085)               # 기준 위도
-REF_LON = rospy.get_param("~ref_lon", 127.076543)              # 기준 경도
+REF_LAT = rospy.get_param("~ref_lat", 37.540603)               # 기준 위도
+REF_LON = rospy.get_param("~ref_lon", 127.079843)              # 기준 경도
 R_EARTH = 6378137.0
 
 def latlon_to_local(lat, lon, ref_lat, ref_lon):

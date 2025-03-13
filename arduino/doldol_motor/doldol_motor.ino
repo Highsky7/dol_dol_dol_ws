@@ -35,9 +35,6 @@ ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallbac
 #define AUTO_MODE_PIN           21
 
 #define BREAK_MODE              200
-#define ONESTEP_MODE            500
-#define TWOSTEP_MODE            800
-#define THREESTEP_MODE          1100
 #define MANUAL_MODE             1400
 #define AUTO_MODE               1700
 
@@ -49,9 +46,9 @@ ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallbac
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 732
-#define POT_MIN                  85
-#define MAX_STEER_TIRE_DEG      18 
+#define POT_MAX                 850
+#define POT_MIN                 204
+#define MAX_STEER_TIRE_DEG      18
 
 #define KP                      0.08
 #define KI                      0.00002
@@ -120,12 +117,6 @@ void BreakPulseInt() {
   Break_Edge_now_us = micros();
   Break_us = Break_Edge_now_us - Break_Edge_before_us;
   Break_Edge_before_us = Break_Edge_now_us;
-}
-
-void SpeedPulseInt() {
-  Speed_Edge_now_us = micros();
-  Speed_us = Speed_Edge_now_us - Speed_Edge_before_us;
-  Speed_Edge_before_us = Speed_Edge_now_us;
 }
 
 void ManualPulseInt() {
@@ -218,8 +209,6 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(ACCEL_PULSE_PIN), AccelPulseInt, CHANGE);
   pinMode(BREAK_MODE_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BREAK_MODE_PIN), BreakPulseInt, CHANGE);
-  pinMode(SPEED_MODE_PIN, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(SPEED_MODE_PIN), SpeedPulseInt, CHANGE);
   pinMode(MANUAL_MODE_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(MANUAL_MODE_PIN), ManualPulseInt, CHANGE);
   pinMode(AUTO_MODE_PIN, INPUT_PULLUP);
@@ -284,15 +273,6 @@ void loop() {
     }
     else if ((Auto_us >= 1900 && Manual_us <= 1100)){
       Mode_val = AUTO_MODE;
-      if (Speed_us <= 1100 && Speed_us >= 900 && Break_us <= 1100){
-        Speed_val = ONESTEP_MODE;
-      }
-      else if (Speed_us <= 1600 && Speed_us >= 1400 && Break_us <= 1100){
-        Speed_val = TWOSTEP_MODE;
-      }
-      else if (Speed_us >= 1900 && Break_us <= 1100){
-        Speed_val = THREESTEP_MODE;
-      }
     }
   }
   else {
@@ -314,9 +294,16 @@ void loop() {
 
   POTval = analogRead(POTPin);
   
-  double deg = Mapping(POTval, POT_MIN, POT_MAX, -MAX_STEER_TIRE_DEG, MAX_STEER_TIRE_DEG);
+  double deg = Mapping(POTval, POT_MIN, POT_MAX, MAX_STEER_TIRE_DEG, -MAX_STEER_TIRE_DEG);
   
   int dt = t_us - prev_t_us;
+
+  if (auto_steer_angle >= MAX_STEER_TIRE_DEG) {
+    auto_steer_angle = MAX_STEER_TIRE_DEG;
+  }
+  if (auto_steer_angle <= -MAX_STEER_TIRE_DEG) {
+    auto_steer_angle = -MAX_STEER_TIRE_DEG;
+  }
   
   double pid_return = PID(ref_steer_deg, deg, dt);
   if (pid_return > 1.0){
@@ -359,19 +346,9 @@ void loop() {
     
     float ref_steer_deg = auto_steer_angle;
     double pid_return = PID(ref_steer_deg, deg, dt);
-
-    if (Speed_val == ONESTEP_MODE){
-      MoveForward(0.3);
-      Steer(-pid_return);
-    }
-    if (Speed_val == TWOSTEP_MODE){
-      MoveForward(0.5);
-      Steer(-pid_return);
-    }
-    if (Speed_val == THREESTEP_MODE){
-      MoveForward(auto_throttle);
-      Steer(-pid_return);
-    }
+    
+    MoveForward(auto_throttle);
+    Steer(-pid_return);
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -392,7 +369,7 @@ void loop() {
     Serial.println("////////////////////////////////////////");
     lastPrint = millis();
   }
-  
+
 
   prev_t_us = t_us;
-}`
+}

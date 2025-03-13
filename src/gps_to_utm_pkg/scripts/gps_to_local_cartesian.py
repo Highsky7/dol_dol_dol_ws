@@ -7,8 +7,8 @@ from geometry_msgs.msg import PointStamped
 # 기준 좌표 (건국대학교 서울캠퍼스 근처; rosparam으로 조정 가능)
 # 와우도 : 37.540085 127.076543
 # 스마트팩토리 주차장 : 37.540603 127.079843
-REF_LAT = rospy.get_param("~ref_lat", 37.540085)
-REF_LON = rospy.get_param("~ref_lon", 127.076543)
+REF_LAT = rospy.get_param("~ref_lat", 37.540603)
+REF_LON = rospy.get_param("~ref_lon", 127.079843)
 R_EARTH = 6378137.0  # 지구 반경 (미터)
 
 def latlon_to_local(lat, lon, ref_lat, ref_lon):
