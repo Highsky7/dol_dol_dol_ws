@@ -22,11 +22,13 @@ class VehicleTFBroadcaster:
         rospy.spin()
 
     def local_xy_callback(self, msg):
+        """/local_xy 토픽으로부터 받은 PointStamped 메시지에서 차량의 위치 정보를 추출합니다."""
         self.vehicle_x = msg.point.x
         self.vehicle_y = msg.point.y
         self.vehicle_z = msg.point.z
 
     def yaw_callback(self, msg):
+        """/global_yaw 토픽으로부터 차량의 전역 요(heading) 정보를 업데이트합니다."""
         self.global_yaw = msg.data
 
     def timer_callback(self, event):
@@ -38,13 +40,16 @@ class VehicleTFBroadcaster:
         t.transform.translation.y = self.vehicle_y
         t.transform.translation.z = self.vehicle_z
         q = quaternion_from_euler(0, 0, self.global_yaw)
+        """quaternion_from_euler(0, 0, self.global_yaw)를 사용해 오일러 각(roll=0, pitch=0, yaw=self.global_yaw)을 쿼터니언으로 변환합니다."""
+        
         t.transform.rotation.x = q[0]
         t.transform.rotation.y = q[1]
         t.transform.rotation.z = q[2]
         t.transform.rotation.w = q[3]
         self.tf_broadcaster.sendTransform(t)
-        rospy.loginfo_throttle(1, "Broadcasting vehicle tf: x=%.2f, y=%.2f, yaw=%.2f deg",
+        rospy.loginfo_throttle(0.1, "Broadcasting vehicle tf: x=%.2f, y=%.2f, yaw=%.2f deg",
                                  self.vehicle_x, self.vehicle_y, math.degrees(self.global_yaw))
+        """각도는 radian 단위인 global_yaw를 도(degree) 단위로 변환하여 출력합니다."""
 
 if __name__ == '__main__':
     try:
