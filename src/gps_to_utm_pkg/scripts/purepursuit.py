@@ -74,7 +74,7 @@ class PurePursuit:
         
         # Lookahead point Marker (SPHERE)
         lookahead_marker = Marker()
-        lookahead_marker.header = Header(stamp=rospy.Time.now(), frame_id="vehicle")
+        lookahead_marker.header = Header(stamp=rospy.Time.now(), frame_id="velodyne")
         lookahead_marker.ns = "purepursuit"
         lookahead_marker.id = 0
         lookahead_marker.type = Marker.SPHERE

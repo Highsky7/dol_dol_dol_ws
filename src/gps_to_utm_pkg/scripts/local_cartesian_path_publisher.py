@@ -15,7 +15,7 @@ pkg_path = rospack.get_path("gps_to_utm_pkg")
 
 # CSV 파일 경로 (ilgam_lake.csv; 대회측 제공 CSV)
 # 만약 다른 csv 파일을 사용하고 싶다면 주석 처리된 smart_factory1.csv 줄을 사용할 수 있습니다.
-default_csv = os.path.join(pkg_path, "data", "ilgam_lake.csv")
+default_csv = os.path.join(pkg_path, "data", "konkuk123.csv")
 # default_csv = os.path.join(pkg_path, "data", "smart_factory1.csv")
 
 # rosparam으로 설정 가능한 파라미터; 기본값은 위에서 설정한 default_csv입니다.

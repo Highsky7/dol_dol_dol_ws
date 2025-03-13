@@ -3,13 +3,22 @@
 
 ros::NodeHandle nh;
 
-float auto_steer_angle
+// 기존: 여러 조향각 변수와 플래그 제거, 단일 조향각만 유지
+float auto_steer_angle = 0.0;
+float auto_throttle = 0.0;
 
+// 새로운 콜백 함수: steering_angle 토픽에서 직접 auto_steer_angle 업데이트
 void steeringCallback(const std_msgs::Float32& msg) {
   auto_steer_angle = msg.data;
 }
 
+void throttleCallback(const std_msgs::Float32& msg) {
+  auto_throttle = msg.data;
+}
+
+// 새로운 구독자: steering_angle 토픽 구독
 ros::Subscriber<std_msgs::Float32> sub_steering("steering_angle", steeringCallback);
+ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallback);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -26,9 +35,6 @@ ros::Subscriber<std_msgs::Float32> sub_steering("steering_angle", steeringCallba
 #define AUTO_MODE_PIN           21
 
 #define BREAK_MODE              200
-#define ONESTEP_MODE            500
-#define TWOSTEP_MODE            800
-#define THREESTEP_MODE          1100
 #define MANUAL_MODE             1400
 #define AUTO_MODE               1700
 
@@ -40,8 +46,8 @@ ros::Subscriber<std_msgs::Float32> sub_steering("steering_angle", steeringCallba
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 908
-#define POT_MIN                 264
+#define POT_MAX                 732
+#define POT_MIN                 85
 #define MAX_STEER_TIRE_DEG      18
 
 #define KP                      0.08
@@ -201,6 +207,7 @@ void setup() {
   Serial.begin(57600);
   nh.initNode();
   nh.subscribe(sub_steering);
+  nh.subscribe(sub_throttle);
 
   pinMode(STEERING_PULSE_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(STEERING_PULSE_PIN), SteeringPulseInt, CHANGE);
@@ -274,15 +281,6 @@ void loop() {
     }
     else if ((Auto_us >= 1900 && Manual_us <= 1100)){
       Mode_val = AUTO_MODE;
-      if (Speed_us <= 1100 && Speed_us >= 900 && Break_us <= 1100){
-        Speed_val = ONESTEP_MODE;
-      }
-      else if (Speed_us <= 1600 && Speed_us >= 1400 && Break_us <= 1100){
-        Speed_val = TWOSTEP_MODE;
-      }
-      else if (Speed_us >= 1900 && Break_us <= 1100){
-        Speed_val = THREESTEP_MODE;
-      }
     }
   }
   else {
@@ -304,9 +302,16 @@ void loop() {
 
   POTval = analogRead(POTPin);
   
-  double deg = Mapping(POTval, POT_MIN, POT_MAX, -MAX_STEER_TIRE_DEG, MAX_STEER_TIRE_DEG);
+  double deg = Mapping(POTval, POT_MIN, POT_MAX, MAX_STEER_TIRE_DEG, -MAX_STEER_TIRE_DEG);
   
   int dt = t_us - prev_t_us;
+
+  if (auto_steer_angle >= MAX_STEER_TIRE_DEG) {
+    auto_steer_angle = MAX_STEER_TIRE_DEG;
+  }
+  if (auto_steer_angle <= -MAX_STEER_TIRE_DEG) {
+    auto_steer_angle = -MAX_STEER_TIRE_DEG;
+  }
   
   double pid_return = PID(ref_steer_deg, deg, dt);
   if (pid_return > 1.0){
@@ -343,25 +348,15 @@ void loop() {
       Throttle_input *= -1.0;
       MoveBackward(Throttle_input);
     }
-    Steer(pid_return);
+    Steer(-pid_return);
   }
   else if (Mode_val == AUTO_MODE) {
     
     float ref_steer_deg = auto_steer_angle;
     double pid_return = PID(ref_steer_deg, deg, dt);
-
-    if (Speed_val == ONESTEP_MODE){
-      MoveForward(0.3);
-      Steer(pid_return);
-    }
-    if (Speed_val == TWOSTEP_MODE){
-      MoveForward(0.5);
-      Steer(pid_return);
-    }
-    if (Speed_val == THREESTEP_MODE){
-      MoveForward(0.7);
-      Steer(pid_return);
-    }
+    
+    MoveForward(auto_throttle);
+    Steer(-pid_return);
   }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
