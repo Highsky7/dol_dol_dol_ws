@@ -30,6 +30,8 @@ class GPSToLocalCartesian:
         rospy.spin()
 
     def gps_callback(self, msg):
+        """수신된 NavSatFix 메시지에서 위도(latitude)와 경도(longitude)를 추출합니다.
+        latlon_to_local 함수를 호출하여 위도/경도를 기준 좌표 기준의 (x, y) 좌표로 변환합니다."""
         lat = msg.latitude
         lon = msg.longitude
         x, y = latlon_to_local(lat, lon, REF_LAT, REF_LON)
@@ -46,3 +48,9 @@ if __name__ == '__main__':
         GPSToLocalCartesian()
     except rospy.ROSInterruptException:
         pass
+
+"""
+이 코드는 ROS 환경에서 GPS 데이터를 받아서,
+지정한 기준 좌표(예: 건국대학교 근처)를 중심으로 로컬 평면 좌표계로 변환한 후,
+해당 좌표를 /local_xy 토픽으로 퍼블리시하는 기능을 구현합니다.
+"""
