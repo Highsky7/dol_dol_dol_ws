@@ -56,3 +56,9 @@ if __name__ == '__main__':
         VehicleTFBroadcaster()
     except rospy.ROSInterruptException:
         pass
+
+"""
+/local_xy 토픽에서 위치 데이터를 받아 저장하고,
+/global_yaw 토픽에서 차량의 전역 요 값을 받아 저장합니다.
+주기적으로 타이머 콜백이 실행되면서, 최신 위치와 방향 정보를 "reference" 프레임을 기준으로 "velodyne"이라는 자식 프레임에 대해 TF 메시지로 브로드캐스트합니다.
+"""
