@@ -11,7 +11,7 @@ class PurePursuit:
         rospy.init_node("purepursuit", anonymous=True)
         
         # 파라미터: lookahead distance와 차량 휠베이스 (단위: 미터)
-        self.lookahead_distance = rospy.get_param("~lookahead_distance", 2.0)
+        self.lookahead_distance = rospy.get_param("~lookahead_distance", 3.5)
         self.wheelbase = rospy.get_param("~wheelbase", 0.75)
         
         # ROI Marker를 구독하여 최신 데이터를 저장
