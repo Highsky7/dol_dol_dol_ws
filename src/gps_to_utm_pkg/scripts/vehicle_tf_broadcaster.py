@@ -7,6 +7,7 @@ from tf.transformations import quaternion_from_euler
 from std_msgs.msg import Float32
 
 class VehicleTFBroadcaster:
+    """velodyne" 프레임에 있는 모든 좌표는 "reference" 프레임의 좌표계로 변환될 때, 정의된 변환을 따릅니다."""
     def __init__(self):
         rospy.init_node('vehicle_tf_broadcaster', anonymous=True)
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
@@ -18,7 +19,7 @@ class VehicleTFBroadcaster:
         
         rospy.Subscriber("local_xy", PointStamped, self.local_xy_callback)
         rospy.Subscriber("global_yaw", Float32, self.yaw_callback)
-        rospy.Timer(rospy.Duration(0.1), self.timer_callback)
+        rospy.Timer(rospy.Duration(0.05), self.timer_callback)
         rospy.spin()
 
     def local_xy_callback(self, msg):
@@ -60,5 +61,6 @@ if __name__ == '__main__':
 """
 /local_xy 토픽에서 위치 데이터를 받아 저장하고,
 /global_yaw 토픽에서 차량의 전역 요 값을 받아 저장합니다.
+"velodyne" 프레임은 "reference" 프레임에 대해 오직 yaw 회전만 적용된 상태로 설정됩니다.
 주기적으로 타이머 콜백이 실행되면서, 최신 위치와 방향 정보를 "reference" 프레임을 기준으로 "velodyne"이라는 자식 프레임에 대해 TF 메시지로 브로드캐스트합니다.
 """
