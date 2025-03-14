@@ -404,4 +404,4 @@ if __name__ == '__main__':
         with torch.no_grad():
             ros_main()
     except rospy.ROSInterruptException:
-        pass\
+        pass
