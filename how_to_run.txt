@@ -13,4 +13,4 @@
 8터미널: roslaunch ma_rrt_path_plan startExploring.launch    # rrt 경로 생성
 9터미널: rosrun ma_rrt_path_plan ma_rrt_purepursuit.py      # rrt rrt 경로 퓨어퍼슛하여 조향각 발행
 
-10터미널: rosrun sort_ros_pkg sort_ros_node    # 동적 장애물 발견 T/F 발행 노드
+10터미널: rosrun sort_ros_pkg sort_ros_node    # (미완성)  동적 장애물 발견 T/F 발행 노드
