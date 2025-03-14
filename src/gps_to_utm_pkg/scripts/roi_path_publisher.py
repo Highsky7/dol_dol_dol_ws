@@ -19,7 +19,7 @@ class ROIPathPublisher:
         rospy.init_node("roi_path_publisher", anonymous=True)
         
         # ROI arc length threshold (미터, 기본 5m; rosparam으로 조정 가능)
-        self.roi_arc_length = rospy.get_param("~roi_arc_length", 3.6)            #(수정할 때에 marrtnode에서 목표점 수신 못 할 때의 조건에서 거리 파라미터도 수정필요)
+        self.roi_arc_length = rospy.get_param("~roi_arc_length", 6.0)            #(수정할 때에 marrtnode에서 목표점 수신 못 할 때의 조건에서 거리 파라미터도 수정필요)
         
         # 구독: 전체 경로 (/resampled_path, reference frame) 및 차량 위치 (/local_xy, reference frame)
         rospy.Subscriber("resampled_path", Path, self.path_callback)
