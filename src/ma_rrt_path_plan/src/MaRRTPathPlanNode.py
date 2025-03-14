@@ -160,24 +160,31 @@ class MaRRTPathPlanNode:
             
         
         # 수신 못 했다면 기존처럼 멀리 있는 콘들을 목표점으로 함    
-        else: 
-            coneDist = self.dist(self.carPosX, self.carPosY, cone.x, cone.y)
-            if coneDist > 6:
-                rrtTarget.append((cone.x, cone.y, coneObstacleSize))     
-            
+        else:
+            # self.rrt_target이 없는 경우, frontCones 리스트에서 조건에 맞는 콘을 선택
+            for cone in frontCones:
+                coneDist = self.dist(self.carPosX, self.carPosY, cone.x, cone.y)
+                if coneDist > 6:
+                    rrtTarget.append((cone.x, cone.y, coneObstacleSize))
+                    break  # 조건에 맞는 콘을 하나 찾으면 반복문 종료
 
+            
+        """트리 파라미터 조정 구간"""                
 
         start = [self.carPosX, self.carPosY, self.carPosYaw]
         iterationNumber = 1000
         
         # RRT 경로 계획에서 최대 트리 가지 길이
-        planDistance = 12
+        planDistance = 5
         
         # RRT 노드 간 이동 거리 (스텝 길이)
-        expandDistance = 0.5
+        expandDistance = 0.7
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
-        expandAngle = 30
+        expandAngle = 17
+
+
+        """트리 파라미터 조정 구간""" 
 
         rrt = ma_rrt.RRT(start, planDistance, obstacleList=coneObstacleList, expandDis=expandDistance, turnAngle=expandAngle, maxIter=iterationNumber, rrtTargets = rrtTarget)
         nodeList, leafNodes = rrt.Planning()
