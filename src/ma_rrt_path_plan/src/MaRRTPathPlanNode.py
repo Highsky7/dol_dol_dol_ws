@@ -159,7 +159,7 @@ class MaRRTPathPlanNode:
 
 
         # 콘으로부터 유도하는 장애물 반지름 크기
-        coneObstacleSize = 0.8 #height 68cm, base 37*37(cm2)
+        coneObstacleSize = 0.85 #height 68cm, base 37*37(cm2)
         coneObstacleList = []
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
@@ -168,7 +168,7 @@ class MaRRTPathPlanNode:
 
 
         rrtTarget = []
-        targetRadius = 0.1  # 원하는 보수적인 반경 값
+        targetRadius = 0.1  # 원하는 보수적인 rrt_target 반경 값
             
         # /rrt_target에서 수신한 좌표가 있다면 RRT 목표점에 추가하고 시각화도 수행
         if self.rrt_target is not None:
