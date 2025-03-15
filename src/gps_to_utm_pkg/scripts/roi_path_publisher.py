@@ -38,8 +38,8 @@ class ROIPathPublisher:
         self.full_path = None    # 전체 경로 (Path, reference)
         self.vehicle_pose = None  # 차량 위치 (PoseStamped, reference)
         
-        # 0.1초마다 ROI 업데이트
-        rospy.Timer(rospy.Duration(0.05), self.timer_callback)
+        # 0.025초마다 ROI 업데이트
+        rospy.Timer(rospy.Duration(0.025), self.timer_callback)
         rospy.loginfo("ROIPathPublisher 노드 시작: 전방에서 누적 arc length %.1f m 이내 ROI", self.roi_arc_length)
         rospy.spin()
     
@@ -130,7 +130,7 @@ class ROIPathPublisher:
         marker.id = 0
         marker.type = Marker.LINE_STRIP
         marker.action = Marker.ADD
-        marker.scale.x = 0.2
+        marker.scale.x = 0.1
         marker.color.r = 1.0
         marker.color.g = 0.0
         marker.color.b = 1.0

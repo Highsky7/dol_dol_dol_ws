@@ -17,6 +17,7 @@ class VehicleTFBroadcaster:
         self.vehicle_z = 0.0
         self.global_yaw = 0.0
         
+        """ 20hz"""
         rospy.Subscriber("local_xy", PointStamped, self.local_xy_callback)
         rospy.Subscriber("global_yaw", Float32, self.yaw_callback)
         rospy.Timer(rospy.Duration(0.05), self.timer_callback)

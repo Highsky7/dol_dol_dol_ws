@@ -69,6 +69,8 @@ class MaRRTPathPlanNode:
         self.filteredBranchVisualPub = rospy.Publisher("/visual/filtered_tree_branch", Marker, queue_size=1)
         self.delaunayLinesVisualPub = rospy.Publisher("/visual/delaunay_lines", Marker, queue_size=1)
         self.waypointsVisualPub = rospy.Publisher("/visual/waypoints", MarkerArray, queue_size=1)
+        self.obstacleVisualPub = rospy.Publisher("/visual/obstacle_radius", MarkerArray, queue_size=1)
+
 
         # 차량의 현재 위치 및 자세 초기값 (in velodyne frame)
         self.carPosX = 0.0
@@ -82,6 +84,40 @@ class MaRRTPathPlanNode:
         self.rrt = None
         self.filteredBestBranch = []
         self.discardAmount = 0
+        
+        
+    def publishObstacleVisuals(self, obstacleList):
+        from visualization_msgs.msg import Marker, MarkerArray
+        markerArray = MarkerArray()
+        for i, (x, y, radius) in enumerate(obstacleList):
+            marker = Marker()
+            marker.header.frame_id = self.world_frame
+            marker.header.stamp = rospy.Time.now()
+            marker.ns = "obstacle_radius"
+            marker.id = i
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.pose.position.x = x
+            marker.pose.position.y = y
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.w = 1.0
+
+            # SPHERE의 scale은 지름이므로, 반지름 * 2 설정
+            marker.scale.x = radius * 2.0
+            marker.scale.y = radius * 2.0
+            marker.scale.z = 0.1  # 평면 상의 표시이므로 z는 작게
+
+            marker.color.a = 0.4  # 투명도
+            marker.color.r = 1.0
+            marker.color.g = 0.65
+            marker.color.b = 0.0
+
+            # 필요한 경우, marker.lifetime 설정 (예: 0.2초)
+            marker.lifetime = rospy.Duration(0.2)
+            
+            markerArray.markers.append(marker)
+        self.obstacleVisualPub.publish(markerArray)
+    
         
         
     def rrtTargetCallback(self, msg):
@@ -123,17 +159,20 @@ class MaRRTPathPlanNode:
 
 
         # 콘으로부터 유도하는 장애물 반지름 크기
-        coneObstacleSize = 0.75 #height 68cm, base 37*37(cm2)
+        coneObstacleSize = 0.8 #height 68cm, base 37*37(cm2)
         coneObstacleList = []
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
+        # 장애물 반지름 시각화 호출
+        self.publishObstacleVisuals(coneObstacleList)
 
 
         rrtTarget = []
+        targetRadius = 0.1  # 원하는 보수적인 반경 값
             
         # /rrt_target에서 수신한 좌표가 있다면 RRT 목표점에 추가하고 시각화도 수행
         if self.rrt_target is not None:
-            rrtTarget.append((self.rrt_target.x, self.rrt_target.y, coneObstacleSize))
+            rrtTarget.append((self.rrt_target.x, self.rrt_target.y, targetRadius))
             rospy.loginfo("/rrt_target: (%.2f, %.2f)", self.rrt_target.x, self.rrt_target.y)
             # rrt 목표점 시각화
             marker = Marker()
@@ -141,7 +180,7 @@ class MaRRTPathPlanNode:
             marker.header.frame_id = self.world_frame
             marker.ns = "rrt_target"
             marker.id = 0
-            marker.type = Marker.SPHERE
+            marker.type = Marker.ARROW  
             marker.action = Marker.ADD
             marker.scale.x = 1.0
             marker.scale.y = 1.0
@@ -175,7 +214,7 @@ class MaRRTPathPlanNode:
         iterationNumber = 1000
         
         # RRT 경로 계획에서 최대 트리 가지 길이
-        planDistance = 5
+        planDistance = 5.2
         
         # RRT 노드 간 이동 거리 (스텝 길이)
         expandDistance = 0.7
@@ -523,7 +562,7 @@ class MaRRTPathPlanNode:
         coneDistanceLimitSq = coneDistLimit * coneDistLimit;
 
         bothSidesImproveFactor = 3
-        minAcceptableBranchRating = 80
+        minAcceptableBranchRating = 90
 
         leafRatings = []
         for leaf in leafNodes:
@@ -599,7 +638,7 @@ class MaRRTPathPlanNode:
 
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
-        marker.scale.x = 0.07
+        marker.scale.x = 0.2
 
         marker.pose.orientation.w = 1
 
