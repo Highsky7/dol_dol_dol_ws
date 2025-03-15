@@ -159,7 +159,7 @@ class MaRRTPathPlanNode:
 
 
         # 콘으로부터 유도하는 장애물 반지름 크기
-        coneObstacleSize = 0.85 #height 68cm, base 37*37(cm2)
+        coneObstacleSize = 0.8 #height 68cm, base 37*37(cm2)
         coneObstacleList = []
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
