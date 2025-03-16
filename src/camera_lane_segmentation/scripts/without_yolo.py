@@ -5,10 +5,8 @@ import rospy
 import argparse
 import time
 import cv2
-import torch
 import numpy as np
 import cv2.ximgproc as ximgproc
-import torch.backends.cudnn as cudnn
 import threading
 import queue
 from math import atan2, degrees, pi
@@ -22,13 +20,14 @@ from std_msgs.msg import Float32, Bool  # Bool 추가
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
+# 기존 코드의 일부 유틸 함수(imported functions) – 필요에 따라 사용합니다.
 from utils.utils import (
     time_synchronized, select_device, increment_path, lane_line_mask,
     AverageMeter, LoadCamera, LoadImages, letterbox,
 )
 
-##############################################q
-# ROS 퍼블리셔 정의q
+##############################################
+# ROS 퍼블리셔 정의
 ##############################################
 pub_lane_marker = rospy.Publisher('lane_data_marker', MarkerArray, queue_size=1)
 pub_path_marker = rospy.Publisher('lane_path_marker', MarkerArray, queue_size=1)
@@ -36,7 +35,7 @@ pub_goal_marker = rospy.Publisher('goal_point_marker', Marker, queue_size=1)
 pub_steering = rospy.Publisher('auto_steer_angle_lane', Float32, queue_size=1)
 pub_mask = rospy.Publisher('camera_lane_segmentation/lane_mask', Image, queue_size=1)
 pub_binary = rospy.Publisher('camera_lane_segmentation/binary_mask', Image, queue_size=1)
-pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)  # 추가
+pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)
 pub_slope = rospy.Publisher("path_slope", Float32, queue_size=1)
 
 ##############################################
@@ -44,13 +43,11 @@ pub_slope = rospy.Publisher("path_slope", Float32, queue_size=1)
 ##############################################
 def make_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
     parser.add_argument('--source', type=str,
                         #default='2',
-                        default='/home/yoo/source/test_video2.mp4',
+                        default='/home/yoo/source/test_video3.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
-    parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
-    parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
+    parser.add_argument('--img-size', type=int, default=640, help='추론 해상도')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
     parser.add_argument('--project', default='runs/detect', help='결과 저장 폴더')
     parser.add_argument('--name', default='exp', help='결과 저장 폴더 이름')
@@ -63,14 +60,10 @@ def make_parser():
 # 좌표 변환 함수들
 ##############################################
 def image_to_vehicle(pt):
-    """
-    이미지의 중앙 하단 값이 (1.4 , 0)
-    return (x_v, y_v)
-    """
-    u, v = pt #(u,v) 
+    u, v = pt
     x_vehicle = (640 - v) * 0.00234375 + 1.4
     y_vehicle = (320 - u) * 0.003125
-    return x_vehicle, y_vehicle 
+    return x_vehicle, y_vehicle
 
 def vehicle_to_image(point):
     x_vehicle, y_vehicle = point
@@ -82,9 +75,6 @@ def vehicle_to_image(point):
 # 차선 함수 추출 및 경로 관련 함수들
 ##############################################
 def extract_lane_functions(binary_image, poly_degree=3):
-    """
-    변환된 상태로 차선함수 extract
-    """
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_image, connectivity=8)
     lane_data = []
     for label in range(1, num_labels):
@@ -98,24 +88,18 @@ def extract_lane_functions(binary_image, poly_degree=3):
         lane_data.append(poly_coeff)
     return lane_data
 
-def find_positive_x_intercept(poly_coeff):
-    """
-    차선함수와 x축 교점(x좌표만)
-    """
-    roots = np.roots(poly_coeff)                    # 모든 근 구하기
-    real_roots = roots[np.isreal(roots)].real       # 실근만 추출
-    positive_roots = real_roots[real_roots > 0]     # 양의 실근만 추출
-    return positive_roots[0] if len(positive_roots) > 0 else 2.0
-
 def compute_derivative(poly_coeff, x_value):
-    """
-    xvalue에서 기울기값 뽑아서 return
-    """
     derivative = 0
     n = len(poly_coeff) - 1
     for i, coeff in enumerate(poly_coeff[:-1]):
         derivative += coeff * (n - i) * (x_value ** (n - i - 1))
     return derivative
+
+def find_positive_x_intercept(poly_coeff):
+    roots = np.roots(poly_coeff)                    # 모든 근 구하기
+    real_roots = roots[np.isreal(roots)].real       # 실근만 추출
+    positive_roots = real_roots[real_roots > 0]       # 양의 실근만 추출
+    return positive_roots[0] if len(positive_roots) > 0 else 2.0
 
 def shift_poly(poly_coeff, dx, dy):
     """
@@ -123,7 +107,6 @@ def shift_poly(poly_coeff, dx, dy):
     새로운 계수를 반환.
     """
     p = np.poly1d(poly_coeff)
-    # np.poly1d([1, -dx]) 는 x - dx 를 의미합니다.
     shifted_poly = p(np.poly1d([1, -dx])) + dy
     return shifted_poly.coeffs
 
@@ -135,50 +118,38 @@ def create_path_function(lane_coeffs, d=0.75 , lookahead=2.1):
     """
     valid_lane_coeffs = []
     for poly_coeff in lane_coeffs:
-        x_intercept = find_positive_x_intercept(poly_coeff) # x절편
-        slope = compute_derivative(poly_coeff, x_intercept) # x절편에서의 기울기
-        # 기울기가 -10.0과 10.0 사이인 경우에만 유효한 차선 함수로 간주
+        x_intercept = find_positive_x_intercept(poly_coeff)
+        slope = compute_derivative(poly_coeff, x_intercept)
         if -10.0 <= slope <= 10.0:
             valid_lane_coeffs.append(poly_coeff)
         else:
             rospy.logwarn("[WARNING] Discarding lane function with invalid slope: %.2f", slope)
     
-    # 유효한 차선 함수가 없으면 None 반환
     if not valid_lane_coeffs:
         return None
 
     if len(valid_lane_coeffs) == 2:
-        # 두 개의 차선이면 단순 평균(중앙 경로)
         path_coeff = np.mean(np.array(valid_lane_coeffs), axis=0)
     elif len(valid_lane_coeffs) == 1:
-        poly_coeff = valid_lane_coeffs[0] #차선 선택
-        
-        # 절편에서의 기울기
+        poly_coeff = valid_lane_coeffs[0]
         x_intercept = find_positive_x_intercept(poly_coeff)
         slope = compute_derivative(poly_coeff, x_intercept)
-
-        # lookahead 거리(2.1m)에서의 기울기 계산
         m = compute_derivative(poly_coeff, lookahead)
-        # m이 0이면 특수 처리: 법선 방향을 -pi/2로 설정
-        a = np.arctan(-1/m) if m != 0 else -pi/2 
-        a = abs(a) #기함수 특성 고려
-        # slope > 0이면 우측 차선, slope <= 0이면 좌측 차선으로 판단
+        a = np.arctan(-1/m) if m != 0 else -pi/2
         if slope > 0:  # 우측 차선
-            dx = - d * (np.cos(a))
-            dy = d * (np.sin(a))
-        else:      # 좌측 차선
-            dx = - d * (np.cos(a))
-            dy = - d * (np.sin(a))
-        # 평행이동된 경로 함수 생성: f_new(x)= f(x - dx)+dy
+            dx = - d * abs(np.cos(a))
+            dy = d * abs(np.sin(a))
+        else:          # 좌측 차선
+            dx = - d * abs(np.cos(a))
+            dy = - d * abs(np.sin(a))
         path_coeff = shift_poly(poly_coeff, dx, dy)
         pub_slope.publish(Float32(data=slope))
     else:
-        # 1개 또는 2개 외의 경우는 처리하지 않음
         return None
 
     return path_coeff
 
-# 차선 튜플 샘플링
+# 차선 경로 점 샘플링
 def sample_path_points(poly_coeff, x_start=1.4, x_end=2.9, num_points=50):
     xs = np.linspace(x_start, x_end, num_points)
     ys = np.polyval(poly_coeff, xs)
@@ -228,7 +199,6 @@ def keep_top2_components(binary_mask, min_area=50):
     return cleaned
 
 def final_filter(bev_mask):
-    # f1 = morph_open(bev_mask, ksize=3)
     f2 = morph_close(bev_mask, ksize=5)
     f3 = remove_small_components(f2, min_size=300)
     f4 = keep_top2_components(f3, min_area=300)
@@ -240,7 +210,6 @@ def final_filter(bev_mask):
 def create_lane_marker(lane_coeffs, frame_id="velodyne", x_start=1.4, x_end=2.9, num_points=50):
     marker_array = MarkerArray()
     valid_lane_coeffs = []
-    # 유효한 차선 함수만 필터링 (기울기가 -10에서 10 사이인 경우)
     for coeff in lane_coeffs:
         x_int = find_positive_x_intercept(coeff)
         slope = compute_derivative(coeff, x_int)
@@ -318,13 +287,11 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
     plt.figure("Lane in Vehicle Coordinates", figsize=(6, 6))
     plt.clf()
     
-    # 경로 함수 (filtered path)를 빨간색 선으로 그리기
     if len(path_points) > 0:
         path_vehicle = np.array(path_points)
         plt.plot(path_vehicle[:, 1], path_vehicle[:, 0], 'r-', label="Path Function")
     
     valid_lane_data = []
-    # lane_data에서 기울기가 유효한 차선 함수만 필터링
     if lane_data is not None:
         for coeff in lane_data:
             x_int = find_positive_x_intercept(coeff)
@@ -334,13 +301,11 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
             else:
                 rospy.logwarn("[DEBUG] Discarding lane function for plotting with invalid slope: %.2f", slope)
         
-        # 유효한 차선 함수들만 파란색 점선으로 그리기 및 x절편 표시
         for i, coeff in enumerate(valid_lane_data):
-            xs = np.linspace(1.4, 2.9, 50)  # 전방 거리 범위
-            ys = np.polyval(coeff, xs)       # lateral 좌표
+            xs = np.linspace(1.4, 2.9, 50)
+            ys = np.polyval(coeff, xs)
             plt.plot(ys, xs, 'b--', label=f"Lane Function {i+1}" if i == 0 else None)
             
-            # 양의 x절편 계산 (lateral=0, forward=x_int)
             x_int = find_positive_x_intercept(coeff)
             slope = compute_derivative(coeff, x_int)
             plt.scatter(0, x_int, marker='o', color='magenta', s=100,
@@ -348,7 +313,6 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
             plt.text(0, x_int, f"{x_int:.2f}\n(slope: {slope:.2f})", color='magenta', fontsize=10,
                      verticalalignment='bottom', horizontalalignment='right')
     
-    # 목표 점이 있을 경우 녹색 점으로 표시
     if goal_point:
         plt.scatter(goal_point[1], goal_point[0], color='green', s=100, label="Goal Point")
 
@@ -364,76 +328,52 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
     plt.pause(0.001)
 
 ##############################################
-# 메인 처리 함수 (EKF 제거)
+# 메인 처리 함수
 ##############################################
 def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
     cv2.setUseOptimized(True)
     cv2.setNumThreads(0)
-    cudnn.benchmark = True
 
     bridge = CvBridge()
-    source, weights = opt.source, opt.weights
-    imgsz, lane_threshold, bev_param_file = opt.img_size, opt.lane_thres, opt.param_file
+    source = opt.source
+    imgsz = opt.img_size
+    lane_threshold = opt.lane_thres
+    bev_param_file = opt.param_file
 
-    # 모델 로드
-    stride = 32
-    model = torch.jit.load(weights)
-    device = select_device(opt.device)
-    half = (device.type != 'cpu')
-    model = model.to(device)
-    if half:
-        model.half()
-    model.eval()
-
-    # 입력 소스 설정
     dataset = LoadCamera(source, img_size=imgsz, stride=32) if source.isdigit() else LoadImages(source, img_size=imgsz, stride=32)
 
     def process_frame(im0s):
-        net_input_img, _, _ = letterbox(im0s, (imgsz, imgsz), stride=32)
-        net_input_img = net_input_img[:, :, ::-1].transpose(2, 0, 1)
-        net_input_img = np.ascontiguousarray(net_input_img)
-        img_t = torch.from_numpy(net_input_img).to(device).float() / 255.0
-        if half:
-            img_t = img_t.half()
-        if img_t.ndimension() == 3:
-            img_t = img_t.unsqueeze(0)
+        bev_im = do_bev_transform(im0s, bev_param_file)
 
-        with torch.no_grad():
-            [_, _], _, ll = model(img_t)
+        # (1) BEV 이미지를 HSV 색공간으로 변환
+        hsv = cv2.cvtColor(bev_im, cv2.COLOR_BGR2HSV)
 
-        binary_mask = lane_line_mask(ll, threshold=lane_threshold, method='otsu')
-        thin_mask = ximgproc.thinning(binary_mask, thinningType=ximgproc.THINNING_ZHANGSUEN)
-        if thin_mask is None or thin_mask.size == 0:
-            rospy.logwarn("[WARNING] Thinning 결과 비어 있음 → binary_mask 사용")
-            thin_mask = binary_mask
-        bev_mask = do_bev_transform(thin_mask, bev_param_file)
-        bevfilter_mask = final_filter(bev_mask)
+        # (2) 흰색 범위를 지정하여 마스크 생성
+        # 차선이 완전 흰색에 가깝다면, 아래 범위를 좀 더 타이트하게 조정할 수 있습니다.
+        # 필요에 따라 lower_white, upper_white 값을 조절하세요.
+        lower_white = np.array([0, 0, 200], dtype=np.uint8)  # 예시: 밝은 회색~흰색
+        upper_white = np.array([179, 40, 255], dtype=np.uint8)
+        binary_mask = cv2.inRange(hsv, lower_white, upper_white)
+
+        bevfilter_mask = final_filter(binary_mask)
         final_mask = ximgproc.thinning(bevfilter_mask, thinningType=ximgproc.THINNING_ZHANGSUEN)
         if final_mask is None or final_mask.size == 0:
             rospy.logwarn("[WARNING] Thinning 결과 비어 있음 → bevfilter_mask 사용")
             final_mask = bevfilter_mask
 
-        # 차선 다항식 계수 추출 (3차)
         lane_data = extract_lane_functions(final_mask, poly_degree=3)
         measured_path_coeff = create_path_function(lane_data, d=0.75, lookahead=2.1)
         
-        # EKF 제거: 측정된 경로 함수 계수를 그대로 사용
-        if measured_path_coeff is not None:
-            filtered_path_coeff = measured_path_coeff
-        else:
-            filtered_path_coeff = None
-
-        # 유효한 경로 함수가 있을 때만 경로 점 계산
+        filtered_path_coeff = measured_path_coeff if measured_path_coeff is not None else None
         path_points = sample_path_points(filtered_path_coeff) if filtered_path_coeff is not None else []
 
-        # 차선 검출 여부 판단 및 퍼블리시
         lane_detected = (filtered_path_coeff is not None) and (len(path_points) > 0)
         pub_lane_status.publish(Bool(data=lane_detected))
 
-        bev_im = do_bev_transform(im0s, bev_param_file)
+        bev_im_color = bev_im.copy()
         
         if lane_detected:
-            bev_im_color = overlay_polyline(bev_im.copy(), path_points)
+            bev_im_color = overlay_polyline(bev_im_color, path_points)
             lookahead_m, wheelbase_m = 2.1, 0.75
             goal_point = None
             min_error = float('inf')
@@ -458,7 +398,6 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 cv2.circle(bev_im_color, (goal_x_img, goal_y_img), 5, (0, 255, 0), -1)
                 cv2.putText(bev_im_color, f"Steering: {steering_angle_deg:.2f} deg", (10, 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-                # RViz 마커 퍼블리싱
                 lane_marker = create_lane_marker(lane_data)
                 path_marker = create_path_marker(path_points)
                 goal_marker = create_goal_marker(goal_point)
@@ -466,11 +405,8 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 pub_path_marker.publish(path_marker)
                 pub_goal_marker.publish(goal_marker)
                 
-                opt.debug = True
                 if opt.debug:
                     debug_plot_lane(path_points, lane_data, goal_point)
-            else:
-                bev_im_color = bev_im.copy()
         else:
             bev_im_color = bev_im.copy()
 
@@ -545,7 +481,6 @@ def ros_main():
 
 if __name__ == '__main__':
     try:
-        with torch.no_grad():
-            ros_main()
+        ros_main()
     except rospy.ROSInterruptException:
         pass
