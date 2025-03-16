@@ -23,7 +23,7 @@ max_points = 4
 
 def parse_args():
     parser = argparse.ArgumentParser(description="BEV 파라미터 설정 유틸리티")
-    parser.add_argument('--source', type=str, default='/home/yoo/source/test_video1.mp4',
+    parser.add_argument('--source', type=str, default='2',
                         help='영상/카메라 소스. 숫자 (예: 0,1,...)는 웹캠, 파일 경로는 영상 또는 이미지')
     parser.add_argument('--warp-width', type=int, default=640,
                         help='BEV 결과 영상 너비 (기본 640)')
