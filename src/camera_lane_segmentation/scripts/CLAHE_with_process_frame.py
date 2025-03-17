@@ -83,7 +83,7 @@ pub_slope = rospy.Publisher("path_slope", Float32, queue_size=1)
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
-    parser.add_argument('--source', type=str, default='0', help='source: 0(webcam) 또는 파일 경로')
+    parser.add_argument('--source', type=str, default='2', help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
@@ -391,12 +391,11 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
             rospy.loginfo("[INFO] High brightness detected (avg: %.2f), applying CLAHE", avg_brightness)
             im0s = apply_clahe(im0s)
         else:
-            # 너무 밝은 픽셀의 RGB 값 조정
             max_rgb = np.max(im0s, axis=2)
-            bright_mask = max_rgb > 240  # 임계값 240 이상인 픽셀
+            bright_mask = max_rgb > 240
             if np.any(bright_mask):
                 rospy.loginfo("[INFO] Bright pixels detected, adjusting RGB values")
-                scale_factor = 0.7  # RGB 값을 70%로 스케일링
+                scale_factor = 0.7
                 im0s[bright_mask] = (im0s[bright_mask] * scale_factor).astype(np.uint8)
 
         # 모델 입력 준비
@@ -429,17 +428,16 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
         
         if measured_path_coeff is not None:
             filtered_path_coeff = ekf_filter.update(measured_path_coeff)
+            lane_detected = True
         else:
             filtered_path_coeff = ekf_filter.predict()
+            lane_detected = False
 
-        path_points = sample_path_points(filtered_path_coeff) if filtered_path_coeff is not None else []
-
-        lane_detected = (filtered_path_coeff is not None) and (len(path_points) > 0)
         pub_lane_status.publish(Bool(data=lane_detected))
 
         bev_im = do_bev_transform(im0s, bev_param_file)
         
-        if lane_detected:
+        if lane_detected and len(path_points := sample_path_points(filtered_path_coeff)) > 0:
             bev_im_color = overlay_polyline(bev_im.copy(), path_points)
             lookahead_m, wheelbase_m = 2.1, 0.75
             goal_point = None
@@ -478,6 +476,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 bev_im_color = bev_im.copy()
         else:
             bev_im_color = bev_im.copy()
+            rospy.loginfo("[INFO] Lane not detected, skipping steering angle publish")
 
         pub_mask.publish(bridge.cv2_to_imgmsg(bev_im_color, "bgr8"))
         pub_binary.publish(bridge.cv2_to_imgmsg(final_mask, "mono8"))
