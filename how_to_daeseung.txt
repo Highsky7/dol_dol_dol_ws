@@ -6,6 +6,8 @@ roslaunch gps_to_utm_pkg local_cartesian.launch
 2nd
 rosbag play lidar_gps_3_13.bag --clock            or          rv (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
 
+3rd
+rosrun voxelnext_pkg lidar_ros_node.py & roslaunch ma_rrt_path_plan startExploring.launch & roslaunch gps_to_utm_pkg local_cartesian.launch &
 
 
 (((roslaunch lego_loam run.launch)))
