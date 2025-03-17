@@ -24,8 +24,49 @@ from geometry_msgs.msg import Point
 
 from utils.utils import (
     time_synchronized, select_device, increment_path, lane_line_mask,
-    AverageMeter, LoadCamera, LoadImages, letterbox, apply_clahe  # apply_clahe 추가
+    AverageMeter, LoadCamera, LoadImages, letterbox, apply_clahe
 )
+
+##############################################
+# EKF 클래스 (3차 경로 함수 계수 스무딩용)
+##############################################
+class PathEKF:
+    def __init__(self, dim=4):
+        self.dim = dim
+        self.x = None  # 상태 벡터 (a, b, c, d)
+        self.P = np.eye(dim) * 1.0  # 초기 공분산 행렬
+        self.F = np.eye(dim)        # 상태 전이 행렬 (단순 identity, random walk 모델)
+        self.Q = np.eye(dim) * 1e-3   # 프로세스 노이즈 공분산 (튜닝 필요)
+        self.R = np.eye(dim) * 1e-2   # 측정 노이즈 공분산 (튜닝 필요)
+
+    def initialize(self, measurement):
+        self.x = np.array(measurement)
+        self.P = np.eye(self.dim) * 1.0
+        return self.x
+
+    def predict(self):
+        if self.x is None:
+            return None
+        # 예측 단계: x_k = F * x_{k-1} (여기서는 단순 identity)
+        self.x = self.F.dot(self.x)
+        self.P = self.F.dot(self.P).dot(self.F.T) + self.Q
+        return self.x
+
+    def update(self, measurement):
+        measurement = np.array(measurement)
+        if self.x is None:
+            return self.initialize(measurement)
+        # 예측 단계
+        self.x = self.F.dot(self.x)
+        self.P = self.F.dot(self.P).dot(self.F.T) + self.Q
+        # 측정 업데이트 (측정 함수 h(x)=x, H=I)
+        H = np.eye(self.dim)
+        S = H.dot(self.P).dot(H.T) + self.R
+        K = self.P.dot(H.T).dot(np.linalg.inv(S))
+        y = measurement - H.dot(self.x)  # 혁신(innovation)
+        self.x = self.x + K.dot(y)
+        self.P = (np.eye(self.dim) - K.dot(H)).dot(self.P)
+        return self.x
 
 ##############################################
 # ROS 퍼블리셔 정의
@@ -46,7 +87,7 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
     parser.add_argument('--source', type=str,
-                        default='2',
+                        default='0',
                         # default='/home/yoo/source/test_video4.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
@@ -110,11 +151,10 @@ def shift_poly(poly_coeff, dx, dy):
     새로운 계수를 반환.
     """
     p = np.poly1d(poly_coeff)
-    # np.poly1d([1, -dx]) 는 x - dx 를 의미합니다.
     shifted_poly = p(np.poly1d([1, -dx])) + dy
     return shifted_poly.coeffs
 
-def create_path_function(lane_coeffs, d=0.75 , lookahead=2.1):
+def create_path_function(lane_coeffs, d=0.75, lookahead=2.1):
     """
     유효한 차선 함수만 선택한 후,
       - 두 개의 차선이면 단순 평균하여 중앙 경로를 생성하고,
@@ -124,41 +164,32 @@ def create_path_function(lane_coeffs, d=0.75 , lookahead=2.1):
     for poly_coeff in lane_coeffs:
         x_intercept = find_positive_x_intercept(poly_coeff)
         slope = compute_derivative(poly_coeff, x_intercept)
-        # 기울기가 -10.0과 10.0 사이인 경우에만 유효한 차선 함수로 간주
         if -10.0 <= slope <= 10.0:
             valid_lane_coeffs.append(poly_coeff)
         else:
             rospy.logwarn("[WARNING] Discarding lane function with invalid slope: %.2f", slope)
     
-    # 유효한 차선 함수가 없으면 None 반환
     if not valid_lane_coeffs:
         return None
 
     if len(valid_lane_coeffs) == 2:
-        # 두 개의 차선이면 단순 평균(중앙 경로)
         path_coeff = np.mean(np.array(valid_lane_coeffs), axis=0)
     elif len(valid_lane_coeffs) == 1:
         poly_coeff = valid_lane_coeffs[0]
-        # 절편에서의 기울기
         x_intercept = find_positive_x_intercept(poly_coeff)
         slope = compute_derivative(poly_coeff, x_intercept)
-        # lookahead 거리(2.1m)에서의 기울기 계산
         m = compute_derivative(poly_coeff, lookahead)
-        # m이 0이면 특수 처리: 법선 방향을 -pi/2로 설정
         a = np.arctan(-1/m) if m != 0 else -pi/2
         a = abs(a)
-        # slope > 0이면 우측 차선, slope <= 0이면 좌측 차선으로 판단
         if slope > 0:  # 우측 차선
             dx = - d * np.cos(a)
             dy = d * np.sin(a)
-        else:      # 좌측 차선
+        else:          # 좌측 차선
             dx = - d * np.cos(a)
             dy = - d * np.sin(a)
-        # 평행이동된 경로 함수 생성: f_new(x)= f(x - dx)+dy
         path_coeff = shift_poly(poly_coeff, dx, dy)
         pub_slope.publish(Float32(data=slope))
     else:
-        # 1개 또는 2개 외의 경우는 처리하지 않음
         return None
 
     return path_coeff
@@ -213,7 +244,6 @@ def keep_top2_components(binary_mask, min_area=50):
     return cleaned
 
 def final_filter(bev_mask):
-    # f1 = morph_open(bev_mask, ksize=3)
     f2 = morph_close(bev_mask, ksize=5)
     f3 = remove_small_components(f2, min_size=300)
     f4 = keep_top2_components(f3, min_area=300)
@@ -225,7 +255,6 @@ def final_filter(bev_mask):
 def create_lane_marker(lane_coeffs, frame_id="velodyne", x_start=1.4, x_end=2.9, num_points=50):
     marker_array = MarkerArray()
     valid_lane_coeffs = []
-    # 유효한 차선 함수만 필터링 (기울기가 -10에서 10 사이인 경우)
     for coeff in lane_coeffs:
         x_int = find_positive_x_intercept(coeff)
         slope = compute_derivative(coeff, x_int)
@@ -303,13 +332,11 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
     plt.figure("Lane in Vehicle Coordinates", figsize=(6, 6))
     plt.clf()
     
-    # 경로 함수 (filtered path)를 빨간색 선으로 그리기
     if len(path_points) > 0:
         path_vehicle = np.array(path_points)
         plt.plot(path_vehicle[:, 1], path_vehicle[:, 0], 'r-', label="Path Function")
     
     valid_lane_data = []
-    # lane_data에서 기울기가 유효한 차선 함수만 필터링
     if lane_data is not None:
         for coeff in lane_data:
             x_int = find_positive_x_intercept(coeff)
@@ -319,13 +346,10 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
             else:
                 rospy.logwarn("[DEBUG] Discarding lane function for plotting with invalid slope: %.2f", slope)
         
-        # 유효한 차선 함수들만 파란색 점선으로 그리기 및 x절편 표시
         for i, coeff in enumerate(valid_lane_data):
-            xs = np.linspace(1.4, 2.9, 50)  # 전방 거리 범위
-            ys = np.polyval(coeff, xs)       # lateral 좌표
+            xs = np.linspace(1.4, 2.9, 50)
+            ys = np.polyval(coeff, xs)
             plt.plot(ys, xs, 'b--', label=f"Lane Function {i+1}" if i == 0 else None)
-            
-            # 양의 x절편 계산 (lateral=0, forward=x_int)
             x_int = find_positive_x_intercept(coeff)
             slope = compute_derivative(coeff, x_int)
             plt.scatter(0, x_int, marker='o', color='magenta', s=100,
@@ -333,7 +357,6 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
             plt.text(0, x_int, f"{x_int:.2f}\n(slope: {slope:.2f})", color='magenta', fontsize=10,
                      verticalalignment='bottom', horizontalalignment='right')
     
-    # 목표 점이 있을 경우 녹색 점으로 표시
     if goal_point:
         plt.scatter(goal_point[1], goal_point[0], color='green', s=100, label="Goal Point")
 
@@ -349,7 +372,7 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
     plt.pause(0.001)
 
 ##############################################
-# 메인 처리 함수 (EKF 제거)
+# 메인 처리 함수 (EKF 적용)
 ##############################################
 def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
     cv2.setUseOptimized(True)
@@ -370,16 +393,18 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
         model.half()
     model.eval()
 
+    # EKF 인스턴스 생성 (글로벌 상태로 경로 계수 스무딩)
+    ekf_filter = PathEKF(dim=4)
+
     # 입력 소스 설정
     dataset = LoadCamera(source, img_size=imgsz, stride=32) if source.isdigit() else LoadImages(source, img_size=imgsz, stride=32)
 
     def process_frame(im0s):
-        # ★ 추가: 밝기 보정을 위한 CLAHE 적용 ★
-        # 입력 이미지의 평균 밝기를 계산하여 밝으면 CLAHE 적용
+        # CLAHE 전처리: 밝은 경우 대비 보정
         gray = cv2.cvtColor(im0s, cv2.COLOR_BGR2GRAY)
         avg_brightness = np.mean(gray)
-        if avg_brightness > 200:  # 임계값은 데이터에 따라 조정 가능
-            rospy.loginfo("[INFO] High brightness detected (avg brightness: %.2f), applying CLAHE", avg_brightness)
+        if avg_brightness > 200:
+            rospy.loginfo("[INFO] High brightness detected (avg: %.2f), applying CLAHE", avg_brightness)
             im0s = apply_clahe(im0s)
         
         net_input_img, _, _ = letterbox(im0s, (imgsz, imgsz), stride=32)
@@ -410,16 +435,15 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
         lane_data = extract_lane_functions(final_mask, poly_degree=3)
         measured_path_coeff = create_path_function(lane_data, d=0.75, lookahead=2.1)
         
-        # EKF 제거: 측정된 경로 함수 계수를 그대로 사용
+        # EKF를 통해 경로 계수 스무딩 적용
         if measured_path_coeff is not None:
-            filtered_path_coeff = measured_path_coeff
+            filtered_path_coeff = ekf_filter.update(measured_path_coeff)
         else:
-            filtered_path_coeff = None
+            filtered_path_coeff = ekf_filter.predict()
 
         # 유효한 경로 함수가 있을 때만 경로 점 계산
         path_points = sample_path_points(filtered_path_coeff) if filtered_path_coeff is not None else []
 
-        # 차선 검출 여부 판단 및 퍼블리시
         lane_detected = (filtered_path_coeff is not None) and (len(path_points) > 0)
         pub_lane_status.publish(Bool(data=lane_detected))
 
@@ -451,7 +475,6 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 cv2.circle(bev_im_color, (goal_x_img, goal_y_img), 5, (0, 255, 0), -1)
                 cv2.putText(bev_im_color, f"Steering: {steering_angle_deg:.2f} deg", (10, 60),
                             cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 0, 0), 2)
-                # RViz 마커 퍼블리싱
                 lane_marker = create_lane_marker(lane_data)
                 path_marker = create_path_marker(path_points)
                 goal_marker = create_goal_marker(goal_point)
