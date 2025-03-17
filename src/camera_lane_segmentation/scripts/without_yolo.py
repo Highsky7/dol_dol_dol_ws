@@ -44,8 +44,8 @@ pub_slope = rospy.Publisher("path_slope", Float32, queue_size=1)
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str,
-                        #default='2',
-                        default='/home/yoo/source/test_video1.mp4',
+                        default='2',
+                        #default='/home/yoo/source/test_video1.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='추론 해상도')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
