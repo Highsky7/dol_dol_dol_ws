@@ -18,7 +18,7 @@ import os
 
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-from std_msgs.msg import Float32, Bool  # Bool 추가
+from std_msgs.msg import Float32, Bool
 from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
@@ -33,11 +33,11 @@ from utils.utils import (
 class PathEKF:
     def __init__(self, dim=4):
         self.dim = dim
-        self.x = None  # 상태 벡터 (a, b, c, d)
-        self.P = np.eye(dim) * 1.0  # 초기 공분산 행렬
-        self.F = np.eye(dim)        # 상태 전이 행렬 (단순 identity, random walk 모델)
-        self.Q = np.eye(dim) * 1e-3   # 프로세스 노이즈 공분산 (튜닝 필요)
-        self.R = np.eye(dim) * 1e-2   # 측정 노이즈 공분산 (튜닝 필요)
+        self.x = None
+        self.P = np.eye(dim) * 1.0
+        self.F = np.eye(dim)
+        self.Q = np.eye(dim) * 1e-3
+        self.R = np.eye(dim) * 1e-2
 
     def initialize(self, measurement):
         self.x = np.array(measurement)
@@ -47,7 +47,6 @@ class PathEKF:
     def predict(self):
         if self.x is None:
             return None
-        # 예측 단계: x_k = F * x_{k-1} (여기서는 단순 identity)
         self.x = self.F.dot(self.x)
         self.P = self.F.dot(self.P).dot(self.F.T) + self.Q
         return self.x
@@ -56,14 +55,12 @@ class PathEKF:
         measurement = np.array(measurement)
         if self.x is None:
             return self.initialize(measurement)
-        # 예측 단계
         self.x = self.F.dot(self.x)
         self.P = self.F.dot(self.P).dot(self.F.T) + self.Q
-        # 측정 업데이트 (측정 함수 h(x)=x, H=I)
         H = np.eye(self.dim)
         S = H.dot(self.P).dot(H.T) + self.R
         K = self.P.dot(H.T).dot(np.linalg.inv(S))
-        y = measurement - H.dot(self.x)  # 혁신(innovation)
+        y = measurement - H.dot(self.x)
         self.x = self.x + K.dot(y)
         self.P = (np.eye(self.dim) - K.dot(H)).dot(self.P)
         return self.x
@@ -77,7 +74,7 @@ pub_goal_marker = rospy.Publisher('goal_point_marker', Marker, queue_size=1)
 pub_steering = rospy.Publisher('auto_steer_angle_lane', Float32, queue_size=1)
 pub_mask = rospy.Publisher('camera_lane_segmentation/lane_mask', Image, queue_size=1)
 pub_binary = rospy.Publisher('camera_lane_segmentation/binary_mask', Image, queue_size=1)
-pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)  # 추가
+pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)
 pub_slope = rospy.Publisher("path_slope", Float32, queue_size=1)
 
 ##############################################
@@ -86,10 +83,7 @@ pub_slope = rospy.Publisher("path_slope", Float32, queue_size=1)
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
-    parser.add_argument('--source', type=str,
-                        default='2',
-                        # default='/home/yoo/source/test_video4.mp4',
-                        help='source: 0(webcam) 또는 파일 경로')
+    parser.add_argument('--source', type=str, default='0', help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
@@ -146,20 +140,11 @@ def find_positive_x_intercept(poly_coeff):
     return positive_roots[0] if len(positive_roots) > 0 else 2.0
 
 def shift_poly(poly_coeff, dx, dy):
-    """
-    다항식 f(x)=poly_coeff (numpy.poly1d 형식)을 f_new(x)= f(x-dx)+dy로 평행이동하여
-    새로운 계수를 반환.
-    """
     p = np.poly1d(poly_coeff)
     shifted_poly = p(np.poly1d([1, -dx])) + dy
     return shifted_poly.coeffs
 
 def create_path_function(lane_coeffs, d=0.75, lookahead=2.1):
-    """
-    유효한 차선 함수만 선택한 후,
-      - 두 개의 차선이면 단순 평균하여 중앙 경로를 생성하고,
-      - 단일 차선인 경우 lookahead(2.1m) 지점에서의 기울기를 이용해 법선 방향으로 평행이동하여 경로 함수를 생성한다.
-    """
     valid_lane_coeffs = []
     for poly_coeff in lane_coeffs:
         x_intercept = find_positive_x_intercept(poly_coeff)
@@ -180,10 +165,11 @@ def create_path_function(lane_coeffs, d=0.75, lookahead=2.1):
         slope = compute_derivative(poly_coeff, x_intercept)
         m = compute_derivative(poly_coeff, lookahead)
         a = np.arctan(-1/m) if m != 0 else -pi/2
-        if slope > 0:  # 우측 차선
+        a = abs(a)
+        if slope > 0:
             dx = - d * np.cos(a)
             dy = d * np.sin(a)
-        else:          # 좌측 차선
+        else:
             dx = - d * np.cos(a)
             dy = - d * np.sin(a)
         path_coeff = shift_poly(poly_coeff, dx, dy)
@@ -193,7 +179,6 @@ def create_path_function(lane_coeffs, d=0.75, lookahead=2.1):
 
     return path_coeff
 
-# 차선 튜플 샘플링
 def sample_path_points(poly_coeff, x_start=1.4, x_end=2.9, num_points=50):
     xs = np.linspace(x_start, x_end, num_points)
     ys = np.polyval(poly_coeff, xs)
@@ -371,7 +356,7 @@ def debug_plot_lane(path_points, lane_data=None, goal_point=None):
     plt.pause(0.001)
 
 ##############################################
-# 메인 처리 함수 (EKF 적용)
+# 메인 처리 함수 (EKF 적용 및 밝기 조정 추가)
 ##############################################
 def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
     cv2.setUseOptimized(True)
@@ -392,20 +377,29 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
         model.half()
     model.eval()
 
-    # EKF 인스턴스 생성 (글로벌 상태로 경로 계수 스무딩)
+    # EKF 인스턴스 생성
     ekf_filter = PathEKF(dim=4)
 
     # 입력 소스 설정
     dataset = LoadCamera(source, img_size=imgsz, stride=32) if source.isdigit() else LoadImages(source, img_size=imgsz, stride=32)
 
     def process_frame(im0s):
-        # CLAHE 전처리: 밝은 경우 대비 보정
+        # 밝기 조정 전처리
         gray = cv2.cvtColor(im0s, cv2.COLOR_BGR2GRAY)
         avg_brightness = np.mean(gray)
         if avg_brightness > 200:
             rospy.loginfo("[INFO] High brightness detected (avg: %.2f), applying CLAHE", avg_brightness)
             im0s = apply_clahe(im0s)
-        
+        else:
+            # 너무 밝은 픽셀의 RGB 값 조정
+            max_rgb = np.max(im0s, axis=2)
+            bright_mask = max_rgb > 240  # 임계값 240 이상인 픽셀
+            if np.any(bright_mask):
+                rospy.loginfo("[INFO] Bright pixels detected, adjusting RGB values")
+                scale_factor = 0.7  # RGB 값을 70%로 스케일링
+                im0s[bright_mask] = (im0s[bright_mask] * scale_factor).astype(np.uint8)
+
+        # 모델 입력 준비
         net_input_img, _, _ = letterbox(im0s, (imgsz, imgsz), stride=32)
         net_input_img = net_input_img[:, :, ::-1].transpose(2, 0, 1)
         net_input_img = np.ascontiguousarray(net_input_img)
@@ -430,17 +424,14 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
             rospy.logwarn("[WARNING] Thinning 결과 비어 있음 → bevfilter_mask 사용")
             final_mask = bevfilter_mask
 
-        # 차선 다항식 계수 추출 (3차)
         lane_data = extract_lane_functions(final_mask, poly_degree=3)
         measured_path_coeff = create_path_function(lane_data, d=0.75, lookahead=2.1)
         
-        # EKF를 통해 경로 계수 스무딩 적용
         if measured_path_coeff is not None:
             filtered_path_coeff = ekf_filter.update(measured_path_coeff)
         else:
             filtered_path_coeff = ekf_filter.predict()
 
-        # 유효한 경로 함수가 있을 때만 경로 점 계산
         path_points = sample_path_points(filtered_path_coeff) if filtered_path_coeff is not None else []
 
         lane_detected = (filtered_path_coeff is not None) and (len(path_points) > 0)
@@ -469,7 +460,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 steering_angle = np.arctan((2 * wheelbase_m * np.sin(alpha)) / d) if d > 1e-6 else 0.0
                 steering_angle_deg = np.degrees(steering_angle)
                 pub_steering.publish(Float32(data=steering_angle_deg))
-                rospy.loginfo("[INFO] Published auto_steer_angle_lane: %.2f deg", steering_angle_deg)
+                rospy.loginfo("[INFO] Published auto_steering_angle_lane: %.2f deg", steering_angle_deg)
                 goal_x_img, goal_y_img = vehicle_to_image(goal_point)
                 cv2.circle(bev_im_color, (goal_x_img, goal_y_img), 5, (0, 255, 0), -1)
                 cv2.putText(bev_im_color, f"Steering: {steering_angle_deg:.2f} deg", (10, 60),
@@ -481,7 +472,6 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 pub_path_marker.publish(path_marker)
                 pub_goal_marker.publish(goal_marker)
                 
-                opt.debug = True
                 if opt.debug:
                     debug_plot_lane(path_points, lane_data, goal_point)
             else:
