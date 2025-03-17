@@ -1,16 +1,14 @@
-터미널 8개 필요
+터미널 10개 필요
 아두이노 메가 업로드
 1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
 2터미널: rosrun judgement judgement.py
 3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
-
 4터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
-5터미널: rosrun voxelnext_pkg lidar_ros_node.py    # 콘 디텍션 노드
-
-6터미널: roslaunch lego_loam run.launch     # 실행 안 해도 상관 없음. 뒤에 yaw_init:=100 처럼 숫자 조건 추가하면 /global_yaw_legoloam 토픽 발행됨 -> vehicle_tf_broadcaster에서 /global_yaw를 /global_yaw_legoloam으로 수정필요
-
-7터미널: roslaunch gps_to_utm_pkg local_cartesian.launch # rrt target을 gps기반으로 발행하는 노드
-8터미널: roslaunch ma_rrt_path_plan startExploring.launch    # rrt 경로 생성
+5터미널: 가상환경(sa) ---------------->
+rosrun voxelnext_pkg lidar_ros_node.py & roslaunch ma_rrt_path_plan startExploring.launch
+6터미널: roslaunch gps_to_utm_pkg local_cartesian.launch
+7터미널: roslaunch ublox_gps ublox_zed-f9p.launch
+8미널: roslaunch ntrip_ros ntrip_ros.launch
 9터미널: rosrun ma_rrt_path_plan ma_rrt_purepursuit.py      # rrt rrt 경로 퓨어퍼슛하여 조향각 발행
-
 10터미널: rosrun sort_ros_pkg sort_ros_node    # (미완성)  동적 장애물 발견 T/F 발행 노드
+
