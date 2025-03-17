@@ -4,11 +4,9 @@
 2터미널: rosrun judgement judgement.py
 3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
 4터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
-5터미널: 가상환경(sa) ---------------->
-rosrun voxelnext_pkg lidar_ros_node.py & roslaunch ma_rrt_path_plan startExploring.launch
-6터미널: roslaunch gps_to_utm_pkg local_cartesian.launch
-7터미널: roslaunch ublox_gps ublox_zed-f9p.launch
-8미널: roslaunch ntrip_ros ntrip_ros.launch
-9터미널: rosrun ma_rrt_path_plan ma_rrt_purepursuit.py      # rrt rrt 경로 퓨어퍼슛하여 조향각 발행
+5터미널: 가상환경(sa) rosrun voxelnext_pkg lidar_ros_node.py
+6터미널: 가상환경(sa) roslaunch ma_rrt_path_plan startExploring.launch
+7터미널: roslaunch gps_to_utm_pkg local_cartesian.launch
+8터미널: roslaunch ublox_gps ublox_zed-f9p.launch
+9터미널: roslaunch ntrip_ros ntrip_ros.launch
 10터미널: rosrun sort_ros_pkg sort_ros_node    # (미완성)  동적 장애물 발견 T/F 발행 노드
-
