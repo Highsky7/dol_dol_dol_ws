@@ -45,7 +45,7 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--source', type=str,
                         #default='2',
-                        default='/home/yoo/source/test_video3.mp4',
+                        default='/home/yoo/source/test_video1.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='추론 해상도')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값')
@@ -178,7 +178,7 @@ def morph_close(binary_mask, ksize=5):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (ksize, ksize))
     return cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
 
-def remove_small_components(binary_mask, min_size=100):
+def remove_small_components(binary_mask, min_size=200):
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary_mask, connectivity=8)
     cleaned = np.zeros_like(binary_mask)
     for i in range(1, num_labels):
