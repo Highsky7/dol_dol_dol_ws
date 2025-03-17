@@ -19,7 +19,7 @@ class ROIPathPublisher:
         rospy.init_node("roi_path_publisher", anonymous=True)
         
         # ROI arc length threshold (미터, 기본 5m; rosparam으로 조정 가능)
-        self.roi_arc_length = rospy.get_param("~roi_arc_length", 6.0)            #(수정할 때에 marrtnode에서 목표점 수신 못 할 때의 조건에서 거리 파라미터도 수정필요)
+        self.roi_arc_length = rospy.get_param("~roi_arc_length", 3.8)            #(수정할 때에 marrtnode에서 목표점 수신 못 할 때의 조건에서 거리 파라미터도 수정필요)
         
         # 구독: 전체 경로 (/resampled_path, reference frame) 및 차량 위치 (/local_xy, reference frame)
         rospy.Subscriber("resampled_path", Path, self.path_callback)
@@ -38,7 +38,7 @@ class ROIPathPublisher:
         self.full_path = None    # 전체 경로 (Path, reference)
         self.vehicle_pose = None  # 차량 위치 (PoseStamped, reference)
         
-        # 0.025초마다 ROI 업데이트
+        # 0.01초마다 ROI 업데이트
         rospy.Timer(rospy.Duration(0.01), self.timer_callback)
         rospy.loginfo("ROIPathPublisher 노드 시작: 전방에서 누적 arc length %.1f m 이내 ROI", self.roi_arc_length)
         rospy.spin()
@@ -56,7 +56,7 @@ class ROIPathPublisher:
         
         # TF 변환: reference → velodyne
         try:
-            transform = self.tf_buffer.lookup_transform("velodyne", "reference", rospy.Time(0), rospy.Duration(0.05))
+            transform = self.tf_buffer.lookup_transform("velodyne", "reference", rospy.Time(0), rospy.Duration(0.025))
         except Exception as e:
             rospy.logwarn("TF lookup 실패: %s", e)
             return
