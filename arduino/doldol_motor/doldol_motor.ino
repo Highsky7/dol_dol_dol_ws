@@ -46,8 +46,8 @@ ros::Subscriber<std_msgs::Float32> sub_throttle("auto_throttle", throttleCallbac
 
 #define SIGNAL_THRESHOLD        0.1
 
-#define POT_MAX                 850
-#define POT_MIN                 204
+#define POT_MAX                 968
+#define POT_MIN                 335
 #define MAX_STEER_TIRE_DEG      18
 
 #define KP                      0.08
