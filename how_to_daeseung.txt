@@ -1,12 +1,20 @@
 1st
 rosrun voxelnext_pkg lidar_ros_node.py 
 roslaunch ma_rrt_path_plan startExploring.launch
-rosrun ma_rrt_path_plan ma_rrt_purepursuit.py
 roslaunch gps_to_utm_pkg local_cartesian.launch
 
 2nd
-rosbag play lidar_gps_3_13.bag --clock
+rosbag play lidar_gps_3_13.bag --clock            or          rv (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
 
+
+
+(((roslaunch lego_loam run.launch)))
+
+
+
+
+만약 정적장애물 세웠을 때 경로생성이 어려워진다면, radius 줄이기.
+현재 0.8m
 
 
 
@@ -46,3 +54,9 @@ rrt target 6
 노드 길이 0.7
 각도 17
 ld 3.5
+
+
+
+velodybe_init yaw: 1.4058729410171509 radian
+
+roslaunch lego_loam run.launch yaw_init:=1.4058729410171509    # 실행 안 해도 상관 없음. 뒤에 yaw_init:=100 처럼 숫자 조건 추가하면 /global_yaw_legoloam
