@@ -159,7 +159,7 @@ class MaRRTPathPlanNode:
 
 
         # 콘으로부터 유도하는 장애물 반지름 크기
-        coneObstacleSize = 0.8 #height 68cm, base 37*37(cm2)
+        coneObstacleSize = 0.9 #height 68cm, base 37*37(cm2)
         coneObstacleList = []
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
@@ -180,11 +180,11 @@ class MaRRTPathPlanNode:
             marker.header.frame_id = self.world_frame
             marker.ns = "rrt_target"
             marker.id = 0
-            marker.type = Marker.ARROW  
+            marker.type = Marker.SPHERE
             marker.action = Marker.ADD
-            marker.scale.x = 1.0
-            marker.scale.y = 1.0
-            marker.scale.z = 1.0
+            marker.scale.x = 1.3
+            marker.scale.y = 1.3
+            marker.scale.z = 1.3
             marker.color.a = 1.0
             marker.color.r = 1.0
             marker.color.g = 0.0
@@ -214,13 +214,13 @@ class MaRRTPathPlanNode:
         iterationNumber = 1000
         
         # RRT 경로 계획에서 최대 트리 가지 길이
-        planDistance = 5.2
+        planDistance = 3.6
         
         # RRT 노드 간 이동 거리 (스텝 길이)
         expandDistance = 0.7
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
-        expandAngle = 17
+        expandAngle = 20
 
 
         """트리 파라미터 조정 구간""" 
