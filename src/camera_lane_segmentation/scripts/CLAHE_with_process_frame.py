@@ -203,6 +203,10 @@ def do_bev_transform(image, bev_param_file):
     M = cv2.getPerspectiveTransform(src_points, dst_points)
     return cv2.warpPerspective(image, M, (warp_w, warp_h), flags=cv2.INTER_LINEAR)
 
+def morph_open(binary_mask, ksize=3):
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (ksize, ksize))
+    return cv2.morphologyEx(binary_mask, cv2.MORPH_OPEN, kernel)
+
 def morph_close(binary_mask, ksize=5):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (ksize, ksize))
     return cv2.morphologyEx(binary_mask, cv2.MORPH_CLOSE, kernel)
@@ -228,9 +232,10 @@ def keep_top2_components(binary_mask, min_area=50):
     return cleaned
 
 def final_filter(bev_mask):
-    f2 = morph_close(bev_mask, ksize=5)
-    f3 = remove_small_components(f2, min_size=300)
-    f4 = keep_top2_components(f3, min_area=300)
+    f1 = morph_open(bev_mask, ksize=4)
+    f2 = morph_close(f1, ksize=6)
+    f3 = remove_small_components(f2, min_size=500)
+    f4 = keep_top2_components(f3, min_area=50)
     return f4
 
 ##############################################
@@ -392,7 +397,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
             im0s = apply_clahe(im0s)
         else:
             max_rgb = np.max(im0s, axis=2)
-            bright_mask = max_rgb > 240
+            bright_mask = max_rgb > 255
             if np.any(bright_mask):
                 rospy.loginfo("[INFO] Bright pixels detected, adjusting RGB values")
                 scale_factor = 0.7
@@ -484,6 +489,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
         if 'DISPLAY' in os.environ:
             cv2.imshow("BEV + Polyfit", bev_im_color)
             cv2.imshow("Final Mask", final_mask)
+            cv2.imshow("original mask", binary_mask)
         return bev_im, bev_im_color, final_mask
 
     if dataset.mode == 'stream':
