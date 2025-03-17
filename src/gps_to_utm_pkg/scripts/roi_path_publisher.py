@@ -39,7 +39,7 @@ class ROIPathPublisher:
         self.vehicle_pose = None  # 차량 위치 (PoseStamped, reference)
         
         # 0.025초마다 ROI 업데이트
-        rospy.Timer(rospy.Duration(0.025), self.timer_callback)
+        rospy.Timer(rospy.Duration(0.01), self.timer_callback)
         rospy.loginfo("ROIPathPublisher 노드 시작: 전방에서 누적 arc length %.1f m 이내 ROI", self.roi_arc_length)
         rospy.spin()
     
