@@ -100,6 +100,8 @@ def detect_objects(points, voxelnext_model, lidar_dataset):
 def publish_markers(output_dicts, pub_detected_objects, pub_2d_detected_objects, class_names):
     rospy.loginfo("📡 탐지된 객체를 퍼블리시 중...")
     
+
+    
     marker_array = MarkerArray()
     marker_array_2d = MarkerArray()
     
