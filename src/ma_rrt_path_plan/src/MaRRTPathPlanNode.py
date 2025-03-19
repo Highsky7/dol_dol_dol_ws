@@ -107,7 +107,7 @@ class MaRRTPathPlanNode:
             marker.scale.y = radius * 2.0
             marker.scale.z = 0.1  # 평면 상의 표시이므로 z는 작게
 
-            marker.color.a = 0.4  # 투명도
+            marker.color.a = 0.2  # 투명도
             marker.color.r = 1.0
             marker.color.g = 0.65
             marker.color.b = 0.0
