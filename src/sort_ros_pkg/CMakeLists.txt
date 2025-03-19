@@ -63,7 +63,7 @@ include_directories(
   include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIR}
+  ${EIGEN3_INCLUDE_DIRS} 
 )
 
 ## Declare a C++ library
@@ -87,6 +87,7 @@ add_executable(sort_ros_node
   src/Tracker.cpp
   src/TrackerState.cpp
   src/Hungarian.cpp
+  src/KalmanFilter.cpp
 )
 
 ## Rename C++ executable without prefix
