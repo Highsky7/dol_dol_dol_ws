@@ -1,0 +1,219 @@
+#include "SortRos.h"
+#include "KalmanFilter.h"   // 추가: 칼만필터 헤더 포함
+#include <map>         // 기존 및 객체 ID별 색상 매핑
+#include <tuple>       // (r, g, b) 값 저장
+#include <cstdlib>     // rand(), srand() 사용
+#include <ctime>       // time() 사용
+#include <sstream>     // 문자열 변환용 sstream
+
+// 추가: trajectory marker를 위한 헤더
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Point.h>
+
+SortRos* SortRos::instance = nullptr;
+
+ros::Publisher SortRos::pub;
+ros::Subscriber SortRos::sub;
+
+// 추가: 예측 이동궤적을 발행할 퍼블리셔
+ros::Publisher SortRos::trajectoryPredictedPub;
+
+Sort *SortRos::s;
+
+void SortRos::setup(void) {
+    double maxAge = 30; //up   객체가 30프레임 동안 사라졌더라도 같은 객체로 간주하여 추적을 계속함
+    double minHits = 2;  // down    객체가 최소 2프레임 동안 추적되어야만 유효한 객체로 간주됨
+    double iouThreshold = 0.1;  //down    두 객체가 10% 이상 겹치면 같은 객체로 간주됨
+    ros::param::get("/sort_ros/max_age", maxAge);
+    ros::param::get("/sort_ros/min_hits", minHits);
+    ros::param::get("/sort_ros/iou_threshold", iouThreshold);
+    SortRos::s = new Sort(maxAge, minHits, iouThreshold);
+
+    // /markers_detected 토픽을 구독, /markers_tracked 토픽에 결과 발행
+    SortRos::sub = nh.subscribe<visualization_msgs::MarkerArray>("/markers_detected", 1, SortRos::rectArrayCallback);
+    SortRos::pub = nh.advertise<visualization_msgs::MarkerArray>("/markers_tracked", 1);
+
+    // 추가: 예측 궤적을 위한 퍼블리셔 생성 (토픽 이름: trajectory_actual, trajectory_predicted)
+    SortRos::trajectoryPredictedPub = nh.advertise<visualization_msgs::MarkerArray>("trajectory_predicted", 1);
+}
+
+void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray) {
+    std::string frame_id;
+    std::vector<SortRect> rects;
+
+    static std::map<int, std::tuple<float, float, float>> id2color; // 객체 id -> (r,g,b)
+    static bool seeded = false;
+    if (!seeded) {
+        std::srand(std::time(nullptr)); // std::time 사용
+        seeded = true;
+    }
+
+    // 추가: 각 객체의 실제 궤적과 칼만필터 관리를 위한 정적 변수들
+    static std::map<int, std::vector<geometry_msgs::Point>> actualTrajMap;
+    static std::map<int, std::vector<geometry_msgs::Point>> predictedTrajMap;
+    static std::map<int, KalmanFilter> kfMap;
+   
+    // 현재 프레임에 검출된 객체들의 ID를 저장할 컨테이너 (active IDs)
+    std::set<int> activeIDs;
+    
+    for (auto marker : markerArray->markers) {
+        frame_id = marker.header.frame_id;
+
+        SortRect rect;
+        rect.id = marker.id;
+        rect.centerX = marker.pose.position.x;
+        rect.centerY = marker.pose.position.y;
+        rect.width = marker.scale.x;
+        rect.height = marker.scale.y;
+        rects.push_back(rect);
+    }
+
+    std::vector<SortRect> output = SortRos::s->update(rects);
+    visualization_msgs::MarkerArray markerArrayOutput;
+
+    // 각 객체에 대해 bounding box와 텍스트 마커 생성 + 궤적 업데이트
+    for (auto rect : output) {
+        activeIDs.insert(rect.id);  // 현재 추적 중인 객체 ID 추가
+        // SortRect의 toTrackerState() 함수를 호출하여 TrackerState를 출력
+        TrackerState state = rect.toTrackerState();
+        // 속도 성분 추출 (vx, vy)
+        float vx = state.vx;
+        float vy = state.vy;
+
+        // 바운딩 박스를 위한 Marker 생성
+        visualization_msgs::Marker marker;
+        marker.header.stamp = ros::Time::now();
+        marker.header.frame_id = frame_id;
+        marker.frame_locked = true;
+        marker.lifetime = ros::Duration(0.5);
+        marker.ns = "bounding_box";
+        marker.id = rect.id;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.type = visualization_msgs::Marker::CUBE;
+        marker.pose.position.x = rect.centerX;
+        marker.pose.position.y = rect.centerY;
+        marker.pose.position.z = 0.0;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        marker.scale.x = rect.width;
+        marker.scale.y = rect.height;
+        marker.scale.z = 1.0;
+        // 랜덤 색상 할당
+        float r, g, b;
+        if (id2color.find(rect.id) == id2color.end()) {
+            r = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+            g = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+            b = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+            id2color[rect.id] = std::make_tuple(r, g, b);
+        } else {
+            std::tie(r, g, b) = id2color[rect.id];
+        }
+        marker.color.a = 0.7;
+        marker.color.r = r;
+        marker.color.g = g;
+        marker.color.b = b;
+        markerArrayOutput.markers.push_back(marker);
+
+        // 속도 텍스트를 위한 Marker 생성
+        visualization_msgs::Marker textMarker;
+        textMarker.header.stamp = ros::Time::now();
+        textMarker.header.frame_id = frame_id;
+        textMarker.frame_locked = true;
+        textMarker.ns = "text";
+        textMarker.id = rect.id; // 고유 ID 부여
+        textMarker.action = visualization_msgs::Marker::ADD;
+        textMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+        textMarker.pose.position.x = rect.centerX;
+        textMarker.pose.position.y = rect.centerY;
+        textMarker.pose.position.z = rect.height + 0.3; // 바운딩 박스 위에 텍스트 배치
+        textMarker.pose.orientation.x = 0.0;
+        textMarker.pose.orientation.y = 0.0;
+        textMarker.pose.orientation.z = 0.0;
+        textMarker.pose.orientation.w = 1.0;
+        // 속도 값을 두 줄 텍스트로 표시
+        std::stringstream ss;
+        ss << "vx: " << vx << "\nvy: " << vy;
+        textMarker.text = ss.str();
+        textMarker.color.a = 1.0;
+        textMarker.color.r = 1.0;
+        textMarker.color.g = 1.0;
+        textMarker.color.b = 1.0;
+        textMarker.scale.z = 0.3;
+        textMarker.lifetime = ros::Duration(0.5);
+        markerArrayOutput.markers.push_back(textMarker);
+
+        // ----- [추가] 각 객체의 궤적 업데이트 -----
+        // 현재 측정된 위치를 actual trajectory에 추가 (여전히 업데이트 하되, 발행은 하지 않음)
+        geometry_msgs::Point pt;
+        pt.x = rect.centerX;
+        pt.y = rect.centerY;
+        pt.z = 0.0;
+        actualTrajMap[rect.id].push_back(pt);
+
+
+
+
+        // 칼만 필터 업데이트: 
+        // 만약 해당 객체(rect.id)에 대한 칼만 필터가 없으면 새로 생성하고, 있으면 현재 측정값을 이용해 상태 업데이트합니다.
+        if (kfMap.find(rect.id) == kfMap.end()) {
+            KalmanFilter kf;
+            // 새 칼만 필터를 현재 측정값으로 초기화합니다.
+            kf.init(rect.centerX, rect.centerY, vx, vy);
+            kfMap[rect.id] = kf;
+        } else {
+            // 기존 칼만 필터를 현재 측정값으로 업데이트합니다.
+            kfMap[rect.id].update(rect.centerX, rect.centerY, vx, vy);
+        }
+
+        // 예측 궤적 생성:
+        // 새로 업데이트된 칼만 필터에서 multiPredict()를 호출하면,
+        // 내부적으로 설정된 예측 단계 수(numPredictionSteps)를 기반으로 미래 위치들을 예측하여 포인트 벡터를 반환합니다.
+        std::vector<geometry_msgs::Point> predictedPoints = kfMap[rect.id].multiPredict();
+        predictedTrajMap[rect.id] = predictedPoints;
+    }
+
+
+
+    
+    // bounding box 및 텍스트 마커 발행
+    pub.publish(markerArrayOutput);
+
+
+    // 활성 객체(activeIDs)에 없는(추적되지 않는) 객체의 예측 궤적 삭제
+    std::vector<int> keysToRemove;
+    for (auto const& pair : predictedTrajMap) {
+        if (activeIDs.find(pair.first) == activeIDs.end()) {
+            keysToRemove.push_back(pair.first);
+        }
+    }
+    for (auto id : keysToRemove) {
+        predictedTrajMap.erase(id);
+    }
+
+
+    // 예측(빨간) 궤적 MarkerArray 생성 및 발행
+    visualization_msgs::MarkerArray predictedTrajMarkers;
+    for (auto const& pair : predictedTrajMap) {
+        visualization_msgs::Marker marker;
+        marker.header.stamp = ros::Time::now();
+        marker.header.frame_id = frame_id;
+        marker.ns = "trajectory_predicted";
+        marker.id = pair.first;
+        marker.type = visualization_msgs::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.scale.x = 0.05;
+        // 예측 궤적은 빨간색 선
+        marker.color.a = 1.0;
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+        marker.lifetime = ros::Duration(0.1);
+        marker.points = pair.second;
+        predictedTrajMarkers.markers.push_back(marker);
+    }
+    // 궤적 토픽 발행 (실제 궤적은 발행하지 않음)
+    trajectoryPredictedPub.publish(predictedTrajMarkers);
+}
