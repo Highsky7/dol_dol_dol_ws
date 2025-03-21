@@ -35,6 +35,9 @@ private:
     // 추가: 예측 이동 궤적 퍼블리셔
     static ros::Publisher trajectoryPredictedPub;
 
+    static ros::Publisher trajectoryEndpointsPub;
+
+
     static void rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray);
 
 private:
