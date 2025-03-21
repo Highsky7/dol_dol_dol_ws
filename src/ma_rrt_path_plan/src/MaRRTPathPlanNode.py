@@ -169,7 +169,7 @@ class MaRRTPathPlanNode:
             x = marker.pose.position.x
             y = marker.pose.position.y
             # 장애물 크기는 targetRadius나 coneObstacleSize와 맞추세요.
-            targetRadius = 0.4
+            targetRadius = 0.6
             self.trajectoryEndpointsList.append((x, y, targetRadius))
             rospy.loginfo("Updated trajectoryEndpointsList: %s", str(self.trajectoryEndpointsList))
 
@@ -188,7 +188,7 @@ class MaRRTPathPlanNode:
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
         # 콘으로부터 유도하는 장애물 반지름 크기
-        coneObstacleSize = 0.9  # 예: height 68cm, base 37*37(cm2)
+        coneObstacleSize = 0.8  # 예: height 68cm, base 37*37(cm2)
         coneObstacleList = []
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
