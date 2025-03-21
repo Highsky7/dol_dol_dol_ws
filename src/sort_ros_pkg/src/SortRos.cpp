@@ -86,7 +86,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         marker.header.stamp = ros::Time::now();
         marker.header.frame_id = frame_id;
         marker.frame_locked = true;
-        marker.lifetime = ros::Duration(0.5);
+        marker.lifetime = ros::Duration(0.2);
         marker.ns = "bounding_box";
         marker.id = rect.id;
         marker.action = visualization_msgs::Marker::ADD;
@@ -142,7 +142,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textMarker.color.g = 1.0;
         textMarker.color.b = 1.0;
         textMarker.scale.z = 0.3;
-        textMarker.lifetime = ros::Duration(0.5);
+        textMarker.lifetime = ros::Duration(0.2);
         markerArrayOutput.markers.push_back(textMarker);
 
 
@@ -176,6 +176,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
     }
     for (auto id : keysToRemove) {
         predictedTrajMap.erase(id);
+        kfMap.erase(id);  // 여기를 추가하여 칼만 필터도 삭제
     }
 
 
