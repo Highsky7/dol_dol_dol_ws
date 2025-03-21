@@ -164,7 +164,7 @@ Visualization Manager:
       Marker Topic: /roi_path_marker
       Name: Marker
       Namespaces:
-        roi_path: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -229,7 +229,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 27.610620498657227
+      Distance: 14.743904113769531
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -245,9 +245,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5397965908050537
+      Pitch: 0.9547967910766602
       Target Frame: <Fixed Frame>
-      Yaw: 2.7485909461975098
+      Yaw: 2.0585825443267822
     Saved: ~
 Window Geometry:
   Displays:

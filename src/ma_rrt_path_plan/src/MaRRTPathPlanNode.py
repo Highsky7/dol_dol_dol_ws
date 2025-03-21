@@ -48,6 +48,10 @@ class MaRRTPathPlanNode:
         self.waypointsPublishInterval = 1.0 / waypointsFrequency
         self.lastPublishWaypointsTime = 0
 
+        
+        """
+        구독자들
+        """
         # 기존 /track 토픽 구독
         rospy.Subscriber("/track", Track, self.mapCallback)
         
@@ -58,6 +62,14 @@ class MaRRTPathPlanNode:
         rospy.Subscriber("/rrt_target", PointStamped, self.rrtTargetCallback)
         self.rrt_target = None  # 수신한 목표 좌표 저장
         
+        # 새로 추가: 궤적 끝점 토픽 구독
+        rospy.Subscriber("/trajectory_endpoints", MarkerArray, self.endpointsCallback)
+
+
+
+        """
+        퍼블리셔들
+        """
         # rrt 목표점 시각화를 위한 퍼블리셔 (/visual/rrt_target)
         self.rrtTargetVisualPub = rospy.Publisher("/visual/rrt_target", Marker, queue_size=1)               
 
@@ -71,7 +83,9 @@ class MaRRTPathPlanNode:
         self.waypointsVisualPub = rospy.Publisher("/visual/waypoints", MarkerArray, queue_size=1)
         self.obstacleVisualPub = rospy.Publisher("/visual/obstacle_radius", MarkerArray, queue_size=1)
 
-
+        # sortros 노드에서 발행한 궤적 끝점을 저장할 변수
+        self.trajectoryEndpointsList = []  
+        
         # 차량의 현재 위치 및 자세 초기값 (in velodyne frame)
         self.carPosX = 0.0
         self.carPosY = 0.0
@@ -145,6 +159,22 @@ class MaRRTPathPlanNode:
         self.map = track.cones
 
 
+    # 칼만필터로 추정하는 콘의 예상 궤적 끝점
+    def endpointsCallback(self, msg):
+        # msg는 MarkerArray 타입입니다.
+        # 새로 수신할 때마다 리스트를 초기화(혹은 원하는 방식으로 업데이트)합니다.
+        self.trajectoryEndpointsList = []  # 이전 값 초기화
+        for marker in msg.markers:
+            # marker.pose.position가 궤적 끝점의 좌표입니다.
+            x = marker.pose.position.x
+            y = marker.pose.position.y
+            # 장애물 크기는 targetRadius나 coneObstacleSize와 맞추세요.
+            targetRadius = 0.4
+            self.trajectoryEndpointsList.append((x, y, targetRadius))
+            rospy.loginfo("Updated trajectoryEndpointsList: %s", str(self.trajectoryEndpointsList))
+
+
+
     def sampleTree(self):
         if self.loopClosure and len(self.savedWaypoints) > 0:
             self.publishWaypoints()
@@ -157,24 +187,28 @@ class MaRRTPathPlanNode:
         frontConesDist = 12
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
-
         # 콘으로부터 유도하는 장애물 반지름 크기
-        coneObstacleSize = 0.9 #height 68cm, base 37*37(cm2)
+        coneObstacleSize = 0.9  # 예: height 68cm, base 37*37(cm2)
         coneObstacleList = []
         for cone in frontCones:
             coneObstacleList.append((cone.x, cone.y, coneObstacleSize))
-        # 장애물 반지름 시각화 호출
+        # rospy.loginfo("Before adding endpoints, coneObstacleList: %s", str(coneObstacleList))
+        
+        # 기존 장애물 목록에 궤적 끝점(예측 궤적의 끝점) 추가
+        if self.trajectoryEndpointsList:
+            coneObstacleList.extend(self.trajectoryEndpointsList)
+        # rospy.loginfo("After adding endpoints, coneObstacleList: %s", str(coneObstacleList))
+        
+        # 장애물 시각화
         self.publishObstacleVisuals(coneObstacleList)
-
-
+        
+        # 이후 기존 코드대로 rrtTarget 설정 및 RRT 실행
         rrtTarget = []
         targetRadius = 0.1  # 원하는 보수적인 rrt_target 반경 값
-            
-        # /rrt_target에서 수신한 좌표가 있다면 RRT 목표점에 추가하고 시각화도 수행
+                
         if self.rrt_target is not None:
             rrtTarget.append((self.rrt_target.x, self.rrt_target.y, targetRadius))
             rospy.loginfo("/rrt_target: (%.2f, %.2f)", self.rrt_target.x, self.rrt_target.y)
-            # rrt 목표점 시각화
             marker = Marker()
             marker.header.stamp = rospy.Time.now()
             marker.header.frame_id = self.world_frame
@@ -193,7 +227,7 @@ class MaRRTPathPlanNode:
             marker.pose.position.y = self.rrt_target.y
             marker.pose.position.z = 0.0
             marker.pose.orientation.w = 1.0
-            self.rrtTargetVisualPub.publish(marker)            
+            self.rrtTargetVisualPub.publish(marker)          
             
             
             
