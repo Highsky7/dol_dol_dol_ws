@@ -1,0 +1,16 @@
+<launch>
+    <param name="/use_sim_time" value="true" />
+
+    <!-- yaw_init 인자 설정 (기본값 0) -->
+    <arg name="yaw_init" default="0" />
+    <param name="yaw_init" value="$(arg yaw_init)" />
+
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find lego_loam)/launch/test.rviz" />
+
+    <node pkg="lego_loam" type="imageProjection"    name="imageProjection"    output="screen"/>
+    <node pkg="lego_loam" type="featureAssociation" name="featureAssociation" output="screen"/>
+    <!-- <node pkg="lego_loam" type="mapOptmization"     name="mapOptmization"     output="screen"/> -->
+    <node pkg="lego_loam" type="transformFusion"    name="transformFusion"    output="screen">
+      <param name="yaw_init" value="$(arg yaw_init)" />
+    </node>
+</launch>

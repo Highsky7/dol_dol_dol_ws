@@ -1,0 +1,102 @@
+#include "KalmanFilter.h"
+#include <Eigen/Dense>
+
+KalmanFilter::KalmanFilter()
+    : dt_(1.0),              // dt: 한 예측 단계의 시간 간격 (예: 0.1초)
+      processNoise_(0.05),   // 프로세스 노이즈 스칼라 값 (예시)
+      measurementNoise_(0.2),// 측정 노이즈 스칼라 값 (예시)
+      numPredictionSteps_(5) // 기본 예측 단계 수
+{
+    // 상태 벡터와 공분산 초기화
+    x_state_ = Eigen::Vector4d::Zero();
+    P_ = Eigen::Matrix4d::Identity() * 1.0; // 초기 공분산: 1.0로 설정
+
+    // F, H, Q, R 초기화
+    updateF();
+    H_ = Eigen::Matrix4d::Identity(); // 전체 상태 측정이므로 단위행렬
+    updateQ();
+    updateR();
+}
+
+void KalmanFilter::updateF() {
+    // 상태 전이 행렬 F 구성
+    // F = [ [1, 0, dt, 0],
+    //       [0, 1, 0, dt],
+    //       [0, 0, 1,  0],
+    //       [0, 0, 0,  1] ]
+    F_ = Eigen::Matrix4d::Identity();
+    F_(0,2) = dt_;
+    F_(1,3) = dt_;
+}
+
+void KalmanFilter::updateQ() {
+    // 프로세스 노이즈 Q를 대각 행렬로 구성 (예시)
+    Q_ = Eigen::Matrix4d::Identity() * processNoise_;
+}
+
+void KalmanFilter::updateR() {
+    // 측정 노이즈 R을 대각 행렬로 구성 (예시)
+    R_ = Eigen::Matrix4d::Identity() * measurementNoise_;
+}
+
+void KalmanFilter::init(double x, double y, double vx, double vy) {
+    x_state_ << x, y, vx, vy;
+}
+
+void KalmanFilter::predict() {
+    // 예측 단계: 상태 및 공분산 업데이트
+    x_state_ = F_ * x_state_;
+    P_ = F_ * P_ * F_.transpose() + Q_;
+}
+
+void KalmanFilter::update(double x, double y, double vx, double vy) {
+    // 측정 벡터 z 구성 (전체 상태 측정)
+    Eigen::Vector4d z;
+    z << x, y, vx, vy;
+
+    // 혁신(측정 잔차)
+    Eigen::Vector4d y_innov = z - H_ * x_state_;
+
+    // 혁신 공분산: S = H * P * H^T + R, (H는 단위행렬이므로 S = P + R)
+    Eigen::Matrix4d S = P_ + R_;
+
+    // 칼만 이득: K = P * H^T * S^-1, (H가 단위행렬이면 K = P * S^-1)
+    Eigen::Matrix4d K = P_ * S.inverse();
+
+    // 상태 업데이트
+    x_state_ = x_state_ + K * y_innov;
+
+    // 공분산 업데이트: P = (I - K * H) * P, (H가 단위행렬이면 P = (I - K)*P)
+    Eigen::Matrix4d I = Eigen::Matrix4d::Identity();
+    P_ = (I - K) * P_;
+}
+
+double KalmanFilter::getX() const {
+    return x_state_(0);
+}
+
+double KalmanFilter::getY() const {
+    return x_state_(1);
+}
+
+double KalmanFilter::getVx() const {
+    return x_state_(2);
+}
+
+double KalmanFilter::getVy() const {
+    return x_state_(3);
+}
+
+std::vector<geometry_msgs::Point> KalmanFilter::multiPredict() {
+    std::vector<geometry_msgs::Point> points;
+    KalmanFilter temp = *this;  // 현재 상태 복사
+    for (int i = 0; i < numPredictionSteps_; i++) {
+        temp.predict();
+        geometry_msgs::Point pt;
+        pt.x = temp.getX();
+        pt.y = temp.getY();
+        pt.z = 0.0;
+        points.push_back(pt);
+    }
+    return points;
+}

@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="ma_rrt_path_plan" type="main.py" name="ma_rrt_path_plan_node" output="screen">
+        <param name="desiredWaypointsFrequency" value="5" type="int" />
+        <param name="publishWaypoints" type="bool" value="true" />
+    </node>
+    
+    <node pkg="ma_rrt_path_plan" type="ma_rrt_purepursuit.py" name="ma_rrt_purepursuit_node" output="screen" />
+    
+    <!-- <node pkg="ma_rrt_path_plan" type="track.py" name="erp42_location" output="screen">
+    </node> -->
+
+    <!-- gps_lidar_tf.rviz 파일을 실행하는 rviz 노드 -->
+    <node pkg="rviz" type="rviz" name="rviz_node" args="-d $(find ma_rrt_path_plan)/launch/gps_lidar_tf.rviz" output="screen"/>
+</launch>
