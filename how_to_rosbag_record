@@ -1,0 +1,7 @@
+rosrun usb_cam usb_cam_node _video_device:=/dev/video2
+rv
+rostopic list
+rostopic echo /velodyne_points  # 라이다 데이터 확인
+rostopic echo /images          # 카메라 이미지 데이터 확인
+rosbag record /velodyne_points /images # 지정된 토픽
+rosbag record -a # 전체 토픽

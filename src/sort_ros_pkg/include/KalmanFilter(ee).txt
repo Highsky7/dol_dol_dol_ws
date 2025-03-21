@@ -1,0 +1,47 @@
+#pragma once
+#include <vector>
+#include <geometry_msgs/Point.h>
+#include <Eigen/Dense>
+
+class KalmanFilter {
+public:
+    KalmanFilter();
+    // 상태 초기화: (x, y, vx, vy)를 상태 벡터로 설정
+    void init(double x, double y, double vx, double vy);
+    // dt 시간 간격으로 예측 단계 수행: x = F*x, P = F*P*F^T + Q
+    void predict();
+    // 측정 업데이트: 측정 벡터 z = [x, y, vx, vy]에 대해 칼만 이득을 계산하고 상태 업데이트
+    void update(double x, double y, double vx, double vy);
+    double getX() const;
+    double getY() const;
+    double getVx() const;
+    double getVy() const;
+
+    // multiPredict: 내부 설정된 예측 단계 수만큼 predict()를 수행하여 미래 포인트들을 반환
+    std::vector<geometry_msgs::Point> multiPredict();
+
+    // Setter 함수들
+    void setDt(double dt) { dt_ = dt; updateF(); }
+    void setProcessNoise(double noise) { processNoise_ = noise; updateQ(); }
+    void setMeasurementNoise(double noise) { measurementNoise_ = noise; updateR(); }
+    void setNumPredictionSteps(int steps) { numPredictionSteps_ = steps; }
+    int getNumPredictionSteps() const { return numPredictionSteps_; }
+
+private:
+    Eigen::Vector4d x_state_;   // 상태 벡터: [x, y, vx, vy]
+    Eigen::Matrix4d P_;         // 상태 공분산
+    Eigen::Matrix4d F_;         // 상태 전이 행렬
+    Eigen::Matrix4d Q_;         // 프로세스 노이즈 공분산
+    Eigen::Matrix4d R_;         // 측정 노이즈 공분산
+    Eigen::Matrix4d H_;         // 측정 행렬 (전체 상태 측정을 위해 단위행렬)
+
+    double dt_;                 // 시간 간격
+    double processNoise_;       // 프로세스 노이즈 (스칼라 값, Q를 구성하는 데 사용)
+    double measurementNoise_;   // 측정 노이즈 (스칼라 값, R을 구성하는 데 사용)
+    int numPredictionSteps_;    // multiPredict()에서 예측할 단계 수
+
+    // 내부 헬퍼 함수: F, Q, R 행렬을 업데이트
+    void updateF();
+    void updateQ();
+    void updateR();
+};
