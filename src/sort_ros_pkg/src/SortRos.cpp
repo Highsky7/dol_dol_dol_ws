@@ -19,6 +19,8 @@ ros::Subscriber SortRos::sub;
 // 추가: 실제 이동궤적과 예측 이동궤적을 발행할 퍼블리셔
 ros::Publisher SortRos::trajectoryPredictedPub;
 
+ros::Publisher SortRos::trajectoryEndpointsPub;
+
 Sort *SortRos::s;
 
 void SortRos::setup(void) {
@@ -36,6 +38,9 @@ void SortRos::setup(void) {
 
     // 추가: 실제 궤적과 예측 궤적을 위한 퍼블리셔 생성 (토픽 이름: trajectory_actual, trajectory_predicted)
     SortRos::trajectoryPredictedPub = nh.advertise<visualization_msgs::MarkerArray>("trajectory_predicted", 1);
+
+    SortRos::trajectoryEndpointsPub = nh.advertise<visualization_msgs::MarkerArray>("trajectory_endpoints", 1);
+
 }
 
 void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray) {
@@ -202,4 +207,44 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
     }
     // 궤적 토픽 발행 (실제 궤적은 발행하지 않음)
     trajectoryPredictedPub.publish(predictedTrajMarkers);
+
+
+
+
+
+    
+    // ----- [추가] 궤적 끝점 MarkerArray 생성 및 발행 -----
+    visualization_msgs::MarkerArray endpointsMarkerArray;
+    // Marker 타입을 SPHERE_LIST를 사용하여, 각 Marker에 여러 끝점을 담거나,
+    // 각 객체마다 하나의 SPHERE 마커를 생성할 수도 있습니다.
+    // 여기서는 각 객체마다 하나의 SPHERE 마커를 생성하는 방식입니다.
+    int markerId = 0;
+    for (auto const& pair : predictedTrajMap) {
+        const std::vector<geometry_msgs::Point>& pts = pair.second;
+        if (pts.empty()) continue;
+        // 궤적의 마지막 점이 끝점입니다.
+        geometry_msgs::Point endpoint = pts.back();
+        visualization_msgs::Marker endpointMarker;
+        endpointMarker.header.stamp = ros::Time::now();
+        endpointMarker.header.frame_id = frame_id;
+        endpointMarker.ns = "trajectory_endpoints";
+        endpointMarker.id = markerId++;
+        endpointMarker.type = visualization_msgs::Marker::SPHERE;
+        endpointMarker.action = visualization_msgs::Marker::ADD;
+        endpointMarker.pose.position = endpoint;
+        endpointMarker.pose.orientation.w = 1.0;
+        endpointMarker.scale.x = 0.3;  // 원하는 크기로 조정
+        endpointMarker.scale.y = 0.3;
+        endpointMarker.scale.z = 0.3;
+        endpointMarker.color.a = 1.0;
+        endpointMarker.color.r = 1.0;
+        endpointMarker.color.g = 1.0;
+        endpointMarker.color.b = 0.0;  // 예를 들어 노란색
+        endpointMarker.lifetime = ros::Duration(0.1);  // 짧게 설정
+        endpointsMarkerArray.markers.push_back(endpointMarker);
+    }
+    trajectoryEndpointsPub.publish(endpointsMarkerArray);
+    // -----------------------------------------------------
+    
+    // ... 나머지 기존 코드 (활성 객체 처리, predictedTrajMap 정리 등) ...
 }
