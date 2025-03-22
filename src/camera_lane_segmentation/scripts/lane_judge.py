@@ -37,7 +37,7 @@ from utils.utils import (
 def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
-    parser.add_argument('--source', type=str, default='2', help='source: 0(webcam) 또는 영상/이미지 파일 경로')
+    parser.add_argument('--source', type=str, default='0', help='source: 0(webcam) 또는 영상/이미지 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')
     parser.add_argument('--lane-thres', type=float, default=0.5, help='차선 세그 임계값 (0.0~1.0)')
