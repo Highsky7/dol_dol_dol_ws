@@ -1,4 +1,5 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+
 
 import torch
 from pcdet.config import cfg, cfg_from_yaml_file
