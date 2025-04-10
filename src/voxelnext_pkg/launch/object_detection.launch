@@ -1,0 +1,4 @@
+<launch>
+  <node pkg="voxelnext_pkg" type="object_detection.py" name="object_detection" output="screen" />
+  <node pkg="rviz" type="rviz" name="rviz" output="screen" args="-d $(find voxelnext_pkg)/launch/object_detection.rviz" />
+</launch>
