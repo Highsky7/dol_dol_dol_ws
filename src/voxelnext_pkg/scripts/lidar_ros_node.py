@@ -1,4 +1,4 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
 
 import sys
 import os
@@ -99,8 +99,6 @@ def detect_objects(points, voxelnext_model, lidar_dataset):
 # -------------------------
 def publish_markers(output_dicts, pub_detected_objects, pub_2d_detected_objects, class_names):
     rospy.loginfo("📡 탐지된 객체를 퍼블리시 중...")
-    
-
     
     marker_array = MarkerArray()
     marker_array_2d = MarkerArray()
@@ -229,9 +227,9 @@ def publish_center_markers(output_dicts, pub_detected_objects_center, class_name
             marker.pose.orientation.z = 0.0
             marker.pose.orientation.w = 1.0
             # 크기 (필요에 따라 조정)
-            marker.scale.x = 0.3
-            marker.scale.y = 0.3
-            marker.scale.z = 0.3
+            marker.scale.x = 0.5
+            marker.scale.y = 0.5
+            marker.scale.z = 0.5
             # 초록색
             marker.color.a = 1.0
             marker.color.r = 0.0

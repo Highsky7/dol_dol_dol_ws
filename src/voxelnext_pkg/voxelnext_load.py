@@ -1,4 +1,5 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+
 
 import torch
 from pcdet.config import cfg, cfg_from_yaml_file
@@ -7,61 +8,56 @@ from pcdet.datasets.live_lidar_dataset import LiveLidarDataset  # 커스텀 데�
 import logging
 import os
 
+
+# -------------------------
+# Function to load the VoxelNeXt model and create a dataset for live LiDAR processing.
+# -------------------------
 def load_voxelnext_model(config_path, model_checkpoint):
-    """
-    - VoxelNeXt 모델을 로드하고 실시간 LiDAR 처리를 위한 데이터셋을 생성하는 함수
-    """
     
-    base_dir = os.path.dirname(os.path.abspath(__file__))  # 현재 파일 기준 경로 설정
-    
-    # ✅ 경로 수정
+    # Determine the absolute path for configuration and checkpoint files
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     config_path = os.path.join(base_dir, config_path) if not os.path.isabs(config_path) else config_path
     model_checkpoint = os.path.join(base_dir, model_checkpoint) if not os.path.isabs(model_checkpoint) else model_checkpoint
-
+    
+    # Load configuration from the YAML file into the cfg object
     cfg_from_yaml_file(config_path, cfg)
     
 
-    # ✅ 실시간 LiDAR 데이터를 위한 커스텀 데이터셋 사용
+    # Use custom dataset for live LiDAR data
     dataset = LiveLidarDataset(
-        dataset_cfg=cfg.DATA_CONFIG,  # 🔹 모델 설정이 아닌 데이터셋 설정만 전달
+        dataset_cfg=cfg.DATA_CONFIG,  # Pass only dataset configuration (not model configuration)
         class_names=cfg.CLASS_NAMES,
         training=False
     )
 
-    # VoxelNeXt 모델 생성
+    # Create VoxelNeXt model
     model = VoxelNeXt(
         model_cfg=cfg.MODEL,
         num_class=len(cfg.CLASS_NAMES),
-        dataset=dataset  # NuScenesDataset 대신 LiveLidarDataset 사용
+        dataset=dataset  # Use LiveLidarDataset instead of NuScenesDataset
     )
 
-    # 기본 로그 설정 추가
+    # Set up basic logging configuration
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("VoxelNeXt")
 
-    # 모델 로드 시 `logger` 추가
+    # Load model parameters from checkpoint with logger, then move model to GPU and set to evaluation mode
     model.load_params_from_file(model_checkpoint, logger=logger, to_cpu=False)
-    
-    
     model.cuda()
     model.eval()
     
-    
-    
-    # print(cfg.DATA_CONFIG)
-    # print("POINT_FEATURE_ENCODING:", cfg.DATA_CONFIG.get('POINT_FEATURE_ENCODING', "NOT FOUND"))
+    # Return both the model and the dataset
+    return model, dataset
 
-
-    return model, dataset  # 모델과 데이터셋을 반환
-    print("✅ 실시간 LiDAR 처리를 위한 VoxelNeXt 모델이 로드되었습니다!")
     
-# # 실행 코드
+# ## Execution code example
 # if __name__ == "__main__":
     
+#     # Define paths for the configuration file and model checkpoint
 #     config_path = "tools/cfgs/nuscenes_models/cbgs_voxel0075_voxelnext.yaml"
 #     model_checkpoint = "checkpoints/voxelnext_nuscenes_kernel1.pth"
 
-#     # 모델 및 데이터셋 로드
+#     # Load the model and dataset
 #     voxelnext_model, lidar_dataset = load_voxelnext_model(config_path, model_checkpoint)
 
     
