@@ -6,9 +6,14 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
-        - /MarkerArray1
         - /Marker3
+        - /MarkerArray2
         - /MarkerArray3
+        - /MarkerArray4
+        - /MarkerArray5
+        - /MarkerArray6
+        - /MarkerArray7
+        - /MarkerArray8
       Splitter Ratio: 0.46347030997276306
     Tree Height: 1826
   - Class: rviz/Selection
@@ -111,14 +116,6 @@ Visualization Manager:
         rrt-leaves: true
       Queue Size: 100
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /detected_objects_center
-      Name: MarkerArray
-      Namespaces:
-        detected_objects_center: true
-      Queue Size: 100
-      Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /visual/best_tree_branch
@@ -164,7 +161,7 @@ Visualization Manager:
       Marker Topic: /roi_path_marker
       Name: Marker
       Namespaces:
-        {}
+        roi_path: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -178,18 +175,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /visual/obstacle_radius
-      Name: MarkerArray
-      Namespaces:
-        obstacle_radius: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
       Marker Topic: /trajectory_predicted
       Name: MarkerArray
       Namespaces:
-        trajectory_predicted: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -197,8 +186,39 @@ Visualization Manager:
       Marker Topic: /markers_tracked
       Name: MarkerArray
       Namespaces:
-        bounding_box: true
-        text: true
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /detected_center
+      Name: MarkerArray
+      Namespaces:
+        detected_center: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /predicted_trajectory_endpoint
+      Name: MarkerArray
+      Namespaces:
+        predicted_trajectory_endpoint: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /predicted_trajectory
+      Name: MarkerArray
+      Namespaces:
+        predicted_trajectory: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /visual/obstacle_radius
+      Name: MarkerArray
+      Namespaces:
+        obstacle_radius: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -229,7 +249,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 14.743904113769531
+      Distance: 22.032176971435547
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -245,9 +265,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.9547967910766602
+      Pitch: 1.5697963237762451
       Target Frame: <Fixed Frame>
-      Yaw: 2.0585825443267822
+      Yaw: 3.1535701751708984
     Saved: ~
 Window Geometry:
   Displays:
