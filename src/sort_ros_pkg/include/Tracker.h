@@ -32,7 +32,6 @@ private:
 	static int kf_count;
 
 	cv::KalmanFilter kf;
-
 };
 
 

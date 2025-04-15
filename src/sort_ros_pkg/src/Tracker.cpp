@@ -21,13 +21,13 @@ Tracker::Tracker(TrackerState state) {
     kf = cv::KalmanFilter(STATE_NUM, MEASURE_NUM, 0);
 
     kf.transitionMatrix = (cv::Mat_<float>(STATE_NUM, STATE_NUM) <<
-        1, 0, 0, 0, 1, 0, 0, // centerX + vx
-        0, 1, 0, 0, 0, 1, 0, // centerY + vy
-        0, 0, 1, 0, 0, 0, 1, // area + area_change_rate
-        0, 0, 0, 1, 0, 0, 0,
-        0, 0, 0, 0, 1, 0, 0,
-        0, 0, 0, 0, 0, 1, 0,
-        0, 0, 0, 0, 0, 0, 1
+        1, 0, 0, 0, 1, 0, 0, // centerX <- centerX + vx
+        0, 1, 0, 0, 0, 1, 0, // centerY <- centerY + vy
+        0, 0, 1, 0, 0, 0, 1, // area <- area + area_change_rate
+        0, 0, 0, 1, 0, 0, 0, // aspectRatio ()
+        0, 0, 0, 0, 1, 0, 0, // vx (maintain)
+        0, 0, 0, 0, 0, 1, 0, // vy (maintain)
+        0, 0, 0, 0, 0, 0, 1  // area_change_rate (상태 유지)
     );
 
     cv::setIdentity( kf.measurementMatrix );
@@ -85,4 +85,3 @@ TrackerState Tracker::getState(void) {
     state.fromMat(kf.statePost);
     return state;
 }
- 
