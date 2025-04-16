@@ -1,4 +1,4 @@
-#!/home/highsky/lidar_env/bin/python3
+#!/usr/bin/env python3
 
 import torch
 from pcdet.config import cfg, cfg_from_yaml_file
