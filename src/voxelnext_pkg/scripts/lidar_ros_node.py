@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 #!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+=======
+#!/usr/bin/env python3
+>>>>>>> a35c911afa02bf973fead482d08e868d7e4a5ce8
 
 import sys
 import os
