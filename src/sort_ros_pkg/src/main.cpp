@@ -5,7 +5,7 @@
 
 int main (int argc, char** argv) {
 
-	ros::init (argc, argv, "sort_ros");
+	ros::init (argc, argv, "sort_ros_KF_track_predict");
 
     SortRos *sortRos = SortRos::GetInstance();
     sortRos->setup();
