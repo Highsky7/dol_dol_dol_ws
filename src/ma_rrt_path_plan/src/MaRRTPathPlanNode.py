@@ -84,6 +84,7 @@ class MaRRTPathPlanNode:
 
         # sortros 노드에서 발행한 궤적 끝점을 저장할 변수
         self.trajectoryEndpointsList = []  
+        self.predictedEndpointObstacleList = [] 
         
         # 차량의 현재 위치 및 자세 초기값 (in velodyne frame)
         self.carPosX = 0.0
@@ -126,7 +127,7 @@ class MaRRTPathPlanNode:
             marker.color.b = 0.0
 
             # 필요한 경우, marker.lifetime 설정 (예: 0.2초)
-            marker.lifetime = rospy.Duration(0.2)
+            marker.lifetime = rospy.Duration(0.1)
             
             markerArray.markers.append(marker)
         self.obstacleVisualPub.publish(markerArray)
@@ -173,11 +174,9 @@ class MaRRTPathPlanNode:
         for marker in msg.markers:
             x = marker.pose.position.x
             y = marker.pose.position.y
-            # 각 마커 중심 좌표를 반지름 0.8m 장애물로 추가
-            self.trajectoryEndpointsList.append((x, y, 0.6))
-
-
-
+            # 각 마커 중심 좌표를 반지름 0.6m 장애물로 추가
+            predictconeObstacleSize = 0.6
+            self.trajectoryEndpointsList.append((x, y, predictconeObstacleSize))
 
 
 
@@ -186,31 +185,50 @@ class MaRRTPathPlanNode:
 
 
     def sampleTree(self):
-        rospy.loginfo(len(self.trajectoryEndpointsList))
+        # 루프 클로저가 활성화되어 있고 저장된 경로가 있으면, 경로를 퍼블리시하고 함수를 종료합니다.
         if self.loopClosure and len(self.savedWaypoints) > 0:
             self.publishWaypoints()
             return
 
+        # 맵 데이터가 없으면 더 이상 진행하지 않습니다.
         if not self.map:
             return
 
+        # 앞쪽에 있는 트래픽 콘을 확인하기 위한 최대 거리 (단위: m)
         frontConesDist = 12
+        # 지정한 거리 내의 트래픽 콘 장애물 정보를 가져옵니다.
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
-        coneObstacleSize = 0.8  # 트래픽 콘 장애물의 반지름 (0.8m)
-        # 트래픽 콘들로 이루어진 장애물 리스트 생성
+        coneObstacleSize = 0.8  # 각 트래픽 콘 장애물의 반지름 (m)
+        # 트래픽 콘 장애물 리스트 생성: 각 장애물은 (x, y, 반지름) 튜플로 표현됩니다.
         coneObstacleList = [(cone.x, cone.y, coneObstacleSize) for cone in frontCones]
 
-        # predicted_trajectory_endpoint 마커들을 장애물로 처리 (반지름 0.6m)
-        predictedEndpointObstacleList = list(self.trajectoryEndpointsList)  # (x,y,0.6) 튜플들의 리스트
+        # 예측된 궤적 엔드포인트(trajectory endpoint) 마커들을 장애물로 처리하기 위해 리스트로 복사합니다.
+        # 각 항목은 (x, y, 0.6) 튜플 형식입니다.
+        predictedEndpointObstacleList = list(self.trajectoryEndpointsList)
 
-        # 두 종류의 장애물 리스트 병합
+        # 두 리스트의 요소 개수를 로그에 출력해 디버깅에 도움을 줍니다.
+        rospy.loginfo(f"{len(predictedEndpointObstacleList)} / {len(coneObstacleList)}")
+        # 트래픽 콘 장애물과 예측 엔드포인트 장애물을 병합하여 최종 장애물 리스트를 생성합니다.
         obstacleList = coneObstacleList + predictedEndpointObstacleList
-        self.trajectoryEndpointsList = []
-        
-        # 병합된 장애물들에 대한 시각화 메시지 퍼블리시
+
+        # 예측된 엔드포인트 장애물의 개수가 트래픽 콘 장애물 개수의 2배를 초과하면,
+        # 오래된(리스트 앞쪽) 요소부터 삭제하여 리스트 크기를 줄입니다.
+        # 남겨야 하는 최소 요소의 목표 개수는 트래픽 콘 장애물 개수의 절반입니다.
+        if len(predictedEndpointObstacleList) > 2.0 * len(coneObstacleList):
+            # 목표 개수를 정수로 계산 (소수점 이하 제거)
+            target_count = int(0.5 * len(coneObstacleList))
+            # 오래된 데이터를 하나씩 제거하며 리스트 크기를 목표치까지 줄입니다.
+            while len(self.trajectoryEndpointsList) > target_count:
+                self.trajectoryEndpointsList.pop(0)
+
+        # 최종적으로 병합된 장애물 리스트를 이용해 시각화 메시지를 퍼블리시합니다.
         self.publishObstacleVisuals(obstacleList)
-    
+
+
+
+
+
 
         
         # 이후 기존 코드대로 rrtTarget 설정 및 RRT 실행
@@ -473,11 +491,13 @@ class MaRRTPathPlanNode:
         savedWaypointsMarker.type = savedWaypointsMarker.SPHERE_LIST
         savedWaypointsMarker.action = savedWaypointsMarker.ADD
         savedWaypointsMarker.pose.orientation.w = 1
-        savedWaypointsMarker.scale.x = 0.4
-        savedWaypointsMarker.scale.y = 0.4
-        savedWaypointsMarker.scale.z = 0.4
+        savedWaypointsMarker.scale.x = 0.25
+        savedWaypointsMarker.scale.y = 0.25
+        savedWaypointsMarker.scale.z = 0.25
 
         savedWaypointsMarker.color.a = 1.0
+        savedWaypointsMarker.color.r = 0.0
+        savedWaypointsMarker.color.g = 1.0
         savedWaypointsMarker.color.b = 1.0
 
         for waypoint in self.savedWaypoints:
@@ -497,11 +517,13 @@ class MaRRTPathPlanNode:
             newWaypointsMarker.type = newWaypointsMarker.SPHERE_LIST
             newWaypointsMarker.action = newWaypointsMarker.ADD
             newWaypointsMarker.pose.orientation.w = 1
-            newWaypointsMarker.scale.x = 0.3
-            newWaypointsMarker.scale.y = 0.3
-            newWaypointsMarker.scale.z = 0.3
+            newWaypointsMarker.scale.x = 0.15
+            newWaypointsMarker.scale.y = 0.15
+            newWaypointsMarker.scale.z = 0.15
 
             newWaypointsMarker.color.a = 1.0
+            newWaypointsMarker.color.r = 0.0
+            newWaypointsMarker.color.g = 1.0
             newWaypointsMarker.color.b = 1.0
 
             for waypoint in newWaypoints:
