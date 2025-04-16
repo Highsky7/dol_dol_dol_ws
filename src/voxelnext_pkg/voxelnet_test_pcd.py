@@ -1,16 +1,4 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-#!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
-=======
 #!/usr/bin/env python3
->>>>>>> Stashed changes
-=======
-#!/usr/bin/env python3
->>>>>>> Stashed changes
-=======
-#!/usr/bin/env python3
->>>>>>> Stashed changes
 
 import torch
 import numpy as np
