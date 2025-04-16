@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 #!/home/hannibal/anaconda3/envs/voxelnext/bin/python3
+=======
+#!/usr/bin/env python3
+>>>>>>> Stashed changes
 
 import sys
 import os
