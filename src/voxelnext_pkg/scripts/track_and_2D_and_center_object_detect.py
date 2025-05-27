@@ -10,7 +10,7 @@ from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import Header
 import sensor_msgs.point_cloud2 as pc2  # Using sensor_msgs.point_cloud2 instead of ros_numpy
 from voxelnext_load import load_voxelnext_model
-
+from vehicle_msgs.msg import Track, TrackCone  # Track과 TrackCone 임포트
 
 
 # -------------------------
@@ -84,9 +84,9 @@ def detect_objects(points, voxelnext_model, lidar_dataset):
             data_dict["voxels"] = voxels
             data_dict["voxel_coords"] = coords
             data_dict["voxel_num_points"] = num_points_per_voxel
-    rospy.logdebug(f"🔍 voxel_coords: {data_dict['voxel_coords'].shape}")
-    rospy.logdebug(f"🔍 voxels: {data_dict['voxels'].shape}")
-    rospy.logdebug(f"🔍 num_points_per_voxel: {data_dict['voxel_num_points'].shape}")
+    # rospy.logdebug(f"🔍 voxel_coords: {data_dict['voxel_coords'].shape}")
+    # rospy.logdebug(f"🔍 voxels: {data_dict['voxels'].shape}")
+    # rospy.logdebug(f"🔍 num_points_per_voxel: {data_dict['voxel_num_points'].shape}")
 
     # Prepare tensors for model inference
     device = next(voxelnext_model.parameters()).device
@@ -110,8 +110,8 @@ def detect_objects(points, voxelnext_model, lidar_dataset):
 # -------------------------
 # Function: Publish detected objects as Markers (bounding boxes)
 # -------------------------
-def publish_markers(output_dicts, pub_detected_objects, class_names):
-    rospy.loginfo("📡 publishing detected objects..")
+def publish_2D_markers(output_dicts, pub_detected_objects, class_names):
+    rospy.loginfo("📡 publishing /detected_2D_Box..")
 
     marker_array = MarkerArray()
     for i, output in enumerate(output_dicts):
@@ -124,6 +124,23 @@ def publish_markers(output_dicts, pub_detected_objects, class_names):
             y_coord = box[1].cpu().item()
             z_coord = box[2].cpu().item()
             class_name = class_names[label - 1] # Adjust the class label index (assuming class indices start from 1)
+            
+            
+            
+            
+            
+            
+            # -------------------------
+            # for autonomous driving competition. detect only traffic_cone
+            # -------------------------
+            if class_name != 'traffic_cone':
+                continue
+            
+            
+            
+            
+            
+            
             color = color_map.get(class_name, default_color)
             rospy.loginfo(f"🔍 Object number: {j+1},  Class: {class_name},  Score: {score:.2f},  Position: ({x_coord:.2f}, {y_coord:.2f}, {z_coord:.2f})")
 
@@ -138,10 +155,10 @@ def publish_markers(output_dicts, pub_detected_objects, class_names):
             marker.action = Marker.ADD
             marker.pose.position.x = box[0].cpu().item()
             marker.pose.position.y = box[1].cpu().item()
-            marker.pose.position.z = box[2].cpu().item()
+            marker.pose.position.z = 0.0 # For 2D, use x, y position and force z to zero
             marker.scale.x = box[3].cpu().item()
             marker.scale.y = box[4].cpu().item()
-            marker.scale.z = box[5].cpu().item()
+            marker.scale.z = 0.0 # Set the bounding box scale; set z-scale to 0 since it's 2D
             marker.color.a = 0.5
             marker.color.r = color[0]
             marker.color.g = color[1]
@@ -152,6 +169,102 @@ def publish_markers(output_dicts, pub_detected_objects, class_names):
         # Publish the marker array for all detected objects in the current output    
         pub_detected_objects.publish(marker_array)
         
+        
+# -------------------------
+# Function: Publish detected objects as Markers (SPERE)
+# -------------------------
+def publish_center_markers(output_dicts, pub_detected_objects, class_names):
+    rospy.loginfo("📡 publishing /detected_center..")
+
+    marker_array = MarkerArray()
+    for i, output in enumerate(output_dicts):
+        for j, (box, label, score) in enumerate(zip(output["pred_boxes"], output["pred_labels"], output["pred_scores"])):
+            label = label.cpu().item()
+            score = score.cpu().item()
+            
+            # Extract x, y and z coordinates (the first, second and third values of the box)
+            x_coord = box[0].cpu().item()
+            y_coord = box[1].cpu().item()
+            # z_coord = box[2].cpu().item()
+            z_coord = 0.0
+            class_name = class_names[label - 1] # Adjust the class label index (assuming class indices start from 1)
+            
+            
+            
+            
+            
+            # -------------------------
+            # for autonomous driving competition. detect only traffic_cone
+            # -------------------------
+            if class_name != 'traffic_cone':
+                continue            
+            
+            
+            
+            
+            
+            
+
+            rospy.loginfo(f"🔍 Object number: {j+1},  Class: {class_name},  Score: {score:.2f},  Position: ({x_coord:.2f}, {y_coord:.2f}, {z_coord:.2f})")
+
+            # Create a marker for the detected object
+            marker = Marker()
+            marker.header = Header()
+            marker.header.stamp = rospy.Time.now()
+            marker.header.frame_id = "velodyne"
+            marker.ns = "detected_center"
+            marker.id = i * 1000 + j
+            marker.type = Marker.SPHERE
+            marker.action = Marker.ADD
+            marker.pose.position.x = box[0].cpu().item()
+            marker.pose.position.y = box[1].cpu().item()
+            # marker.pose.position.z = box[2].cpu().item()
+            marker.pose.position.z = 0.0
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+            marker.scale.x = 0.3
+            marker.scale.y = 0.3
+            marker.scale.z = 0.3
+            marker.color.a = 1.0
+            marker.color.r = 0.0
+            marker.color.g = 1.0
+            marker.color.b = 0.0             
+            marker.lifetime = rospy.Duration(0.1)
+            marker_array.markers.append(marker)
+
+            
+        # Publish the marker array for all detected objects in the current output    
+        pub_detected_objects.publish(marker_array)
+                
+        
+
+        
+def publish_track_message(output_dicts, pub_track, class_names):
+    """
+    탐지된 객체 중 traffic_cone에 해당하는 정보를 기반으로 Track 메시지를 생성 후 발행합니다.
+    """
+    track_msg = Track()  # Track 메시지 생성
+
+    # 각 검출 결과에서 traffic_cone만 처리
+    for output in output_dicts:
+        for box, label, score in zip(output["pred_boxes"], output["pred_labels"], output["pred_scores"]):
+            label_val = label.cpu().item()
+            class_name = class_names[label_val - 1]  # 1부터 시작하는 경우 보정
+            if class_name != 'traffic_cone':
+                continue
+
+            cone = TrackCone()
+            cone.x = box[0].cpu().item()  # x 좌표
+            cone.y = box[1].cpu().item()  # y 좌표
+            cone.type = class_name         # 예: "traffic_cone"
+            track_msg.cones.append(cone)
+
+    pub_track.publish(track_msg)
+    rospy.loginfo("📡 /track 메시지 발행 완료")
+
+
 
 
 
@@ -161,7 +274,7 @@ def publish_markers(output_dicts, pub_detected_objects, class_names):
 def lidar_callback(msg, args):
     
     # Unpack the arguments passed to the callback
-    voxelnext_model, lidar_dataset, pub_detected_objects = args
+    voxelnext_model, lidar_dataset, pub_2D_detected_objects, pub_center_detected_objects, pub_track = args
     rospy.loginfo("📡 Receiving LiDAR data...")
 
     try:
@@ -176,7 +289,11 @@ def lidar_callback(msg, args):
     
     try:
         output_dicts = detect_objects(points, voxelnext_model, lidar_dataset)
-        publish_markers(output_dicts, pub_detected_objects, voxelnext_model.class_names)
+        publish_2D_markers(output_dicts, pub_2D_detected_objects, voxelnext_model.class_names)
+        publish_center_markers(output_dicts, pub_center_detected_objects, voxelnext_model.class_names)
+        
+        # 추가: /track 메시지 발행
+        publish_track_message(output_dicts, pub_track, voxelnext_model.class_names)
     except Exception as e:
         rospy.logerr(f"❌ Error during object detection/publishing: {e}")
 
@@ -213,7 +330,7 @@ def main():
         sys.exit(1)
 
     # Initialize the ROS node
-    rospy.init_node('lidar_voxelnext_node', anonymous=True)
+    rospy.init_node('voxelnext_object_detect', anonymous=False)
     rospy.loginfo("ROS Node initialized")
     
     # Load the VoxelNeXt model and associated lidar dataset
@@ -222,15 +339,24 @@ def main():
     rospy.loginfo("VoxelNeXt model load completed")
     
     # Create a ROS publisher for detected objects (bounding box markers)
-    pub_detected_objects = rospy.Publisher('/detected_objects', MarkerArray, queue_size=10)
-    rospy.loginfo("Publisher '/detected_objects' topic generated")
+    pub_2D_detected_objects = rospy.Publisher('/detected_2D_Box', MarkerArray, queue_size=10)
+    rospy.loginfo("Publisher '/detected_2D_Box' topic generated")
+    
+    # Create a ROS publisher for detected objects (bounding box markers)
+    pub_center_detected_objects = rospy.Publisher('/detected_center', MarkerArray, queue_size=10)
+    rospy.loginfo("Publisher '/detected_center' topic generated")
+    
+    
+    pub_track = rospy.Publisher('/track', Track, queue_size=10)
+    rospy.loginfo("Publisher '/track' 생성 완료")    
+    
 
     # Create a ROS subscriber to receive PointCloud2 messages from the LiDAR sensor
     rospy.Subscriber(
         '/velodyne_points',
         PointCloud2,
         lidar_callback,
-        callback_args=(voxelnext_model, lidar_dataset, pub_detected_objects),
+        callback_args=(voxelnext_model, lidar_dataset, pub_2D_detected_objects, pub_center_detected_objects, pub_track),
         queue_size=1,
         buff_size=2**24
     )

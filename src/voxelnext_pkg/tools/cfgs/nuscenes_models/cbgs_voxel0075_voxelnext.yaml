@@ -2,91 +2,38 @@ CLASS_NAMES: ['car','truck', 'construction_vehicle', 'bus', 'trailer',
               'barrier', 'motorcycle', 'bicycle', 'pedestrian', 'traffic_cone']
 
 DATA_CONFIG:
-
     _BASE_CONFIG_: "./tools/cfgs/dataset_configs/nuscenes_dataset.yaml"
 
-
-
-    # POINT_CLOUD_RANGE: [0.0, -54.0, -5.0, 54.0, 54.0, 3.0]
-    POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
-    # [X 최소, Y 최소, Z 최소, X 최대, Y 최대, Z 최대]
-
-
-
-
+    # [Minimum X, Minimum Y, Minimum Z, Maximum X, Maximum Y, Maximum Z]
+    # POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
+    POINT_CLOUD_RANGE: [-1.5, -54.0, -5.0, 54.0, 54.0, 3.0]
     INFO_PATH: {
         'train': [nuscenes_infos_10sweeps_train.pkl],
         'test': [nuscenes_infos_10sweeps_val.pkl],
     }
 
 
-    # DATA_AUGMENTOR:
-    # 역할: 학습(Training) 시 데이터 증강을 적용합니다.
-    #     DISABLE_AUG_LIST: ['placeholder']
-    #     AUG_CONFIG_LIST:
-    #         - NAME: gt_sampling
-    #           DB_INFO_PATH:
-    #             - nuscenes_dbinfos_10sweeps_withvelo.pkl
-    #           USE_SHARED_MEMORY: False  #True  # set it to True to speed up (it costs about 15GB shared memory)
-    #           DB_DATA_PATH:
-    #             - nuscenes_dbinfos_10sweeps_withvelo_global.pkl.npy
-    #           PREPARE: {
-    #             filter_by_min_points: [
-    #                 'car:5','truck:5', 'construction_vehicle:5', 'bus:5', 'trailer:5',
-    #                 'barrier:5', 'motorcycle:5', 'bicycle:5', 'pedestrian:5', 'traffic_cone:5'
-    #             ],
-    #           }
-
-    #           SAMPLE_GROUPS: [
-    #             'car:2','truck:2', 'construction_vehicle:2', 'bus:2', 'trailer:2',
-    #             'barrier:2', 'motorcycle:2', 'bicycle:2', 'pedestrian:2', 'traffic_cone:2'
-    #           ]
-
-    #           NUM_POINT_FEATURES: 5
-    #           DATABASE_WITH_FAKELIDAR: False
-    #           REMOVE_EXTRA_WIDTH: [0.0, 0.0, 0.0]
-    #           LIMIT_WHOLE_SCENE: True
-
-    #         - NAME: random_world_flip
-    #           ALONG_AXIS_LIST: ['x', 'y']
-
-    #         - NAME: random_world_rotation
-    #           WORLD_ROT_ANGLE: [-0.78539816, 0.78539816]
-
-    #         - NAME: random_world_scaling
-    #           WORLD_SCALE_RANGE: [0.9, 1.1]
-            
-    #         - NAME: random_world_translation
-    #           NOISE_TRANSLATE_STD: [0.5, 0.5, 0.5]
-              
-
-
+    # Role: Determines whether to remove points/boxes that fall outside the PointCloudRange.
     DATA_PROCESSOR:
-    # 역할: PointCloudRange에서 벗어나는 점/박스를 제거할지 결정.
         - NAME: mask_points_and_boxes_outside_range
           REMOVE_OUTSIDE_BOXES: True
 
+        # Role: Determines whether to remove points/boxes that fall outside the PointCloudRange.
         - NAME: shuffle_points
-        # 역할: 포인트 순서를 셔플할지 여부.
           SHUFFLE_ENABLED: {
             'train': False,
             'test': False
           }
 
+        # Role: Determines whether to remove points/boxes that fall outside the PointCloudRange.
         - NAME: transform_points_to_voxels
-        # 역할: 포인트들을 3D 격자(voxel)로 quantize할 때, 각 voxel의 물리적 크기 결정
-        #   VOXEL_SIZE: [0.075, 0.075, 0.2]
           VOXEL_SIZE: [0.05, 0.05, 0.2]
-        #   VOXEL_SIZE: [0.015, 0.015, 0.2]
 
-
-
+        # Role: Determines whether to remove points/boxes that fall outside the PointCloudRange.
           MAX_POINTS_PER_VOXEL: 10
-          # 역할: 하나의 voxel에 최대 몇 개의 포인트를 허용할지
 
-
+        # Role: Determines whether to remove points/boxes that fall outside the PointCloudRange.
           MAX_NUMBER_OF_VOXELS: {
-          # 역할: 한 번의 스캔에서 생성할 수 있는 voxel의 최대 개수  
             'train': 80000,
             'test': 80000
           }
@@ -143,21 +90,21 @@ MODEL:
                 'code_weights': [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.2, 0.2, 1.0, 1.0]
             }
 
-
-
-
-
-
-
+        # Within the DENSE_HEAD section:
         POST_PROCESSING:
 
+            # SCORE_THRESH: Detections with a score below this threshold will be filtered out.
             SCORE_THRESH: 0.6
 
+            # POST_CENTER_LIMIT_RANGE: Defines the 3D spatial limits (min and max coordinates) for the detected object centers.
             POST_CENTER_LIMIT_RANGE: [-61.2, -61.2, -10.0, 61.2, 61.2, 10.0]
+
+            # MAX_OBJ_PER_SAMPLE: Maximum number of detected objects allowed per sample after post-processing.
             MAX_OBJ_PER_SAMPLE: 500
+
+            # NMS_CONFIG: Configuration parameters for Non-Maximum Suppression (NMS), which removes redundant detections.
             NMS_CONFIG:
                 NMS_TYPE: nms_gpu
-
                 NMS_THRESH: 0.05
                 NMS_PRE_MAXSIZE: 1000
                 NMS_POST_MAXSIZE: 83

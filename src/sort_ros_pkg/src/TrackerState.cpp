@@ -18,8 +18,6 @@ void TrackerState::fromMat(cv::Mat mat) {
     centerY     = mat.at<float>(1, 0);
     area        = mat.at<float>(2, 0);
     aspectRatio = mat.at<float>(3, 0);
-
-    //추가
     vx = mat.at<float>(4, 0);
     vy = mat.at<float>(5, 0);
 }

@@ -79,7 +79,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(sort_ros_node
+add_executable(
+  sort_ros_node
   src/main.cpp
   src/Sort.cpp
   src/SortRect.cpp
@@ -87,7 +88,7 @@ add_executable(sort_ros_node
   src/Tracker.cpp
   src/TrackerState.cpp
   src/Hungarian.cpp
-  src/KalmanFilter.cpp
+  src/PredictTrajectory.cpp
 )
 
 ## Rename C++ executable without prefix

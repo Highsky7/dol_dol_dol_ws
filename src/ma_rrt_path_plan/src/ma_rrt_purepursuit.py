@@ -99,8 +99,8 @@ class MaRRTPurePursuit:
         self.control_points = list(zip(x_eq, y_eq))
         
         rospy.loginfo("B-spline 보간으로 {}개의 제어점을 생성했습니다.".format(len(self.control_points)))
-        for i, pt in enumerate(self.control_points):
-            rospy.loginfo("제어점 {}: x={:.2f}, y={:.2f}".format(i, pt[0], pt[1]))
+        # for i, pt in enumerate(self.control_points):
+        #     rospy.loginfo("제어점 {}: x={:.2f}, y={:.2f}".format(i, pt[0], pt[1]))
         
         # 생성된 등간격 웨이포인트들을 Path 메시지로 publish (RViz 시각화용)
         final_path = Path()

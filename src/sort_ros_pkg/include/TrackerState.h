@@ -12,10 +12,8 @@ struct TrackerState {
 	float centerY;
 	float area;
 	float aspectRatio;
-
-	//추가
-	float vx;  // x축 속도
-	float vy;  // y축 속도
+	float vx; 
+	float vy; 
 
 	cv::Mat toMat(void);
 	void fromMat(cv::Mat mat);
