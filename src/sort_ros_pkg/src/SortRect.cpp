@@ -8,8 +8,6 @@ TrackerState SortRect::toTrackerState(void) {
     state.centerY = centerY;
     state.area = width * height;
     state.aspectRatio = width / height;
-
-    // 추가
     state.vx = vx;
     state.vy = vy;
     

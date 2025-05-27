@@ -211,5 +211,10 @@ include_directories(
 # Python 실행 파일 등록
 catkin_install_python(PROGRAMS
   scripts/lidar_ros_node.py
+  scripts/2D_object_detect.py
+  scripts/3D_object_detect.py
+  scripts/center_object_detect.py
+  scripts/2D_and_center_object_detect.py
+  scripts/track_and_2D_and_center_object_detect.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
