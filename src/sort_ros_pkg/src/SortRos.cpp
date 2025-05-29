@@ -138,7 +138,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         // // 4. 예측 경로의 끝 점을 sphere 마커로 생성
         // --- 변경된 코드: 예측 마커 퍼블리싱은 PredictTrajectory 모듈에 위임 ---
         TrackerState currentState = rect.toTrackerState();
-        int predictionSteps = 10;
+        int predictionSteps = 4;
 
         // Transition matrix is defined locally or obtained from tracker
         cv::Mat transitionMatrix = (cv::Mat_<float>(7, 7) <<
