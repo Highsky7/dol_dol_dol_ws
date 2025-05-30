@@ -320,8 +320,10 @@ class LoadCamera:
         try:
             cam_index = int(self.source)
             self.cap = cv2.VideoCapture(cam_index, cv2.CAP_V4L2)
+            # self.cap = cv2.VideoCapture(cam_index)
         except ValueError:
             self.cap = cv2.VideoCapture(self.source, cv2.CAP_V4L2)
+            # self.cap = cv2.VideoCapture(self.source)
 
         if not self.cap.isOpened():
             raise Exception(f"카메라를 열 수 없습니다. ID/Dev: {self.source}")
