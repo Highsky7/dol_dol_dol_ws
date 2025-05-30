@@ -1,0 +1,6 @@
+# Selected BEV Source Points (x, y) for original image
+# Order: Left-Bottom, Right-Bottom, Left-Top, Right-Top
+44, 715 # 1 (L-Bot)
+1235, 715 # 2 (R-Bot)
+247, 531 # 3 (L-Top)
+1032, 531 # 4 (R-Top)
