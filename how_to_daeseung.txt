@@ -39,6 +39,10 @@ rrt 타겟이 좀 더 멀리 있어야 하고, 룩어헤드 디스턴스는 그 
 보라색 점 rrt target: roi_path_publisher
 트리 최종 길이: MaRRTPathPlanNode
 ld: ma_rrt_purepursuit
+kalman filter step size: SortRos.cpp
+
+predictconeObstacleSize  (marrtplanmode.py)
+coneObstacleSize   (marrtplanmode.py)
 -----------------------
 
 
