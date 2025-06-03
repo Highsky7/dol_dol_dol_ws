@@ -1,7 +1,7 @@
 터미널 10개 필요
 아두이노 메가 업로드
 1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
-2터미널: rosrun judgement judgement.py
+2터미널: rosrun judgement judgement_with_vp.py
 3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
 4터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
 5터미널: roslaunch gps_to_utm_pkg local_cartesian.launch
