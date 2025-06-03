@@ -261,8 +261,8 @@ def make_parser():
                         default='./yolopv2.pt',
                         help='model.pt 경로')
     parser.add_argument('--source', type=str,
-                        # default='/home/highsky/Videos/Webcam/우회전.mp4',
-                        default='2',
+                        default='/home/highsky/Videos/Webcam/좌회전.mp4',
+                        # default='2',
                         help='source: 0(webcam) 또는 영상/이미지 파일 경로')
     parser.add_argument('--img-size', type=int, default=640,
                         help='YOLO 추론 해상도')
@@ -443,7 +443,7 @@ def detect_and_publish(opt, pub_mask, pub_steering):
                     steering_angle = 0.0
                 else:
                     alpha = np.arctan2(Y_v, X_v)
-                    steering_angle = np.arctan((2 * wheelbase * np.sin(alpha)) / d)
+                    steering_angle = -np.arctan((2 * wheelbase * np.sin(alpha)) / d)
                 # 라디안 값을 degree로 변환 후 퍼블리시
                 steering_angle_deg = np.degrees(steering_angle)
                 pub_steering.publish(Float32(data=steering_angle_deg))
@@ -458,7 +458,8 @@ def detect_and_publish(opt, pub_mask, pub_steering):
         else:
             bev_im_color = bev_im.copy()
 
-        cv2.imshow("BEV Image", bev_im)
+        cv2.imshow("Original lane", binary_mask)
+        cv2.imshow("Thinned lane", thin_mask)
         cv2.imshow("BEV Mask + Polyfit", bev_im_color)
         cv2.imshow("Thin Mask", final_mask)
         return bev_im, bev_im_color, final_mask
