@@ -12,6 +12,7 @@
   <!-- <node pkg="gps_to_utm_pkg" type="vehicle_tf_broadcaster.py" name="vehicle_tf_broadcaster" output="screen" /> -->
   <node pkg="gps_to_utm_pkg" type="ref_ant_vel_tf_broadcaster.py" name="ref_ant_vel_tf_broadcaster" output="screen">
     <!-- 오프셋 파라미터 지정 -->
+    <!--GPS 안테나 프레임(antenna frame) 기준에서 Velodyne 센서 프레임(velodyne frame)이 얼마만큼 떨어져 있는지를 나타내는 고정 오프셋(translation) 값-->
     <param name="velodyne_offset_x" value="0.3"/>
     <param name="velodyne_offset_y" value="-3.5"/>
     <param name="velodyne_offset_z" value="0.0"/>
