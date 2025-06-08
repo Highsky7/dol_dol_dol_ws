@@ -4,10 +4,11 @@
 2터미널: rosrun judgement judgement_with_vp.py
 3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
 4터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
+
 5터미널: roslaunch gps_to_utm_pkg local_cartesian.launch 
 6터미널: roslaunch ublox_gps ublox_zed-f9p.launch
 7터미널: roslaunch ntrip_ros ntrip_ros.launch
 
 8터미널: 가상환경(dol) rosrun voxelnext_pkg track_and_2D_and_center_object_detect.py
 9터미널: 가상환경(dol) roslaunch ma_rrt_path_plan startExploring.launch
-10터미널: rosrun sort_ros_pkg sort_ros_node    # (4/16 완성)  
+10터미널: 가상환경(dol) rosrun sort_ros_pkg sort_ros_node

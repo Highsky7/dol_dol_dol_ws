@@ -8,8 +8,15 @@
   <!-- global_yaw_estimator.py: /local_xy를 구독하여 global yaw를 계산하고 /global_yaw, /raw_global_yaw를 publish -->
   <node pkg="gps_to_utm_pkg" type="global_yaw_estimator.py" name="global_yaw_estimator" output="screen" />
 
-  <!-- vehicle_tf_broadcaster.py: /local_xy와 /global_yaw를 구독하여 기준(reference)과 vehicle frame의 TF를 publish -->
-  <node pkg="gps_to_utm_pkg" type="vehicle_tf_broadcaster.py" name="vehicle_tf_broadcaster" output="screen" />
+  <!-- vehicle_tf_broadcaster.py: /local_xy와 /global_yaw를 구독하여 기준(reference), antenna, vehicle frame의 TF를 publish -->
+  <!-- <node pkg="gps_to_utm_pkg" type="vehicle_tf_broadcaster.py" name="vehicle_tf_broadcaster" output="screen" /> -->
+  <node pkg="gps_to_utm_pkg" type="ref_ant_vel_tf_broadcaster.py" name="ref_ant_vel_tf_broadcaster" output="screen">
+    <!-- 오프셋 파라미터 지정 -->
+    <param name="velodyne_offset_x" value="0.3"/>
+    <param name="velodyne_offset_y" value="-3.5"/>
+    <param name="velodyne_offset_z" value="0.0"/>
+  </node>
+
 
   <!-- roi_path_publisher.py: 차량 전방 ROI Marker를 publish (scripts 폴더 내 실행 파일) -->
   <node pkg="gps_to_utm_pkg" type="roi_path_publisher.py" name="roi_path_publisher" output="screen" />
