@@ -19,10 +19,14 @@ class RefAntennaVelodyneTFBroadcaster:
         self.global_yaw = 0.0
 
         # antenna -> velodyne 오프셋 (미터 단위)
-        # local_cartesian.launch 에서 오프셋 파라미터 설정 가능
-        self.offset_x = rospy.get_param("~velodyne_offset_x", 0.3)
-        self.offset_y = rospy.get_param("~velodyne_offset_y", -3.0)
-        self.offset_z = rospy.get_param("~velodyne_offset_z", 0.0)
+        # GPS 안테나 프레임(antenna frame) 기준에서 Velodyne 센서 프레임(velodyne frame)이 얼마만큼 떨어져 있는지를 나타내는 고정 오프셋(translation) 값
+        # 하드 코딩 or local_cartesian.launch 에서 오프셋 파라미터 설정
+        # self.offset_x = rospy.get_param("~velodyne_offset_x", 0.3)
+        # self.offset_y = rospy.get_param("~velodyne_offset_y", -3.0)
+        # self.offset_z = rospy.get_param("~velodyne_offset_z", 0.0)
+        self.offset_x = rospy.get_param("~velodyne_offset_x")
+        self.offset_y = rospy.get_param("~velodyne_offset_y")
+        self.offset_z = rospy.get_param("~velodyne_offset_z")
 
         # 토픽 구독 및 타이머 설정
         rospy.Subscriber("local_xy", PointStamped, self.local_xy_callback)
