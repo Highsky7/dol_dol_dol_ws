@@ -5,7 +5,6 @@
 #include "visualization_msgs/MarkerArray.h"
 
 #include "Sort.h"
-// cpp은 NULL 정의가 안되어있다는 이유로 오류발생해서 설정
 #ifndef NULL
 #define NULL 0
 #endif
@@ -29,17 +28,11 @@ private:
     ros::NodeHandle nh;
     static ros::Publisher pub;
     static ros::Subscriber sub;
-    static ros::Publisher speed_pub;
-    static ros::Publisher dynamic_obstacle_pub; // 기존: dynamic_on 토픽 publisher
-
-    // 추가: 예측 이동 궤적 퍼블리셔
-    static ros::Publisher trajectoryPredictedPub;
-
-    static ros::Publisher trajectoryEndpointsPub;
-
-
-    static void rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray);
-
+    static ros::Publisher pub_text;  // for /tracked_vx_vy 
+    static void rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray);    // for /tracked_3D_Box
+    static ros::Publisher pub_pred;  // for /predicted trajectory 
+    static ros::Publisher pub_pred_endpoint;  // for /predicted trajectory endpoint
+        
 private:
     static Sort *s;
 

@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(voxelnext_pkg)
-set(PYTHON_EXECUTABLE /home/highsky/lidar_env/bin/python)
+
 # vehicle_msgs를 하위 디렉토리로 포함
-#add_subdirectory(vehicle_msgs)
+# add_subdirectory(vehicle_msgs)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -211,5 +211,10 @@ include_directories(
 # Python 실행 파일 등록
 catkin_install_python(PROGRAMS
   scripts/lidar_ros_node.py
+  scripts/2D_object_detect.py
+  scripts/3D_object_detect.py
+  scripts/center_object_detect.py
+  scripts/2D_and_center_object_detect.py
+  scripts/track_and_2D_and_center_object_detect.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

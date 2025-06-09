@@ -1,0 +1,220 @@
+#include "PredictTrajectory.h"
+#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <geometry_msgs/Point.h>
+#include <cmath>
+#include <unordered_map>
+
+// Static map to store the last yaw angle for each track (for yaw-rate estimation in EKF)
+namespace {
+    std::unordered_map<int, float> lastYawById;
+}
+
+// Define static members
+ros::NodeHandle* TrajectoryPredictor::nh_pred = nullptr;
+ros::Publisher TrajectoryPredictor::pub_pred_traj;
+ros::Publisher TrajectoryPredictor::pub_pred_endpoint;
+bool TrajectoryPredictor::initialized = false;
+
+void TrajectoryPredictor::initPublishers() {
+    if (!initialized) {
+        // Create a NodeHandle for this predictor (uses the existing ROS node context)
+        nh_pred = new ros::NodeHandle();
+        // Advertise the predicted trajectory and endpoint topics
+        pub_pred_traj = nh_pred->advertise<visualization_msgs::MarkerArray>("/predicted_trajectory", 1);
+        pub_pred_endpoint = nh_pred->advertise<visualization_msgs::MarkerArray>("/predicted_trajectory_endpoint", 1);
+        initialized = true;
+    }
+}
+
+void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& currentState,
+                                                     const cv::Mat& transitionMatrix,
+                                                     int steps,
+                                                     int track_id,
+                                                     const std::string& frame_id) {
+    // Ensure publishers are initialized
+    if (!initialized) {
+        initPublishers();
+    }
+
+    // Predict future states of the object using EKF-based model
+    std::vector<TrackerState> predictedStates =
+        TrajectoryPredictor::predictTrajectory(currentState, transitionMatrix, steps, track_id);
+
+    // Prepare LINE_STRIP marker for the predicted trajectory
+    visualization_msgs::Marker trajMarker;
+    trajMarker.header.stamp = ros::Time::now();
+    trajMarker.header.frame_id = frame_id;
+    trajMarker.ns = "predicted_trajectory";
+    trajMarker.id = track_id;
+    trajMarker.type = visualization_msgs::Marker::LINE_STRIP;
+    trajMarker.action = visualization_msgs::Marker::ADD;
+    trajMarker.lifetime = ros::Duration(0.2);
+    trajMarker.frame_locked = true;
+    // Line width
+    trajMarker.scale.x = 0.05;
+    // Color: pink
+    trajMarker.color.a = 1.0;
+    trajMarker.color.r = 240.0f/255.0f;
+    trajMarker.color.g = 15.0f/255.0f;
+    trajMarker.color.b = 135.0f/255.0f;
+    // Identity pose (points are in the specified frame coordinates)
+    trajMarker.pose.orientation.w = 1.0;
+    trajMarker.pose.orientation.x = 0.0;
+    trajMarker.pose.orientation.y = 0.0;
+    trajMarker.pose.orientation.z = 0.0;
+    trajMarker.pose.position.x = 0.0;
+    trajMarker.pose.position.y = 0.0;
+    trajMarker.pose.position.z = 0.0;
+    // Start the trajectory at the current object position
+    geometry_msgs::Point pt;
+    pt.x = currentState.centerX;
+    pt.y = currentState.centerY;
+    pt.z = 0.0;
+    trajMarker.points.push_back(pt);
+    // Append predicted future positions to the trajectory
+    for (const TrackerState& predState : predictedStates) {
+        pt.x = predState.centerX;
+        pt.y = predState.centerY;
+        pt.z = 0.0;
+        trajMarker.points.push_back(pt);
+    }
+
+    // Prepare SPHERE marker for the endpoint of the predicted trajectory
+    visualization_msgs::Marker endpointMarker;
+    endpointMarker.header.stamp = ros::Time::now();
+    endpointMarker.header.frame_id = frame_id;
+    endpointMarker.ns = "predicted_trajectory_endpoint";
+    endpointMarker.id = track_id;
+    endpointMarker.type = visualization_msgs::Marker::SPHERE;
+    endpointMarker.action = visualization_msgs::Marker::ADD;
+    endpointMarker.lifetime = ros::Duration(0.2);
+    endpointMarker.frame_locked = true;
+    // Position the sphere at the last predicted point (or current position if no prediction)
+    if (!predictedStates.empty()) {
+        const TrackerState& finalState = predictedStates.back();
+        endpointMarker.pose.position.x = finalState.centerX;
+        endpointMarker.pose.position.y = finalState.centerY;
+    } else {
+        endpointMarker.pose.position.x = currentState.centerX;
+        endpointMarker.pose.position.y = currentState.centerY;
+    }
+    endpointMarker.pose.position.z = 0.0;
+    endpointMarker.pose.orientation.x = 0.0;
+    endpointMarker.pose.orientation.y = 0.0;
+    endpointMarker.pose.orientation.z = 0.0;
+    endpointMarker.pose.orientation.w = 1.0;
+    // Sphere size
+    endpointMarker.scale.x = 0.3;
+    endpointMarker.scale.y = 0.3;
+    endpointMarker.scale.z = 0.3;
+    // Color: yellow
+    endpointMarker.color.a = 1.0;
+    endpointMarker.color.r = 1.0;
+    endpointMarker.color.g = 1.0;
+    endpointMarker.color.b = 0.0;
+
+    // Publish the markers using MarkerArray messages (one for each topic)
+    visualization_msgs::MarkerArray trajArray;
+    trajArray.markers.push_back(trajMarker);
+    visualization_msgs::MarkerArray endpointArray;
+    endpointArray.markers.push_back(endpointMarker);
+    pub_pred_traj.publish(trajArray);
+    pub_pred_endpoint.publish(endpointArray);
+}
+
+
+std::vector<TrackerState> TrajectoryPredictor::predictTrajectory(const TrackerState& currentState,
+    const cv::Mat& transitionMatrix,
+    int steps,
+    int track_id) {
+std::vector<TrackerState> trajectory;
+if (steps <= 0) {
+return trajectory;
+}
+
+// Extract current variables
+// Use available values: centerX, centerY, vx, vy.
+float x = currentState.centerX;
+float y = currentState.centerY;
+float vx = currentState.vx;
+float vy = currentState.vy;
+float v = std::sqrt(vx * vx + vy * vy);
+// Compute current heading (yaw) from velocity components
+float theta = std::atan2(vy, vx);
+
+// Estimate turn rate (omega) using change in yaw (this part remains unchanged)
+float omega = 0.0f;
+auto it = lastYawById.find(track_id);
+if (it != lastYawById.end()) {
+float prevTheta = it->second;
+float diff = theta - prevTheta;
+const float PI = 3.14159265f;
+if (diff > PI) diff -= 2 * PI;
+if (diff < -PI) diff += 2 * PI;
+omega = diff; // assume Δt=1 frame
+}
+lastYawById[track_id] = theta;  // store current yaw for next frame
+if (v < 1e-3f) {
+omega = 0.0f;
+}
+
+const float dt = 1.0f;  // time step per prediction, in frames
+
+// Check if turn rate is negligible (straight-line motion)
+if (std::fabs(omega) < 1e-3f) {
+// Straight-line prediction (unchanged)
+for (int i = 0; i < steps; ++i) {
+x += v * std::cos(theta) * dt;
+y += v * std::sin(theta) * dt;
+TrackerState pred;
+pred.centerX = x;
+pred.centerY = y;
+pred.area = currentState.area;
+pred.aspectRatio = currentState.aspectRatio;
+pred.vx = v * std::cos(theta);
+pred.vy = v * std::sin(theta);
+trajectory.push_back(pred);
+}
+} else {
+// Optimize repeated sin/cos computation using recurrence relations
+// Precompute delta and its sin/cos
+float delta = omega * dt;
+float cosDelta = std::cos(delta);
+float sinDelta = std::sin(delta);
+// Precompute initial sin(theta) and cos(theta)
+float sin_theta = std::sin(theta);
+float cos_theta = std::cos(theta);
+
+for (int i = 0; i < steps; ++i) {
+// Compute new sin, cos using recurrence relations
+float new_sin = sin_theta * cosDelta + cos_theta * sinDelta;
+float new_cos = cos_theta * cosDelta - sin_theta * sinDelta;
+// Incremental displacement calculation:
+// dx = (v / omega) * (new_sin - sin_theta)
+// dy = (v / omega) * (-new_cos + cos_theta)
+float dx = (v / omega) * (new_sin - sin_theta);
+float dy = (v / omega) * (-new_cos + cos_theta);
+x += dx;
+y += dy;
+
+// Update sin_theta and cos_theta for next iteration
+sin_theta = new_sin;
+cos_theta = new_cos;
+// Update theta as well, if needed (for record)
+theta = std::atan2(sin_theta, cos_theta);
+
+// Form the predicted state for this step
+TrackerState pred;
+pred.centerX = x;
+pred.centerY = y;
+pred.area = currentState.area;             // assume area constant
+pred.aspectRatio = currentState.aspectRatio; // assume aspectRatio constant
+pred.vx = v * cos_theta;  // recomputed velocity components
+pred.vy = v * sin_theta;
+trajectory.push_back(pred);
+}
+}
+
+return trajectory;
+}

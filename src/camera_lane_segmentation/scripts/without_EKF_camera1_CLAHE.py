@@ -46,8 +46,9 @@ def make_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='model.pt 경로')
     parser.add_argument('--source', type=str,
-                        default='2',
+                        # default='2',
                         # default='/home/yoo/source/test_video4.mp4',
+                        default='/home/highsky/Videos/Webcam/좌회전.mp4',
                         help='source: 0(webcam) 또는 파일 경로')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO 추론 해상도')
     parser.add_argument('--device', default='0', help='cuda device: 0 또는 cpu')

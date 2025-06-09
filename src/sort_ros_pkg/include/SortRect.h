@@ -12,9 +12,6 @@ struct SortRect {
     float centerY;
     float width;
     float height;
-
-
-    // 추가
     float vx;
     float vy;
 
