@@ -1,0 +1,10 @@
+<launch>
+  <!-- wall_detect_node -->
+  <node pkg="tunnel_pkg" type="wall_detect_node" name="wall_detect_node" output="screen" />
+
+  <!-- wall_compress_node -->
+  <node pkg="tunnel_pkg" type="wall_compress_node" name="wall_compress_node" output="screen" />
+
+  <!-- rviz
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find tunnel_pkg)/launch/wall_detection.rviz" required="false" /> -->
+</launch>
