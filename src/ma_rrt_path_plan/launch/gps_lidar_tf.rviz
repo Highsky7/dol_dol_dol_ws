@@ -14,6 +14,8 @@ Panels:
         - /MarkerArray6
         - /MarkerArray7
         - /MarkerArray8
+        - /PointCloud22
+        - /PointCloud23
       Splitter Ratio: 0.46347030997276306
     Tree Height: 1171
   - Class: rviz/Selection
@@ -129,7 +131,7 @@ Visualization Manager:
       Marker Topic: /lookahead_marker
       Name: Marker
       Namespaces:
-        lookahead: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -170,7 +172,6 @@ Visualization Manager:
       Name: MarkerArray
       Namespaces:
         new-publishWaypointsVisuals: true
-        saved-publishWaypointsVisuals: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -252,7 +253,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.10000000149011612
-      Style: Flat Squares
+      Style: Spheres
       Topic: /compressed_wall
       Unreliable: false
       Use Fixed Frame: true
@@ -279,8 +280,8 @@ Visualization Manager:
       Queue Size: 10
       Selectable: true
       Size (Pixels): 3
-      Size (m): 0.10000000149011612
-      Style: Flat Squares
+      Size (m): 0.05000000074505806
+      Style: Squares
       Topic: /detected_wall
       Unreliable: false
       Use Fixed Frame: true
@@ -314,7 +315,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 45.310157775878906
+      Distance: 18.635639190673828
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -330,9 +331,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.7297970652580261
+      Pitch: 0.8147972226142883
       Target Frame: <Fixed Frame>
-      Yaw: 3.5135693550109863
+      Yaw: 3.023564338684082
     Saved: ~
 Window Geometry:
   Displays:
@@ -351,4 +352,4 @@ Window Geometry:
     collapsed: true
   Width: 1510
   X: 1908
-  Y: 357
+  Y: 320
