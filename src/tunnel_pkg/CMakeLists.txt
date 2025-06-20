@@ -21,12 +21,12 @@ include_directories(
 
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(wall_filter_node src/wall_filter_node.cpp)
-target_link_libraries(wall_filter_node
+add_executable(wall_detect_node src/wall_detect_node.cpp)
+target_link_libraries(wall_detect_node
   ${catkin_LIBRARIES}
   ${PCL_LIBRARIES}
 )
 
-install(TARGETS wall_filter_node
+install(TARGETS wall_detect_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )

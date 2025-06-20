@@ -16,7 +16,7 @@ public:
         // 구독자 설정: Velodyne 포인트 클라우드 구독
         sub_ = nh_.subscribe("/velodyne_points", 1, &WallDetector::pointCloudCallback, this);
         // 퍼블리셔 설정: 벽 포인트 클라우드 퍼블리시
-        pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/wall_points_filtered", 1);
+        pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/detected_wall", 1);
     }
 
 private:
@@ -129,7 +129,7 @@ private:
 };
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "wall_detector_node");
+    ros::init(argc, argv, "wall_detect_node");
     WallDetector wd;
     ros::spin();
     return 0;
