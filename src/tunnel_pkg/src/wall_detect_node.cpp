@@ -131,6 +131,7 @@ private:
 int main(int argc, char** argv) {
     ros::init(argc, argv, "wall_detect_node");
     WallDetector wd;
+    ROS_INFO("wall_detect_node started.");
     ros::spin();
     return 0;
 }

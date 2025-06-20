@@ -27,6 +27,9 @@ target_link_libraries(wall_detect_node
   ${PCL_LIBRARIES}
 )
 
+add_executable(wall_compress_node src/wall_compress_node.cpp)
+target_link_libraries(wall_compress_node ${catkin_LIBRARIES})
+
 install(TARGETS wall_detect_node
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
