@@ -21,6 +21,8 @@ from geometry_msgs.msg import Point, PoseStamped, PointStamped
 from nav_msgs.msg import Odometry
 from nav_msgs.msg import Path
 from scipy.spatial import Delaunay
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs import point_cloud2
 
 class MaRRTPathPlanNode:
 
@@ -65,6 +67,7 @@ class MaRRTPathPlanNode:
         # /predicted_trajectory_endpoint 토픽 구독자 추가
         rospy.Subscriber("/predicted_trajectory_endpoint", MarkerArray, self.predictedTrajectoryEndpointCallback)
 
+        rospy.Subscriber("/compressed_wall", PointCloud2, self.compressedWallCallback)
 
         """
         퍼블리셔들
@@ -86,7 +89,9 @@ class MaRRTPathPlanNode:
         self.predictedEndpointObstacleList = []
 
 
+        self.compressedWallObstacleList = []
         
+                
         # 차량의 현재 위치 및 자세 초기값 (in velodyne frame)
         self.carPosX = 0.0
         self.carPosY = 0.0
@@ -181,7 +186,14 @@ class MaRRTPathPlanNode:
 
 
 
-
+    def compressedWallCallback(self, msg):
+        # Clear and refill the wall obstacle list on each new message
+        self.compressedWallObstacleList = []
+        # Read all points (x, y, z) from the PointCloud2 message
+        for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
+            x, y, z = p[:3]
+            # Append as a circular obstacle with radius 0.1m
+            self.compressedWallObstacleList.append((x, y, 0.2))
 
 
 
@@ -209,12 +221,13 @@ class MaRRTPathPlanNode:
         self.coneObstacleList = [(cone.x, cone.y, coneObstacleSize) for cone in frontCones]
 
         # 두 종류의 장애물 리스트 병합
-        obstacleList = self.coneObstacleList + self.predictedEndpointObstacleList
+        obstacleList = self.coneObstacleList + self.predictedEndpointObstacleList + self.compressedWallObstacleList
         
         rospy.loginfo("-----")
         rospy.loginfo("coneObstacleList: %d", len(self.coneObstacleList))
         rospy.loginfo("predictedEndpointObstacleList: %d", len(self.predictedEndpointObstacleList))
-        rospy.loginfo("obstacleList: %d", len(obstacleList))
+        rospy.loginfo("compressedWallObstacleList: %d", len(self.compressedWallObstacleList))
+        rospy.loginfo("Total obstacles: %d", len(obstacleList))
         rospy.loginfo("-----")
         
         self.predictedEndpointObstacleList.clear()
