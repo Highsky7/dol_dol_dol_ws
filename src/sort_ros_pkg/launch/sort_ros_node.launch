@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <node
+      pkg="sort_ros_pkg"
+      type="sort_ros_node"
+      name="sort_ros"
+      output="screen"/>
+</launch>

@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="voxelnext_pkg" type="track_and_2D_and_center_object_detect.py" name="object_detection" output="screen" />
+</launch>
