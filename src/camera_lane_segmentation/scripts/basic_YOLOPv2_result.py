@@ -27,8 +27,8 @@ def make_parser():
     parser = argparse.ArgumentParser(description="YOLOPv2 Lane Segmentation with Canny Edge & Thinning Visualization")
     parser.add_argument('--weights', type=str, default='./yolopv2.pt', help='Path to model.pt file')
     parser.add_argument('--source', type=str,
-                        # default='0',
-                        default='/home/highsky/Videos/Webcam/좌회전.mp4', # 사용자의 기본 경로 유지
+                        default='2',
+                        # default='/home/highsky/Videos/Webcam/차선직진영상.mp4',
                         help='Source: "0" for webcam, or path to video/image file')
     parser.add_argument('--img-size', type=int, default=640, help='YOLO inference resolution (pixels)')
     parser.add_argument('--device', default='0', help='CUDA device, e.g., "0" or "cpu"')

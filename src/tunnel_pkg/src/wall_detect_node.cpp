@@ -42,7 +42,7 @@ private:
         pcl::PassThrough<pcl::PointXYZ> pass;
         pass.setInputCloud(cloud_down);
         pass.setFilterFieldName("z");
-        pass.setFilterLimits(-0.3, 1.5);                // [파라미터] z 범위 제한값 (환경에 따라 바닥/천장 높이 조정)
+        pass.setFilterLimits(-1.0, 1.0);                // [파라미터] z 범위 제한값 (환경에 따라 바닥/천장 높이 조정)
         pass.filter(*cloud_filtered);
         // [변경] 센서 기준 너무 낮거나 높은 위치의 점 제거 (불필요한 바닥/천장 평면 배제)
 
@@ -52,15 +52,15 @@ private:
         seg.setModelType(pcl::SACMODEL_PLANE);          // 평면 모델 유형
         seg.setMethodType(pcl::SAC_RANSAC);             // RANSAC 방법 사용
         seg.setMaxIterations(1000);                     // (옵션) RANSAC 최대 반복 횟수
-        seg.setDistanceThreshold(0.1);                  // [파라미터] 평면으로 간주할 거리 임계값 (0.1m 내의 점들을 인라이어로)
+        seg.setDistanceThreshold(0.02);                  // [파라미터] 평면으로 간주할 거리 임계값 (0.1m 내의 점들을 인라이어로)
         // ※ DistanceThreshold 값이 작으면 평면 적합 정확도 ↑, 크면 노이즈에 민감 ↓:contentReference[oaicite:7]{index=7}
 
         pcl::ExtractIndices<pcl::PointXYZ> extract;
         pcl::PointCloud<pcl::PointXYZ>::Ptr wall_cloud(new pcl::PointCloud<pcl::PointXYZ>);  
         // 최종 벽 포인트들을 담을 클라우드 (초기 비어있음)
 
-        // 최대 5개의 평면까지 추출 시도
-        for (int i = 0; i < 5; ++i) {
+        // 최대 10개의 평면까지 추출 시도
+        for (int i = 0; i < 10; ++i) {
             if (cloud_filtered->points.empty()) break;  // 남은 점이 없으면 종료
 
             // 평면 모델 계수와 인라이어 인덱스 객체
