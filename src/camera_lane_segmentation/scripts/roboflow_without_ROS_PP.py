@@ -344,11 +344,6 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
                 # ld^2 = x_goal^2 + y_goal^2
                 # atan2를 사용하여 안정적인 각도 계산
                 steering_angle_rad = atan2(2.0 * L * y_goal, x_goal**2 + y_goal**2)
-                
-                # 조향각의 부호가 좌/우회전 규약과 맞는지 확인 필요
-                # 현재 y_vehicle이 오른쪽을 +로 계산하므로, y_goal이 양수일 때 우회전(음수 조향각)이 되어야 함
-                # 따라서 부호를 반전시켜준다.
-                # steering_angle_rad = -steering_angle_rad
 
                 steering_angle_deg = np.degrees(steering_angle_rad)
                 steering_angle_deg = np.clip(steering_angle_deg, -25.0, 25.0)

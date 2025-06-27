@@ -233,15 +233,14 @@ class LaneFollowerNode:
                 # 퓨어퍼슛 공식: delta = atan(2 * L * sin(alpha) / ld)
                 # atan2(2 * L * y_goal, ld^2) 형태로 변환하여 사용
                 steering_angle_rad = atan2(2.0 * self.L * y_goal, x_goal**2 + y_goal**2)
-                
-                # 조향각 부호 반전 (오른쪽 y_goal > 0 -> 우회전(음수 조향각))
-                steering_angle_rad = -steering_angle_rad
 
                 steering_angle_deg = np.degrees(steering_angle_rad)
                 steering_angle_deg = np.clip(steering_angle_deg, -25.0, 25.0)
                 self.pub_steering.publish(Float32(data=steering_angle_deg))
 
         # 7. 시각화
+        annotated_frame = result.plot()
+        
         overlay_polyline(bev_im_for_drawing, final_left_coeff, color=(255, 0, 0), step=2, thickness=2)
         overlay_polyline(bev_im_for_drawing, final_right_coeff, color=(0, 0, 255), step=2, thickness=2)
         if self.tracked_center_path['coeff'] is not None:
@@ -256,6 +255,7 @@ class LaneFollowerNode:
         cv2.putText(bev_im_for_drawing, f"Lane Detected: {lane_detected_bool}", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
         
         cv2.imshow("Original Camera View", im0s)
+        cv2.imshow("Roboflow Detections (on BEV)", annotated_frame)
         cv2.imshow("Final Path (on BEV)", bev_im_for_drawing)
         cv2.waitKey(1)
 
