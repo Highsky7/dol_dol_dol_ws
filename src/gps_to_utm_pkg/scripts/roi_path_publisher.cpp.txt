@@ -1,0 +1,174 @@
+#include <ros/ros.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <nav_msgs/Path.h>
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/Point.h>
+#include <visualization_msgs/Marker.h>
+#include <cmath>
+#include <vector>
+
+class ROIPathPublisher {
+public:
+    ROIPathPublisher()
+        : nh_(),
+          pnh_("~"),
+          tf_buffer_(),
+          tf_listener_(tf_buffer_),
+          has_path_(false)
+    {
+        // 파라미터
+        pnh_.param("roi_arc_length", roi_arc_length_, 3.8);
+
+        // 벡터 예약
+        pre_transformed_.reserve(2000);
+        cumulative_arc_.reserve(2000);
+
+        // 구독자
+        sub_path_ = nh_.subscribe("resampled_path", 1, &ROIPathPublisher::pathCallback, this);
+        sub_pose_ = nh_.subscribe("local_xy", 1, &ROIPathPublisher::poseCallback, this);
+
+        // 퍼블리셔
+        marker_pub_ = nh_.advertise<visualization_msgs::Marker>("roi_path_marker", 1);
+        rrt_target_pub_ = nh_.advertise<geometry_msgs::PointStamped>("rrt_target", 1);
+
+        // 타이머
+        timer_ = nh_.createTimer(ros::Duration(0.01), &ROIPathPublisher::timerCallback, this);
+        ROS_INFO("Optimized ROIPathPublisher 시작 (ROI arc length = %.2f m)", roi_arc_length_);
+    }
+
+private:
+    // Path 콜백: 경로 갱신 시 한 번만 변환 및 누적호 길이 계산
+    void pathCallback(const nav_msgs::Path::ConstPtr& msg) {
+        if (msg->poses.empty()) {
+            has_path_ = false;
+            return;
+        }
+        has_path_ = true;
+        // TF lookup (reference -> velodyne)
+        geometry_msgs::TransformStamped tf;
+        try {
+            tf = tf_buffer_.lookupTransform("velodyne", "reference",
+                                            ros::Time(0), ros::Duration(0.1));
+        } catch (const tf2::TransformException& e) {
+            ROS_WARN_THROTTLE(1.0, "TF lookup 실패: %s", e.what());
+            has_path_ = false;
+            return;
+        }
+
+        size_t N = msg->poses.size();
+        pre_transformed_.clear();
+        cumulative_arc_.clear();
+        pre_transformed_.reserve(N);
+        cumulative_arc_.reserve(N);
+
+        // 1) reference→velodyne 변환
+        geometry_msgs::PointStamped in, out;
+        in.header = msg->header;
+        for (const auto& ps : msg->poses) {
+            in.point = ps.pose.position;
+            tf2::doTransform(in, out, tf);
+            pre_transformed_.push_back(out.point);
+        }
+
+        // 2) 누적호 길이(prefix-sum) 계산
+        cumulative_arc_.push_back(0.0);
+        for (size_t i = 1; i < N; ++i) {
+            const auto& p0 = pre_transformed_[i-1];
+            const auto& p1 = pre_transformed_[i];
+            double d = std::hypot(p1.x - p0.x, p1.y - p0.y);
+            cumulative_arc_.push_back(cumulative_arc_.back() + d);
+        }
+    }
+
+    // 차량 위치 콜백 (사용 안 함: 차량은 velodyne 기준 원점)
+    void poseCallback(const geometry_msgs::PoseStamped::ConstPtr&) {
+        // 빈 구현
+    }
+
+    // 타이머 콜백: 매 0.01s마다 ROI 계산 & 퍼블리시
+    void timerCallback(const ros::TimerEvent&) {
+        if (!has_path_ || pre_transformed_.empty()) {
+            return;
+        }
+
+        size_t N = pre_transformed_.size();
+
+        // 1) 차량(0,0)과 가장 가까운 점 인덱스 찾기
+        size_t min_idx = 0;
+        double min_d = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < N; ++i) {
+            double d = std::hypot(pre_transformed_[i].x, pre_transformed_[i].y);
+            if (d < min_d) {
+                min_d = d;
+                min_idx = i;
+            }
+        }
+
+        // 2) ROI 범위 계산: cumulative_arc_[j] - cumulative_arc_[min_idx] <= roi_arc_length_
+        size_t end_idx = min_idx;
+        while (end_idx < N &&
+               cumulative_arc_[end_idx] - cumulative_arc_[min_idx] <= roi_arc_length_) {
+            ++end_idx;
+        }
+        if (end_idx > N) end_idx = N;
+
+        // ROI 점이 없으면 반환
+        if (end_idx <= min_idx) {
+            return;
+        }
+
+        // 3) Marker 생성 및 퍼블리시
+        visualization_msgs::Marker marker;
+        marker.header.frame_id = "velodyne";
+        marker.header.stamp = ros::Time::now();
+        marker.ns = "roi_path";
+        marker.id = 0;
+        marker.type = visualization_msgs::Marker::LINE_STRIP;
+        marker.action = visualization_msgs::Marker::ADD;
+        marker.scale.x = 0.1;
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 1.0;
+        marker.color.a = 1.0;
+        marker.points.clear();
+        marker.points.reserve(end_idx - min_idx);
+        for (size_t i = min_idx; i < end_idx; ++i) {
+            marker.points.push_back(pre_transformed_[i]);
+        }
+        marker_pub_.publish(marker);
+
+        // 4) RRT 목표점 퍼블리시 (마지막 ROI 점)
+        geometry_msgs::PointStamped target;
+        target.header = marker.header;
+        target.point = pre_transformed_[end_idx - 1];
+        rrt_target_pub_.publish(target);
+
+        // 디버그 로그 (1Hz)
+        ROS_DEBUG_THROTTLE(1.0,
+            "ROIPathPublisher: min_idx=%zu, end_idx=%zu, points=%zu",
+            min_idx, end_idx, end_idx - min_idx);
+    }
+
+    ros::NodeHandle nh_, pnh_;
+    ros::Subscriber sub_path_, sub_pose_;
+    ros::Publisher marker_pub_, rrt_target_pub_;
+    ros::Timer timer_;
+
+    tf2_ros::Buffer tf_buffer_;
+    tf2_ros::TransformListener tf_listener_;
+
+    std::vector<geometry_msgs::Point> pre_transformed_;
+    std::vector<double> cumulative_arc_;
+    bool has_path_;
+    double roi_arc_length_;
+};
+
+int main(int argc, char** argv) {
+    ros::init(argc, argv, "roi_path_publisher");
+    ROIPathPublisher node;
+    ros::spin();
+    return 0;
+}

@@ -1,0 +1,27 @@
+<launch>
+  <!-- gps_to_local_cartesian.py: /ublox_gps/fix 데이터를 받아 위도/경도를 로컬 좌표로 변환하고 /local_xy를 publish -->
+  <node pkg="gps_to_utm_pkg" type="gps_to_local_cartesian.py" name="gps_to_local_cartesian" output="screen" />
+
+  <!-- local_cartesian_path_publisher.py: course1.csv를 읽어 정적 경로를 /resampled_path 및 /local_xy로 publish -->
+  <node pkg="gps_to_utm_pkg" type="local_cartesian_path_publisher.py" name="local_cartesian_path_publisher" output="screen" />
+
+  <!-- global_yaw_estimator.py: /local_xy를 구독하여 global yaw를 계산하고 /global_yaw, /raw_global_yaw를 publish -->
+  <node pkg="gps_to_utm_pkg" type="global_yaw_estimator.py" name="global_yaw_estimator" output="screen" />
+
+  <!-- vehicle_tf_broadcaster.py: /local_xy와 /global_yaw를 구독하여 기준(reference), antenna, vehicle frame의 TF를 publish -->
+  <!-- <node pkg="gps_to_utm_pkg" type="vehicle_tf_broadcaster.py" name="vehicle_tf_broadcaster" output="screen" /> -->
+  <node pkg="gps_to_utm_pkg" type="ref_ant_vel_tf_broadcaster.py" name="ref_ant_vel_tf_broadcaster" output="screen">
+    <!-- 오프셋 파라미터 지정 -->
+    <!--GPS 안테나 프레임(antenna frame) 기준에서 Velodyne 센서 프레임(velodyne frame)이 얼마만큼 떨어져 있는지를 나타내는 고정 오프셋(translation) 값-->
+    <param name="velodyne_offset_x" value="-0.36"/>
+    <param name="velodyne_offset_y" value="0.12"/>
+    <param name="velodyne_offset_z" value="0.0"/>
+  </node>
+
+
+  <!-- roi_path_publisher.py: 차량 전방 ROI Marker를 publish (scripts 폴더 내 실행 파일) -->
+  <node pkg="gps_to_utm_pkg" type="roi_path_publisher.py" name="roi_path_publisher" output="screen" />
+
+  <!-- purepursuit.py: Pure Pursuit 제어 노드, 좌회전은 양수, 우회전은 음수, 조향각은 degree 단위로 publish (scripts 폴더 내 실행 파일) -->
+  <!-- <node pkg="gps_to_utm_pkg" type="purepursuit.py" name="purepursuit" output="screen" /> -->
+</launch>
