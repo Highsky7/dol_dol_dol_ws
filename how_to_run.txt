@@ -5,7 +5,7 @@
 3터미널: rosrun camera_lane_segmentation yoo_lane_detection.py
 4터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
 
-5터미널: roslaunch gps_to_utm_pkg local_cartesian.launch 
+5터미널: roslaunch gps_to_utm_pkg local_cartesian.launch
 6터미널: roslaunch ublox_gps ublox_zed-f9p.launch
 7터미널: roslaunch ntrip_ros ntrip_ros.launch
 
