@@ -25,8 +25,8 @@ class Judgement:
         self.steering_source_valid = False # 유효한 조향각 소스가 있는지 여부를 나타내는 플래그
 
         # 속도 플래닝 파라미터
-        self.max_throttle = rospy.get_param("~max_throttle", 0.1)  # 최대 스로틀 값 (직진 시 또는 유효 조향각 있을 시)
-        self.min_throttle = rospy.get_param("~min_throttle", 0.1)  # 최소 스로틀 값 (최대 조향 시 또는 유효 조향각 없을 시)
+        self.max_throttle = rospy.get_param("~max_throttle", 0.5)  # 최대 스로틀 값 (직진 시 또는 유효 조향각 있을 시)
+        self.min_throttle = rospy.get_param("~min_throttle", 0.3)  # 최소 스로틀 값 (최대 조향 시 또는 유효 조향각 없을 시)
         # 조향각이 스로틀 감소에 미치는 영향 계수.
         # 아래 주석은 current_steering_angle이 '도(degree)' 단위라고 가정합니다.
         # 예: 조향각이 최대 30도 정도에서 min_throttle에 도달하게 하려면,
