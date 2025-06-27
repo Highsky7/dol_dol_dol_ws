@@ -12,4 +12,4 @@
 8터미널: 가상환경(dol) roslaunch voxelnext_pkg track_and_2D_and_center_object_detect.launch
 9터미널: 가상환경(dol) roslaunch ma_rrt_path_plan startExploring.launch
 10터미널: 가상환경(dol) roslaunch sort_ros_pkg sort_ros_node.launch
-11터미널: 가상환경(dol) roslaunch tunnel_pkg wall_detection.launch   (06.21 done)
+11터미널: 가상환경(dol) roslaunch tunnel_pkg wall_detection.launch

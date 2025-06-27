@@ -23,11 +23,17 @@ tf 오프셋 수정 경로
 /home/hannibal/dol_dol_dol_ws/src/gps_to_utm_pkg/launch/local_cartesian.launch
 
 ----------------------
+/home/hannibal/dol_dol_dol_ws/src/gps_to_utm_pkg/scripts/roi_path_publisher.cu
+레퍼런스 경로 위 점들과 velodyne 좌표계의 원점과의 거리를 다 계산하고,
+거리가 가장 가까운 레퍼런스 위의 점을 roi_path 시작점으로 설정.
+그 후 일정한 거리만큼 래퍼런스 경로를 거친 후 끝점이 rr_target
+
+----------------------
 
 실시간 gpu 사용 노드 확인.. 이걸로 roi_path_publisher 노드가 작동 중인지 확인해야 함
 nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
 
 ---------------------
-gps c++ 코드 의존성 설치 (2025.06.27)
+gps c++  gpu코드 의존성 설치 (2025.06.27)
 sudo apt-get update
 sudo apt-get install libgeographic-dev
