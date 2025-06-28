@@ -1,5 +1,5 @@
 터미널 12개 필요
-아두이노 메가 업로드
+doldol_motor.ino 업로드
 1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
 2터미널: rosrun judgement judgement_with_vp.py
 3터미널: roslaunch camera_lane_segmentation camera.launch
@@ -21,7 +21,7 @@
 --------------------------------------------
 
 터미널 8개 필요(대승이 gps코드 cpp수정+동적 장애물 코드 추가 버전)
-아두이노 메가 업로드
+doldol_motor.ino 업로드
 1터미널: ra (rosrun rosserial_python serial_node.py /dev/ttyACM0 alias 처리함)
 2터미널: rosrun judgement judgement_with_vp.py
 3터미널: roslaunch camera_lane_segmentation camera.launch
