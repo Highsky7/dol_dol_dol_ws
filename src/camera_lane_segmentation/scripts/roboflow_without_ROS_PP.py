@@ -40,7 +40,7 @@ def make_parser():
     parser.add_argument('--weights', type=str, default='./weights.pt', help='path to your roboflow model.pt file')
     parser.add_argument('--source', type=str,
                         # default='2',
-                        default='/home/highsky/Videos/Webcam/right_bev_params_2.mp4',
+                        default='/home/highsky/Videos/Webcam/left_bev_params_2.mp4',
                         help='source: 0(webcam) or video/image file path')
     parser.add_argument('--img-size', type=int, default=640, help='inference resolution')
     parser.add_argument('--device', default='0', help='cuda device: 0 or cpu')
@@ -197,7 +197,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
     tracked_center_path = {'coeff': None}
 
     SMOOTHING_ALPHA = 0.6
-    MAX_LANE_AGE = 10
+    MAX_LANE_AGE = 7
     
     def process_frame(im0s, tracked_lanes, tracked_center_path):
         # 1-4단계: BEV 변환 및 마스크 필터링
@@ -314,7 +314,7 @@ def detect_and_publish(opt, pub_mask, pub_steering, pub_lane_status):
 
             # 1. 퓨어퍼슛 파라미터 (*** 이 값들은 반드시 튜닝이 필요합니다 ***)
             L = 0.73  # 차량 축거 (Wheelbase in meters)
-            lookahead_distance = 2.1  # 목표 지점 거리 (Lookahead distance in meters)
+            lookahead_distance = 3.1  # 목표 지점 거리 (Lookahead distance in meters)
 
             # 2. 목표 지점(Goal Point) 찾기
             goal_point_vehicle = None

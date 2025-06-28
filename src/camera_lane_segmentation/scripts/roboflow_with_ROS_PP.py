@@ -12,7 +12,7 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from std_msgs.msg import Float32, Bool
 
-# --- 유틸리티 함수들 (클래스 외부 또는 정적 메소드로 유지) ---
+# --- Utility methods(such as filtering functions or etc) ---
 def polyfit_lane(points_y, points_x, order=2):
     if len(points_y) < 5: return None
     try: return np.polyfit(points_y, points_x, order)
@@ -44,7 +44,7 @@ def keep_top2_components(binary_mask, min_area=300):
 
 def final_filter(bev_mask):
     f2 = morph_close(bev_mask, ksize=5)
-    f3 = remove_small_components(f2, min_size=10000) # 파라미터 튜닝
+    f3 = remove_small_components(f2, min_size=10000) # Need to be tuned for noise in real environment
     f4 = keep_top2_components(f3, min_area=300)
     return f4
 
@@ -58,7 +58,7 @@ def overlay_polyline(image, coeff, color=(0, 0, 255), step=4, thickness=2):
     if len(draw_points) > 1: cv2.polylines(image, [np.array(draw_points, dtype=np.int32)], False, color, thickness)
     return image
 
-# --- 메인 로직을 클래스로 캡슐화 ---
+# --- Main logic in class structure ---
 class LaneFollowerNode:
     def __init__(self, opt):
         self.opt = opt
@@ -81,16 +81,16 @@ class LaneFollowerNode:
         self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.004015625, 1.83, 0.00278125 # for bev_params_2.npz
         # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_X = 0.002, 1.28, 0.003390625 # for bev_params_3.npz
 
-        # 추적 상태 변수
+        # --- LANE TRACKING PARAMETERS ---
         self.tracked_lanes = {'left': {'coeff': None, 'age': 0}, 'right': {'coeff': None, 'age': 0}}
         self.tracked_center_path = {'coeff': None}
-        self.SMOOTHING_ALPHA = 0.6
-        self.MAX_LANE_AGE = 10
+        self.SMOOTHING_ALPHA = 0.6 # Smoothing coefficient for lane tracking. if it gets larger, the reflection will be faster
+        self.MAX_LANE_AGE = 7 # Maximum age of a lane before it is considered lost, so if MAX_LANE_AGE is 7 it means 7(MAX_LANE_AGE)/10(FPS) 0.7 sec
 
-        # --- HINTON'S MODIFICATION: PURE PURSUIT PARAMETERS ---
-        # *** 이 값들은 실제 차량에 맞게 반드시 튜닝해야 합니다 ***
-        self.L = 0.73  # 차량 축거 (Wheelbase in meters)
-        self.lookahead_distance = 2.1 # 목표 지점 거리 (Lookahead distance in meters)
+        # --- PURE PURSUIT PARAMETERS ---
+        # *** Need to be tuned with real world parameters ***
+        self.L = 0.73  # Wheelbase in meters
+        self.lookahead_distance = 3.1 # Lookahead distance in meters
 
         self.pub_steering = rospy.Publisher('auto_steer_angle_lane', Float32, queue_size=1)
         self.pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)
@@ -104,9 +104,9 @@ class LaneFollowerNode:
         
     def image_to_vehicle(self, pt_bev):
         u, v = pt_bev
-        # 전방 거리 (차량 기준 x축)
+        # longitudinal distance (in front of the vehicle is +)
         x_vehicle = (self.bev_h - v) * self.m_per_pixel_y + self.y_offset_m
-        # 측방 거리 (차량 기준 y축, 오른쪽이 +)
+        # lateral distance (left is +)
         y_vehicle = (self.bev_w / 2 - u) * self.m_per_pixel_x
         return x_vehicle, y_vehicle
 
@@ -119,12 +119,12 @@ class LaneFollowerNode:
         self.process_image(cv_image)
 
     def process_image(self, im0s):
-        # 1. BEV 변환 및 추론
+        # 1. BEV transform and inference
         bev_image_input = self.do_bev_transform(im0s)
         results = self.model(bev_image_input, imgsz=self.opt.img_size, conf=self.opt.conf_thres, iou=self.opt.iou_thres, device=self.device, verbose=False)
         result = results[0]
         
-        # 2. 마스크 추출 및 필터링
+        # 2. Mask processing and final filtering
         combined_mask_bev = np.zeros(result.orig_shape, dtype=np.uint8)
         if result.masks is not None:
             for mask_tensor in result.masks.data:
@@ -136,7 +136,7 @@ class LaneFollowerNode:
         
         bev_im_for_drawing = bev_image_input.copy()
 
-        # 3. 차선 후보군 추출
+        # 3. Extract lane candidates from the final mask
         num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(final_mask, connectivity=8)
         current_detections = []
         if num_labels > 1:
@@ -149,7 +149,7 @@ class LaneFollowerNode:
                         current_detections.append({'coeff': coeff, 'x_bottom': x_at_bottom})
             current_detections.sort(key=lambda c: c['x_bottom'])
 
-        # 4. 차선 추적 및 안정화
+        # 4. Lane tracking and smoothing
         left_lane_tracked = self.tracked_lanes['left']
         right_lane_tracked = self.tracked_lanes['right']
         current_left, current_right = None, None
@@ -185,7 +185,7 @@ class LaneFollowerNode:
         lane_detected_bool = (final_left_coeff is not None) or (final_right_coeff is not None)
         self.pub_lane_status.publish(Bool(data=lane_detected_bool))
         
-        # 5. 주행 경로 생성 및 안정화
+        # 5. Pure Pursuit Steering Control
         steering_angle_deg = None
         goal_point_bev = None # 시각화용
         target_center_lane_coeff = None
@@ -209,11 +209,11 @@ class LaneFollowerNode:
             if self.tracked_center_path['coeff'] is None: self.tracked_center_path['coeff'] = target_center_lane_coeff
             else: self.tracked_center_path['coeff'] = (self.SMOOTHING_ALPHA * target_center_lane_coeff + (1 - self.SMOOTHING_ALPHA) * self.tracked_center_path['coeff'])
         
-        # --- HINTON'S MODIFICATION: PURE PURSUIT STEERING CONTROL ---
+
         if self.tracked_center_path['coeff'] is not None:
             final_center_coeff = self.tracked_center_path['coeff']
             
-            # 1. 목표 지점(Goal Point) 찾기
+            # 1. Set goal point
             goal_point_vehicle = None
             
             for y_bev in range(self.bev_h - 1, -1, -1):
@@ -226,19 +226,19 @@ class LaneFollowerNode:
                     goal_point_bev = (int(x_bev), int(y_bev)) # 시각화용
                     break
             
-            # 2. 조향각 계산
+            # 2. Calculate steering angle
             if goal_point_vehicle is not None:
                 x_goal, y_goal = goal_point_vehicle
                 
-                # 퓨어퍼슛 공식: delta = atan(2 * L * sin(alpha) / ld)
-                # atan2(2 * L * y_goal, ld^2) 형태로 변환하여 사용
+                # Pure pursuit equation: delta = atan(2 * L * sin(alpha) / ld)
+                # Using atan2(2 * L * y_goal, ld^2) shape
                 steering_angle_rad = atan2(2.0 * self.L * y_goal, x_goal**2 + y_goal**2)
 
                 steering_angle_deg = np.degrees(steering_angle_rad)
                 steering_angle_deg = np.clip(steering_angle_deg, -25.0, 25.0)
                 self.pub_steering.publish(Float32(data=steering_angle_deg))
 
-        # 7. 시각화
+        # 7. Visualization
         annotated_frame = result.plot()
         
         overlay_polyline(bev_im_for_drawing, final_left_coeff, color=(255, 0, 0), step=2, thickness=2)
@@ -246,9 +246,8 @@ class LaneFollowerNode:
         if self.tracked_center_path['coeff'] is not None:
             overlay_polyline(bev_im_for_drawing, self.tracked_center_path['coeff'], color=(0, 255, 0), step=2, thickness=3)
 
-        # HINTON'S VISUALIZATION: 목표 지점(Goal Point) 표시
         if goal_point_bev is not None:
-            cv2.circle(bev_im_for_drawing, goal_point_bev, 10, (0, 255, 255), -1) # 노란색 점
+            cv2.circle(bev_im_for_drawing, goal_point_bev, 10, (0, 255, 255), -1) 
 
         steer_text = f"Steer: {steering_angle_deg:.1f} deg" if steering_angle_deg is not None else "Steer: N/A"
         cv2.putText(bev_im_for_drawing, steer_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
@@ -266,7 +265,7 @@ def main():
     parser.add_argument('--weights', type=str, default='./weights.pt')
     parser.add_argument('--device', default='0')
     parser.add_argument('--img-size', type=int, default=640)
-    parser.add_argument('--conf-thres', type=float, default=0.5)
+    parser.add_argument('--conf-thres', type=float, default=0.6)
     parser.add_argument('--iou-thres', type=float, default=0.5)
     parser.add_argument('--param-file', type=str, default='./bev_params_2.npz')
     opt, _ = parser.parse_known_args()
