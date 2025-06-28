@@ -37,3 +37,9 @@ nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv
 gps c++  gpu코드 의존성 설치 (2025.06.27)
 sudo apt-get update
 sudo apt-get install libgeographic-dev
+
+
+---------------------
+roslaunch dynamic_static_pkg dynamic_static_classifier.launch
+v_thresh value = 0.16
+객체 속도를 동적으로 판단하는 임계값
