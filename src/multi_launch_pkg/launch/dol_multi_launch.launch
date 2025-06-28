@@ -1,0 +1,7 @@
+<launch>
+  <include file="$(find voxelnext_pkg)/launch/track_and_2D_and_center_object_detect.launch" />
+  <include file="$(find ma_rrt_path_plan)/launch/startExploring.launch" />
+  <include file="$(find sort_ros_pkg)/launch/sort_ros_node.launch" />
+  <include file="$(find tunnel_pkg)/launch/wall_detection.launch" />
+  <include file="$(find gps_to_utm_pkg)/launch/local_cartesian.launch" />
+</launch>
