@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.8 FATAL_ERROR)
 project(gps_to_utm_pkg LANGUAGES C CXX CUDA)
 
-# GeographicLib CMake 모듈 경로 추가 (Debian/Ubuntu용)
+# GeographicLib CMake 모듈 경로 (Debian/Ubuntu)
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
 
-# Catkin과 GeographicLib 찾기
+# 1) Catkin 패키지
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   roslib
@@ -16,14 +16,20 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_geometry_msgs
   visualization_msgs
 )
-find_package(GeographicLib REQUIRED)
 
-# CMake 네이티브 CUDA 지원 설정
+# 2) 기타 의존성
+find_package(GeographicLib REQUIRED)
+find_package(CUDA REQUIRED)
+
+# 3) CUDA 표준 설정 (CMake 내장)
 if (NOT DEFINED CMAKE_CUDA_STANDARD)
   set(CMAKE_CUDA_STANDARD 14)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 endif()
 
+enable_language(CUDA)
+
+# 4) catkin_package 선언
 catkin_package(
   CATKIN_DEPENDS
     roscpp
@@ -37,16 +43,16 @@ catkin_package(
     visualization_msgs
 )
 
+# 5) 인클루드 디렉토리
 include_directories(
   ${catkin_INCLUDE_DIRS}
   ${GeographicLib_INCLUDE_DIRS}
-  ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
+  ${CUDA_INCLUDE_DIRS}
 )
 
-#-------------------------
-# CPU 구현 노드들
-#-------------------------
-
+# -------------------------
+# CPU 노드들
+# -------------------------
 add_executable(global_yaw_estimator_cpp
   scripts/global_yaw_estimator.cpp
 )
@@ -83,10 +89,9 @@ target_link_libraries(ref_ant_vel_tf_broadcaster_cpp
   ${catkin_LIBRARIES}
 )
 
-#-------------------------
+# -------------------------
 # GPU 가속 ROI Path Publisher
-#-------------------------
-
+# -------------------------
 add_executable(roi_path_publisher_cpp
   scripts/roi_path_publisher.cu
 )
@@ -96,12 +101,12 @@ set_target_properties(roi_path_publisher_cpp PROPERTIES
 )
 target_link_libraries(roi_path_publisher_cpp
   ${catkin_LIBRARIES}
+  ${CUDA_LIBRARIES}
 )
 
-#-------------------------
+# -------------------------
 # 설치 설정
-#-------------------------
-
+# -------------------------
 install(TARGETS
   global_yaw_estimator_cpp
   gps_to_local_cartesian_cpp

@@ -22,5 +22,10 @@
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>message_runtime</exec_depend>
+  <build_depend>dynamic_static_pkg</build_depend>
+  <exec_depend>dynamic_static_pkg</exec_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_export_depend>visualization_msgs</build_export_depend>
+  <exec_depend>visualization_msgs</exec_depend>
 
 </package>

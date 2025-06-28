@@ -3,6 +3,7 @@
 
 #include "ros/ros.h"
 #include "visualization_msgs/MarkerArray.h"
+#include <dynamic_static_pkg/TrackedObjects.h>  // 추가: 메시지 타입 헤더
 
 #include "Sort.h"
 #ifndef NULL
@@ -32,6 +33,7 @@ private:
     static void rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray);    // for /tracked_3D_Box
     static ros::Publisher pub_pred;  // for /predicted trajectory 
     static ros::Publisher pub_pred_endpoint;  // for /predicted trajectory endpoint
+    static ros::Publisher  pub_tracks;         // MODIFIED: /tracked_objects
         
 private:
     static Sort *s;

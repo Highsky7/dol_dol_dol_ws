@@ -7,15 +7,18 @@
 #include <sstream>
 #include <opencv2/core.hpp>
 #include "visualization_msgs/Marker.h"
+#include <dynamic_static_pkg/TrackedObjects.h>  // MODIFIED: 올바른 include
 
 // 정적 멤버 정의
 SortRos* SortRos::instance = nullptr;
 ros::Publisher SortRos::pub;
 ros::Publisher SortRos::pub_text;
 ros::Publisher SortRos::pub_pred;  // predicted trajectory publisher
-ros::Subscriber SortRos::sub;
 ros::Publisher SortRos::pub_pred_endpoint;
+ros::Subscriber SortRos::sub;
 Sort *SortRos::s;
+ros::Publisher SortRos::pub_tracks;
+dynamic_static_pkg::TrackedObjects tracks_msg;
 
 void SortRos::setup(void) {
     double maxAge = 30;
@@ -32,6 +35,7 @@ void SortRos::setup(void) {
     SortRos::pub_text = nh.advertise<visualization_msgs::MarkerArray>("/tracked_vx_vy", 1);
     SortRos::pub_pred = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectory", 1);
     SortRos::pub_pred_endpoint = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectory_endpoint", 1);
+    SortRos::pub_tracks = nh.advertise<dynamic_static_pkg::TrackedObjects>("/tracked_objects", 1);
 }
 
 void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr& markerArray) {
@@ -64,6 +68,11 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
     visualization_msgs::MarkerArray textArrayOutput;
     visualization_msgs::MarkerArray trajArrayOutput;  // predicted trajectory markers
     visualization_msgs::MarkerArray endpointArrayOutput; // 추가: 예측 endpoint 마커 (sphere)
+
+    // <--- ① TrackedObjects 메시지 생성
+    dynamic_static_pkg::TrackedObjects tracks_msg;
+    tracks_msg.header.stamp = ros::Time::now();
+    tracks_msg.header.frame_id = frame_id;
 
     for (auto rect : output) {
         // 1. Bounding Box Marker 생성 (Cube)
@@ -102,8 +111,21 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         marker.color.b = b;
         bboxArrayOutput.markers.push_back(marker);
 
-        // 2. 텍스트 마커 생성 (속도 정보)
+        // ② TrackedObjects 메시지에 정보 채우기
+        tracks_msg.id.push_back(rect.id);
+        geometry_msgs::Point pt;
+        pt.x = rect.centerX;
+        pt.y = rect.centerY;
+        pt.z = 0.0;
+        tracks_msg.center.push_back(pt);
+
+        // 여기서 한 번만 선언
         TrackerState state = rect.toTrackerState();
+        tracks_msg.vx.push_back(state.vx);
+        tracks_msg.vy.push_back(state.vy);
+
+
+        // 2. 텍스트 마커 생성 (속도 정보)
         float vx = state.vx;
         float vy = state.vy;
         visualization_msgs::Marker textMarker;
@@ -133,10 +155,8 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textArrayOutput.markers.push_back(textMarker);
 
 
-        
-        // // 3. 예측 경로(trajectory) Marker 생성
-        // // 4. 예측 경로의 끝 점을 sphere 마커로 생성
-        // --- 변경된 코드: 예측 마커 퍼블리싱은 PredictTrajectory 모듈에 위임 ---
+
+        // 3. 예측 경로 퍼블리싱 (PredictTrajectory 모듈 사용)
         TrackerState currentState = rect.toTrackerState();
         int predictionSteps = 4;
 
@@ -156,9 +176,12 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
 
     }
 
+    // MODIFIED: Classifier가 구독할 메시지 퍼블리시
+    SortRos::pub_tracks.publish(tracks_msg);
+
     // 발행: bounding box, 텍스트, 예측 경로, 예측 endpoint
-    pub.publish(bboxArrayOutput);
-    pub_text.publish(textArrayOutput);
-    pub_pred.publish(trajArrayOutput);
-    pub_pred_endpoint.publish(endpointArrayOutput);
+    SortRos::pub.publish(bboxArrayOutput);
+    SortRos::pub_text.publish(textArrayOutput);
+    SortRos::pub_pred.publish(trajArrayOutput);
+    SortRos::pub_pred_endpoint.publish(endpointArrayOutput);
 }

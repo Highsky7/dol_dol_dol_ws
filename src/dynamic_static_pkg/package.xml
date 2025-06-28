@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>dynamic_static_pkg</name>
+  <version>0.0.1</version>
+  <description>LiDAR+GPS 기반 정적/동적 객체 분류 패키지</description>
+
+  <maintainer email="you@example.com">Your Name</maintainer>
+  <license>MIT</license>
+
+  <!-- 빌드 툴 -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- 메시지 생성 -->
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+
+  <!-- 런타임에 메시지 헤더 필요 -->
+  <exec_depend>message_runtime</exec_depend>
+
+  <!-- ROS 런타임 의존 -->
+  <build_depend>roscpp</build_depend>
+  <exec_depend>roscpp</exec_depend>
+
+  <build_depend>message_filters</build_depend>
+  <exec_depend>message_filters</exec_depend>
+
+  <build_depend>tf2_ros</build_depend>
+  <exec_depend>tf2_ros</exec_depend>
+
+  <build_depend>tf2_geometry_msgs</build_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
+
+  <build_depend>geometry_msgs</build_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+
+  <build_depend>visualization_msgs</build_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+
+  <build_depend>message_generation</build_depend>
+  <exec_depend>message_runtime</exec_depend>
+
+
+</package>
+
