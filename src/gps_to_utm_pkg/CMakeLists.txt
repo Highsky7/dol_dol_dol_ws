@@ -92,11 +92,13 @@ target_link_libraries(ref_ant_vel_tf_broadcaster_cpp
 # -------------------------
 # GPU 가속 ROI Path Publisher
 # -------------------------
-add_executable(roi_path_publisher_cpp
+cuda_add_executable(roi_path_publisher_cpp
   scripts/roi_path_publisher.cu
 )
+
 set_target_properties(roi_path_publisher_cpp PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
+  POSITION_INDEPENDENT_CODE ON
   POSITION_INDEPENDENT_CODE ON
 )
 target_link_libraries(roi_path_publisher_cpp

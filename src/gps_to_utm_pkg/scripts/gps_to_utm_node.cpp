@@ -2,11 +2,17 @@
 #include <ros/package.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/TwistStamped.h>        // 추가: 속도 메시지 헤더
+#include <geometry_msgs/TwistWithCovarianceStamped.h>
 #include <GeographicLib/UTMUPS.hpp>
 #include <fstream>
 #include <iomanip>
 
 ros::Publisher pub;
+
+// 추가 퍼블리셔: UTM 속도용
+ros::Publisher vel_pub;
+
 
 void gpsCallback(const sensor_msgs::NavSatFix::ConstPtr& msg) {
     double lat = msg->latitude;
@@ -36,6 +42,21 @@ void gpsCallback(const sensor_msgs::NavSatFix::ConstPtr& msg) {
              zone, zone_letter, easting, northing);
 }
 
+// 추가: CovStamped 메시지를 받아 UTM 축 기준 TwistStamped 으로 퍼블리시
+void velCallback(const geometry_msgs::TwistWithCovarianceStamped::ConstPtr& msg) {
+    geometry_msgs::TwistStamped utm_vel;
+    utm_vel.header = msg->header;
+    // msg->twist.twist.linear: {x=NORTH, y=EAST}
+    utm_vel.twist.linear.x = msg->twist.twist.linear.y;  // East → x
+    utm_vel.twist.linear.y = msg->twist.twist.linear.x;  // North → y
+    utm_vel.twist.linear.z = msg->twist.twist.linear.z;
+    vel_pub.publish(utm_vel);
+
+    ROS_DEBUG("Published UTM Vel: vx=%.3f, vy=%.3f",
+              utm_vel.twist.linear.x,
+              utm_vel.twist.linear.y);
+}
+
 int main(int argc, char** argv) {
     ros::init(argc, argv, "gps_to_utm_node");
     ros::NodeHandle nh;
@@ -57,9 +78,13 @@ int main(int argc, char** argv) {
 
     // utm_xy 토픽으로 PointStamped 발행
     pub = nh.advertise<geometry_msgs::PointStamped>("utm_xy", 10);
+    vel_pub = nh.advertise<geometry_msgs::TwistStamped>("utm/vel", 10);  // 추가
 
     // ublox_gps/fix 토픽 구독하여 gpsCallback 호출
     ros::Subscriber sub = nh.subscribe("ublox_gps/fix", 10, gpsCallback);
+
+    // fix_velocity는 TwistWithCovarianceStamped 타입이므로, 그에 맞춰 콜백을 연결
+     ros::Subscriber vel_sub = nh.subscribe("ublox_gps/fix_velocity", 10, velCallback);
 
     ROS_INFO("GPS to UTM 변환 노드가 시작되었습니다.");
     ros::spin();
