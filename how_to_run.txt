@@ -14,3 +14,22 @@
 10터미널: 가상환경(dol) roslaunch ma_rrt_path_plan startExploring.launch
 11터미널: 가상환경(dol) roslaunch sort_ros_pkg sort_ros_node.launch
 12터미널: 가상환경(dol) roslaunch tunnel_pkg wall_detection.launch
+
+
+
+
+--------------------------------------------
+
+
+
+아두이노 메가 업로드
+1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
+2터미널: rosrun judgement judgement_with_vp.py
+3터미널: roslaunch camera_lane_segmentation camera.launch
+4터미널: rosrun camera_lane_segmentation roboflow_with_ROS_PP.py
+5터미널: rv   (roslaunch velodyne_pointcloud VLP16_points.launch alias처리함)
+
+6터미널: roslaunch ublox_gps ublox_zed-f9p.launch               (GPS on)
+7터미널: roslaunch ntrip_ros ntrip_ros.launch                   (핫스팟 연결되고 받아오기 on)
+
+8터미널: roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 9, 10, 11, 12 on)
