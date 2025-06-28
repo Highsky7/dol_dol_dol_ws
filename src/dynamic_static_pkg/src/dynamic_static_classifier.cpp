@@ -5,7 +5,6 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Float32.h> // 추가: global_yaw를 위한 헤더
 #include <cmath>
-#include <set>
 
 using namespace message_filters;
 
@@ -45,13 +44,17 @@ public:
     pub_static_  = nh_.advertise<visualization_msgs::MarkerArray>("/static_objects",  1);
     pub_dynamic_ = nh_.advertise<visualization_msgs::MarkerArray>("/dynamic_objects", 1);
 
+<<<<<<< HEAD
     ROS_INFO("Node initialized successfully"); // 디버깅용 메시지 (선택사항)
   }
 
+=======
+>>>>>>> parent of 60ec41e... on
 private:
   // 추가: /global_yaw 콜백
   void yawCallback(const std_msgs::Float32::ConstPtr& msg)
   {
+<<<<<<< HEAD
     global_yaw_ = msg->data; // yaw 값 저장
     ROS_DEBUG("Received global_yaw: %.2f deg", global_yaw_ * 180.0 / M_PI);
   }
@@ -110,6 +113,40 @@ private:
         // 물체의 절대 속도 계산 (Velodyne 프레임)
         rel_vx = obj_vx + v_vehicle_velo_x;
         rel_vy = obj_vy + v_vehicle_velo_y;
+=======
+    // 1) 해당 시점 근처 속도 메시지들 검색 (±5초 범위)
+    ros::Time t = tracks->header.stamp;
+    auto vel_msgs = vel_cache_->getInterval(t - ros::Duration(5.0),
+                                            t + ros::Duration(5.0));
+
+    // 2) 가장 최근 메시지 선택 (없으면 zero)
+    geometry_msgs::TwistStamped vel;
+    if (!vel_msgs.empty()) {
+      vel = *vel_msgs.back();
+    }
+
+    visualization_msgs::MarkerArray static_markers, dynamic_markers;
+
+    for (size_t i = 0; i < tracks->id.size(); ++i)
+    {
+      // (예시) 객체 속력 계산
+      float obj_speed = std::hypot(tracks->vx[i], tracks->vy[i]);
+      // 속도 메시지의 평면 속도 (필요 시 활용)
+      float utm_vx = vel.twist.linear.x;
+      float utm_vy = vel.twist.linear.y;
+
+      // Marker 생성
+      visualization_msgs::Marker m;
+      m.header = tracks->header;
+      m.ns     = (obj_speed > v_thresh_) ? "dynamic" : "static";
+      m.id     = tracks->id[i];
+      m.type   = visualization_msgs::Marker::CUBE;
+      m.pose.position = tracks->center[i];
+      m.scale.x = m.scale.y = m.scale.z = 1.0;
+      m.color.a = 0.8;
+      if (obj_speed > v_thresh_) {
+        m.color.r = 1.0;  // 동적: 빨강
+>>>>>>> parent of 60ec41e... on
       } else {
         rel_vx = obj_vx;
         rel_vy = obj_vy;
@@ -139,7 +176,10 @@ private:
     // (3) 퍼블리시 & ID 저장
     pub_static_.publish(static_markers);
     pub_dynamic_.publish(dynamic_markers);
+<<<<<<< HEAD
     last_ids_.swap(current_ids);
+=======
+>>>>>>> parent of 60ec41e... on
   }
 
   // — 멤버 변수들 —
@@ -160,9 +200,12 @@ private:
 
   // 퍼블리셔
   ros::Publisher pub_static_, pub_dynamic_;
+<<<<<<< HEAD
 
   // 삭제 지시용 ID 저장
   std::set<int> last_ids_;
+=======
+>>>>>>> parent of 60ec41e... on
 };
 
 int main(int argc, char** argv)
