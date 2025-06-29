@@ -149,10 +149,11 @@ class MaRRTPathPlanNode:
 
     def odometryCallback(self, odometry):
         # # /odometry 토픽으로부터 받은 Odometry 메시지를 이용하여 차량 위치 업데이트
+        # # 하지만 우리는 velodyne 좌표계 상에서의 원점 (라이다가 설치된 후륜축 중심)을 차량 위치로 가정하기 때문에 0, 0으로 설정
         self.carPosX = 0.0
         self.carPosY = 0.0
         
-        # yaw 값은 quaternion에서 추출해야 함
+        # # yaw 값은 quaternion에서 추출해야 함
         from tf.transformations import euler_from_quaternion
         q = odometry.pose.pose.orientation
         (_, _, yaw) = euler_from_quaternion([q.x, q.y, q.z, q.w])
@@ -180,7 +181,7 @@ class MaRRTPathPlanNode:
         for marker in msg.markers:
             x = marker.pose.position.x
             y = marker.pose.position.y
-            # 각 마커 중심 좌표를 반지름 0.8m 장애물로 추가
+            # 각 마커 중심 좌표를 반지름 ~m 장애물로 추가
             self.predictedEndpointObstacleList.append((x, y, 0.6))
 
 
@@ -192,7 +193,7 @@ class MaRRTPathPlanNode:
         # Read all points (x, y, z) from the PointCloud2 message
         for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
             x, y, z = p[:3]
-            # Append as a circular obstacle with radius 0.1m
+            # Append as a circular obstacle with radius ~m
             self.compressedWallObstacleList.append((x, y, 0.2))
 
 
@@ -210,8 +211,11 @@ class MaRRTPathPlanNode:
             self.publishWaypoints()
             return
 
-        if not self.map:
-            return
+        # cone이 없어도 트리 생성을 계속하기 위해 주석처리 (06.30)
+        # if not self.map:
+        #     return
+        
+        
 
         frontConesDist = 12
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
@@ -281,7 +285,7 @@ class MaRRTPathPlanNode:
         """트리 파라미터 조정 구간"""                
 
         start = [self.carPosX, self.carPosY, self.carPosYaw]
-        iterationNumber = 1000
+        iterationNumber = 20
         
         # RRT 경로 계획에서 최대 트리 가지 길이
         planDistance = 3.6
@@ -301,7 +305,7 @@ class MaRRTPathPlanNode:
         self.publishTreeVisual(nodeList, leafNodes)
 
         # 기본 전방 범위보다 약간 넓은 범위에서 콘들을 모아 경로 평가나 보완에 활용
-        frontConesBiggerDist = 15
+        frontConesBiggerDist = 20
         largerGroupFrontCones = self.getFrontConeObstacles(self.map, frontConesBiggerDist)
 
         bestBranch = self.findBestBranch(leafNodes, nodeList, largerGroupFrontCones, coneObstacleSize, expandDistance, planDistance)
