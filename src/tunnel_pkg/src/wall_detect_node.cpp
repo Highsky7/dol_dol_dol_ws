@@ -51,7 +51,7 @@ private:
         seg.setOptimizeCoefficients(true);              // (옵션) 계수 최적화 활성화
         seg.setModelType(pcl::SACMODEL_PLANE);          // 평면 모델 유형
         seg.setMethodType(pcl::SAC_RANSAC);             // RANSAC 방법 사용
-        seg.setMaxIterations(1000);                     // (옵션) RANSAC 최대 반복 횟수
+        seg.setMaxIterations(100);                     // (옵션) RANSAC 최대 반복 횟수
         seg.setDistanceThreshold(0.02);                  // [파라미터] 평면으로 간주할 거리 임계값 (0.1m 내의 점들을 인라이어로)
         // ※ DistanceThreshold 값이 작으면 평면 적합 정확도 ↑, 크면 노이즈에 민감 ↓:contentReference[oaicite:7]{index=7}
 
