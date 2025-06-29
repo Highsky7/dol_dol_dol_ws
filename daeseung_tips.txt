@@ -43,3 +43,9 @@ sudo apt-get install libgeographic-dev
 roslaunch dynamic_static_pkg dynamic_static_classifier.launch
 v_thresh value = 0.16
 객체 속도를 동적으로 판단하는 임계값
+
+---------------------
+gps reference map 만드는 방법
+1. 백파일 따서  data 폴더 안에 넣기
+2. /dol_dol_dol_ws/src/gps_to_utm_pkg/scripts/course_csv_creator.py 에서 백파일 이름 수정하고서 코드 실행
+3. data 폴더 확인해보면 csv 파일 생성되어 있음 

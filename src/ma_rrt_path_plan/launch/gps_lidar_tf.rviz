@@ -4,8 +4,7 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /MarkerArray9
-        - /MarkerArray10
+        - /Marker2
       Splitter Ratio: 0.46347030997276306
     Tree Height: 826
   - Class: rviz/Selection
@@ -129,11 +128,19 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /visual/best_tree_branch
       Name: Marker
       Namespaces:
-        publishBestBranchVisual: true
+        {}
+      Queue Size: 100
+      Value: false
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visual/filtered_tree_branch
+      Name: Marker
+      Namespaces:
+        publisshFilteredBranchVisual: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -309,7 +316,7 @@ Visualization Manager:
       Marker Topic: /dynamic_objects
       Name: MarkerArray
       Namespaces:
-        dynamic: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -317,7 +324,7 @@ Visualization Manager:
       Marker Topic: /static_objects
       Name: MarkerArray
       Namespaces:
-        static: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -348,7 +355,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 18.37398910522461
+      Distance: 25.373584747314453
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
