@@ -26,13 +26,13 @@ class Judgement:
 
         # 속도 플래닝 파라미터
         self.max_throttle = rospy.get_param("~max_throttle", 0.5)  # 최대 스로틀 값 (직진 시 또는 유효 조향각 있을 시)
-        self.min_throttle = rospy.get_param("~min_throttle", 0.2)  # 최소 스로틀 값 (최대 조향 시 또는 유효 조향각 없을 시)
+        self.min_throttle = rospy.get_param("~min_throttle", 0.3)  # 최소 스로틀 값 (최대 조향 시 또는 유효 조향각 없을 시)
         # 조향각이 스로틀 감소에 미치는 영향 계수.
         # 아래 주석은 current_steering_angle이 '도(degree)' 단위라고 가정합니다.
         # 예: 조향각이 최대 30도 정도에서 min_throttle에 도달하게 하려면,
         # (max_throttle - min_throttle) / max_expected_abs_steering_at_min_throttle
         # (0.6 - 0.4) / 30 = 0.2 / 30 = 약 0.0067 (아래 기본값 0.01과 유사)
-        self.steering_throttle_reduction_factor = rospy.get_param("~steering_throttle_reduction_factor", 0.03)
+        self.steering_throttle_reduction_factor = rospy.get_param("~steering_throttle_reduction_factor", 0.01)
 
         rospy.loginfo("Throttle parameters initialized: max_throttle=%.2f, min_throttle=%.2f, reduction_factor=%.4f",
                       self.max_throttle, self.min_throttle, self.steering_throttle_reduction_factor)
