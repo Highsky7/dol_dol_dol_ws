@@ -176,7 +176,7 @@ class MaRRTPurePursuit:
         # 순수 추종 제어 계산
         alpha = math.atan2(lookahead_point[1], lookahead_point[0])
         steer_rad = math.atan2(2.0 * self.wheelbase * math.sin(alpha), Ld)
-        steer_deg = math.degrees(steer_rad)
+        steer_deg = - math.degrees(steer_rad)
         rospy.loginfo("Pure Pursuit: Lookahead=({:.2f}, {:.2f}), α={:.2f}°, 조향각={:.2f}° ({} rad)".format(
             lookahead_point[0], lookahead_point[1],
             math.degrees(alpha), steer_deg, steer_rad))
