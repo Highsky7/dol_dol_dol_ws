@@ -1,0 +1,58 @@
+#include <ros/ros.h>
+#include <ublox_msgs/NavPVT.h>
+#include <std_msgs/Float32.h>
+#include <cmath>
+
+// 각도를 [-pi, pi] 범위로 조정하는 함수
+double wrap_angle(double angle) {
+    while (angle > M_PI) {
+        angle -= 2.0 * M_PI;
+    }
+    while (angle < -M_PI) {
+        angle += 2.0 * M_PI;
+    }
+    return angle;
+}
+
+class NavPVTGlobalYawEstimator {
+public:
+    NavPVTGlobalYawEstimator() {
+        ros::NodeHandle nh;
+        yaw_pub_ = nh.advertise<std_msgs::Float32>("/global_yaw", 10);
+        sub_ = nh.subscribe("/ublox_gps/navpvt", 10, &NavPVTGlobalYawEstimator::navpvtCallback, this);
+        ROS_INFO("NavPVTGlobalYawEstimator 노드가 시작되었습니다 (/ublox_gps/navpvt 구독 중)");
+    }
+
+    void navpvtCallback(const ublox_msgs::NavPVT::ConstPtr& msg) {
+        // 속도 성분 추출 (mm/s를 m/s로 변환)
+        double velN = msg->velN * 0.001;  // 북쪽 속도 (m/s)
+        double velE = msg->velE * 0.001;  // 동쪽 속도 (m/s)
+
+        // 속도가 충분히 크면 요 추정
+        double speed = std::hypot(velN, velE);
+        if (speed > 0.1) {  // 0.1 m/s 이상일 때만 요 계산 (정지 시 노이즈 방지)
+            double raw_yaw = std::atan2(velE, velN);  // 요 (라디안)
+            double wrapped_yaw = wrap_angle(raw_yaw);
+
+            // 요 발행
+            std_msgs::Float32 yaw_msg;
+            yaw_msg.data = wrapped_yaw;
+            yaw_pub_.publish(yaw_msg);
+
+            ROS_INFO("/global_yaw 발행: %.2f rad (%.2f deg)", wrapped_yaw, wrapped_yaw * 180.0 / M_PI);
+        } else {
+            ROS_WARN_THROTTLE(1.0, "속도가 너무 낮아 요를 추정할 수 없습니다 (%.2f m/s).", speed);
+        }
+    }
+
+private:
+    ros::Subscriber sub_;
+    ros::Publisher yaw_pub_;
+};
+
+int main(int argc, char** argv) {
+    ros::init(argc, argv, "navpvt_global_yaw_estimator");
+    NavPVTGlobalYawEstimator estimator;
+    ros::spin();
+    return 0;
+}
