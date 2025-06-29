@@ -28,6 +28,9 @@
   <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>visualization_msgs</exec_depend>
   <exec_depend>roslib</exec_depend>
+
+  <build_depend>ublox_msgs</build_depend>
+  <exec_depend>ublox_msgs</exec_depend>
   
   <!-- UTM 변환을 위한 GeographicLib -->
   <build_depend>geographiclib</build_depend>

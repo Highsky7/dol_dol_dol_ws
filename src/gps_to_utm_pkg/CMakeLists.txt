@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf2_ros
   tf2_geometry_msgs
   visualization_msgs
+  ublox_msgs
 )
 
 # 2) 기타 의존성
@@ -41,6 +42,7 @@ catkin_package(
     tf2_ros
     tf2_geometry_msgs
     visualization_msgs
+    ublox_msgs
 )
 
 # 5) 인클루드 디렉토리
@@ -89,6 +91,13 @@ target_link_libraries(ref_ant_vel_tf_broadcaster_cpp
   ${catkin_LIBRARIES}
 )
 
+
+add_executable(navpvt_global_yaw_estimator_cpp
+  scripts/navpvt_global_yaw_estimator.cpp
+)
+target_link_libraries(navpvt_global_yaw_estimator_cpp
+  ${catkin_LIBRARIES}
+)
 # -------------------------
 # GPU 가속 ROI Path Publisher
 # -------------------------
