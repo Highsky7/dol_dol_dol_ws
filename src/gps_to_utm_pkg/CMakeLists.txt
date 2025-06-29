@@ -92,12 +92,12 @@ target_link_libraries(ref_ant_vel_tf_broadcaster_cpp
 )
 
 
-add_executable(navpvt_global_yaw_estimator_cpp
-  scripts/navpvt_global_yaw_estimator.cpp
-)
-target_link_libraries(navpvt_global_yaw_estimator_cpp
-  ${catkin_LIBRARIES}
-)
+# add_executable(navpvt_global_yaw_estimator_cpp
+#   scripts/navpvt_global_yaw_estimator.cpp
+# )
+# target_link_libraries(navpvt_global_yaw_estimator_cpp
+#   ${catkin_LIBRARIES}
+# )
 # -------------------------
 # GPU 가속 ROI Path Publisher
 # -------------------------
