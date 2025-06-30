@@ -1,5 +1,5 @@
 <launch>
-    <param name="/use_sim_time" value="true" />
+    <param name="/use_sim_time" value="false" />
 
     <!-- yaw_init 인자 설정 (기본값 0) -->
     <arg name="yaw_init" default="0" />
