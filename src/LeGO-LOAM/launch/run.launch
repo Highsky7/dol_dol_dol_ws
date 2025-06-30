@@ -9,18 +9,16 @@
 
     <node pkg="lego_loam" type="imageProjection"    name="imageProjection"    output="screen"/>
     <node pkg="lego_loam" type="featureAssociation" name="featureAssociation" output="screen"/>
-
-    <!-- <node pkg="lego_loam" type="mapOptmization"     name="mapOptmization"     output="screen"/> -->
     <node pkg="lego_loam" type="transformFusion"    name="transformFusion"    output="screen">
       <param name="yaw_init" value="$(arg yaw_init)" />
     </node>
 
     <node pkg="lego_loam" type="yaw_text_marker"   name="yaw_text_marker"    output="screen">
       <!-- 원하는 글꼴 색·정밀도 파라미터 예시 -->
-      <param name="precision" value="3"/>
-      <param name="color_r"  value="0.0"/>
+      <param name="precision" value="4"/>
+      <param name="color_r"  value="1.0"/>
       <param name="color_g"  value="1.0"/>
-      <param name="color_b"  value="0.0"/>
+      <param name="color_b"  value="2.0"/>
     </node>
 
     <node pkg="lego_loam" type="yaw_corrector" name="yaw_corrector" output="screen"/>
