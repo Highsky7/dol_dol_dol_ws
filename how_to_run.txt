@@ -21,6 +21,8 @@ doldol_motor.ino 업로드
 --------------------------------------------
 
 터미널 8개 필요(대승이 gps코드 cpp수정+동적 장애물 코드 추가 버전)
+***--- 주행 전 항상 .ros폴더 내의 log폴더 삭제---***
+
 doldol_motor.ino 업로드
 1터미널: ra (rosrun rosserial_python serial_node.py /dev/ttyACM0 alias 처리함)
 2터미널: rosrun judgement judgement_with_vp.py
