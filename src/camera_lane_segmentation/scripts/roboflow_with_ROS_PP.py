@@ -126,12 +126,22 @@ class LaneFollowerNode:
         
         # 2. Mask processing and final filtering
         combined_mask_bev = np.zeros(result.orig_shape, dtype=np.uint8)
+
+        # ---make mask which have higher score than 0.7---
         if result.masks is not None:
-            for mask_tensor in result.masks.data:
-                mask_np = (mask_tensor.cpu().numpy() * 255).astype(np.uint8)
-                if mask_np.shape != result.orig_shape:
-                    mask_np = cv2.resize(mask_np, (result.orig_shape[1], result.orig_shape[0]))
-                combined_mask_bev = np.maximum(combined_mask_bev, mask_np)
+            # result.boxes.conf는 각 탐지 결과의 신뢰도 점수를 담고 있습니다.
+            confidences = result.boxes.conf
+
+            # 각 마스크와 해당하는 신뢰도 점수를 함께 순회합니다.
+            for i, mask_tensor in enumerate(result.masks.data):
+                # 신뢰도 점수가 0.7 이상인지 확인합니다.
+                if confidences[i] >= 0.7:
+                    mask_np = (mask_tensor.cpu().numpy() * 255).astype(np.uint8)
+                    if mask_np.shape != result.orig_shape:
+                        mask_np = cv2.resize(mask_np, (result.orig_shape[1], result.orig_shape[0]))
+                    # 신뢰도 기준을 통과한 마스크만 combined_mask_bev에 추가합니다.
+                    combined_mask_bev = np.maximum(combined_mask_bev, mask_np)
+
         final_mask = final_filter(combined_mask_bev)
         
         bev_im_for_drawing = bev_image_input.copy()
@@ -188,55 +198,63 @@ class LaneFollowerNode:
         # 5. Pure Pursuit Steering Control
         steering_angle_deg = None
         goal_point_bev = None # 시각화용
-        target_center_lane_coeff = None
-
+        
+        # ======================= [핵심 수정 사항] =======================
+        # 차선이 감지되었을 때만 (lane_detected_bool == True) 조향각 계산 및 퍼블리시
         if lane_detected_bool:
             center_points = []
             LANE_WIDTH_M = 1.5
             lane_width_pixels = LANE_WIDTH_M / self.m_per_pixel_x
             
+            # 중앙 경로 포인트 계산
             for y in range(self.bev_h - 1, self.bev_h // 2, -1):
                 x_center = None
                 if final_left_coeff is not None and final_right_coeff is not None:
                     x_center = (np.polyval(final_left_coeff, y) + np.polyval(final_right_coeff, y)) / 2
-                elif final_left_coeff is not None: x_center = np.polyval(final_left_coeff, y) + lane_width_pixels / 2
-                elif final_right_coeff is not None: x_center = np.polyval(final_right_coeff, y) - lane_width_pixels / 2
+                elif final_left_coeff is not None:
+                    x_center = np.polyval(final_left_coeff, y) + lane_width_pixels / 2
+                elif final_right_coeff is not None:
+                    x_center = np.polyval(final_right_coeff, y) - lane_width_pixels / 2
                 if x_center is not None: center_points.append([x_center, y])
+
+            # 중앙 경로 계수 계산 및 스무딩
+            target_center_lane_coeff = None
             if len(center_points) > 10:
                 target_center_lane_coeff = polyfit_lane(np.array(center_points)[:, 1], np.array(center_points)[:, 0], order=2)
 
-        if target_center_lane_coeff is not None:
-            if self.tracked_center_path['coeff'] is None: self.tracked_center_path['coeff'] = target_center_lane_coeff
-            else: self.tracked_center_path['coeff'] = (self.SMOOTHING_ALPHA * target_center_lane_coeff + (1 - self.SMOOTHING_ALPHA) * self.tracked_center_path['coeff'])
-        
-
-        if self.tracked_center_path['coeff'] is not None:
-            final_center_coeff = self.tracked_center_path['coeff']
+            if target_center_lane_coeff is not None:
+                if self.tracked_center_path['coeff'] is None:
+                    self.tracked_center_path['coeff'] = target_center_lane_coeff
+                else:
+                    self.tracked_center_path['coeff'] = (self.SMOOTHING_ALPHA * target_center_lane_coeff + (1 - self.SMOOTHING_ALPHA) * self.tracked_center_path['coeff'])
             
-            # 1. Set goal point
-            goal_point_vehicle = None
-            
-            for y_bev in range(self.bev_h - 1, -1, -1):
-                x_bev = np.polyval(final_center_coeff, y_bev)
-                x_veh, y_veh_right = self.image_to_vehicle((x_bev, y_bev))
-                dist = sqrt(x_veh**2 + y_veh_right**2)
-
-                if dist >= self.lookahead_distance:
-                    goal_point_vehicle = (x_veh, y_veh_right)
-                    goal_point_bev = (int(x_bev), int(y_bev)) # 시각화용
-                    break
-            
-            # 2. Calculate steering angle
-            if goal_point_vehicle is not None:
-                x_goal, y_goal = goal_point_vehicle
+            # 스무딩된 중앙 경로를 기반으로 조향각 계산 및 퍼블리시
+            if self.tracked_center_path['coeff'] is not None:
+                final_center_coeff = self.tracked_center_path['coeff']
                 
-                # Pure pursuit equation: delta = atan(2 * L * sin(alpha) / ld)
-                # Using atan2(2 * L * y_goal, ld^2) shape
-                steering_angle_rad = atan2(2.0 * self.L * y_goal, x_goal**2 + y_goal**2)
+                # 1. 목표 지점(Goal Point) 설정
+                goal_point_vehicle = None
+                for y_bev in range(self.bev_h - 1, -1, -1):
+                    x_bev = np.polyval(final_center_coeff, y_bev)
+                    x_veh, y_veh_right = self.image_to_vehicle((x_bev, y_bev))
+                    dist = sqrt(x_veh**2 + y_veh_right**2)
 
-                steering_angle_deg = -np.degrees(steering_angle_rad)
-                steering_angle_deg = np.clip(steering_angle_deg, -25.0, 25.0)
-                self.pub_steering.publish(Float32(data=steering_angle_deg))
+                    if dist >= self.lookahead_distance:
+                        goal_point_vehicle = (x_veh, y_veh_right)
+                        goal_point_bev = (int(x_bev), int(y_bev)) # 시각화용
+                        break
+                
+                # 2. 조향각 계산 및 퍼블리시
+                if goal_point_vehicle is not None:
+                    x_goal, y_goal = goal_point_vehicle
+                    
+                    steering_angle_rad = atan2(2.0 * self.L * y_goal, x_goal**2 + y_goal**2)
+                    steering_angle_deg = -np.degrees(steering_angle_rad)
+                    steering_angle_deg = np.clip(steering_angle_deg, -25.0, 25.0)
+                    
+                    # 오직 이 블록 안에서만 조향각을 퍼블리시합니다.
+                    self.pub_steering.publish(Float32(data=steering_angle_deg))
+        # =================================================================
 
         # 7. Visualization
         annotated_frame = result.plot()
