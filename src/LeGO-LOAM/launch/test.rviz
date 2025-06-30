@@ -78,8 +78,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 23.770977020263672
-        Min Value: -2.571056604385376
+        Max Value: 22.441164016723633
+        Min Value: -4.883259296417236
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -105,7 +105,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /global_yaw_legoloam
+      Marker Topic: /yaw_marker
       Name: Marker
       Namespaces:
         yaw_text: true

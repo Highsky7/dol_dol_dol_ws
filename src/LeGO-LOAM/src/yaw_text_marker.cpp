@@ -16,7 +16,7 @@ public:
 
     sub_ = nh.subscribe("/global_yaw_legoloam", 1,
                         &YawTextMarker::yawCb, this);
-    pub_ = nh.advertise<visualization_msgs::Marker>("global_yaw_legoloam", 1);
+    pub_ = nh.advertise<visualization_msgs::Marker>("yaw_marker", 1);
   }
 
 private:

@@ -55,7 +55,9 @@ private:
     double yaw_init_;
 
     // 언랩핑을 위해 이전 raw yaw(rad) 값 저장
-    double prev_raw_yaw_{0.0};
+    double prev_raw_roll_{0.0};
+    double prev_raw_pitch_{0.0};
+    double prev_raw_yaw_{0.0};  // 기존에 선언된 변수
 
 public:
     // 생성자에서 yaw_init 값을 전달받습니다.
@@ -171,34 +173,49 @@ public:
     void laserOdometryHandler(const nav_msgs::Odometry::ConstPtr& laserOdometry)
     {
         currentHeader = laserOdometry->header;
-
-        double roll, pitch, yaw;
         geometry_msgs::Quaternion geoQuat = laserOdometry->pose.pose.orientation;
-        // tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
-
-
-        // ① extract raw RPY; raw_yaw ∈ –π…+π
-        double raw_yaw;
+        
+        // ① 원래 RPY 값(–π…+π) 얻기
+        double raw_roll, raw_pitch, raw_yaw;
         tf::Matrix3x3(tf::Quaternion(
             geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w))
-        .getRPY(roll, pitch, raw_yaw);
-    
-        // ② unwrap raw_yaw → [0,2π) → continuous around ±π
-        double yaw_2pi = angles::normalize_angle_positive(raw_yaw);
-        double diff    = yaw_2pi - prev_raw_yaw_;
-        if      (diff >  M_PI) yaw_2pi -= 2.0 * M_PI;
-        else if (diff < -M_PI) yaw_2pi += 2.0 * M_PI;
-        prev_raw_yaw_ = yaw_2pi;
-    
-        // ③ now use yaw_2pi
-        double y_deg = yaw_2pi * 180.0 / M_PI;
+        .getRPY(raw_roll, raw_pitch, raw_yaw);
+
+
+        // ② 언랩을 위한 람다 함수 정의
+        auto continuousUnwrap = [&](double raw, double &prev)->double {
+        // 0…2π 로 올려놓고
+        double pos = angles::normalize_angle_positive(raw);
+        // 이전 값(prev)과 비교해서 π 이상 차이나면 2π 빼거나 더해서
+        double d = pos - prev;
+        if      (d >  M_PI) pos -= 2.0 * M_PI;
+        else if (d < -M_PI) pos += 2.0 * M_PI;
+        // 업데이트
+        prev = pos;
+        return pos;
+        };
+
+        // ③ roll, pitch, yaw 전부 언랩
+        double roll_2pi  = continuousUnwrap(raw_roll,  prev_raw_roll_);
+        double pitch_2pi = continuousUnwrap(raw_pitch, prev_raw_pitch_);
+        double yaw_2pi   = continuousUnwrap(raw_yaw,   prev_raw_yaw_);
+
+        // ④ 도 단위로 변환
+        double r_deg = roll_2pi  * 180.0 / M_PI;
+        double p_deg = pitch_2pi * 180.0 / M_PI;
+        double y_deg = yaw_2pi   * 180.0 / M_PI;
+
+        // ⑤ 출력
+        ROS_INFO("Roll  (deg): %.10f", r_deg);
+        ROS_INFO("Pitch (deg): %.10f", p_deg);
+        ROS_INFO("Yaw   (deg): %.10f", y_deg);
 
 
 
 
-        transformSum[0] = roll;
-        transformSum[1] = pitch;
-        transformSum[2] = yaw;
+        transformSum[0] = roll_2pi;
+        transformSum[1] = pitch_2pi;
+        transformSum[2] = yaw_2pi;
         transformSum[3] = laserOdometry->pose.pose.position.x;
         transformSum[4] = laserOdometry->pose.pose.position.y;
         transformSum[5] = laserOdometry->pose.pose.position.z;
