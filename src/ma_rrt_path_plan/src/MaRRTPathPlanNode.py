@@ -220,7 +220,7 @@ class MaRRTPathPlanNode:
         frontConesDist = 12
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
-        coneObstacleSize = 0.8  # 트래픽 콘 장애물의 반지름 (0.8m)
+        coneObstacleSize = 0.6  # 트래픽 콘 장애물의 반지름 (0.8m)
         # 트래픽 콘들로 이루어진 장애물 리스트 생성
         self.coneObstacleList = [(cone.x, cone.y, coneObstacleSize) for cone in frontCones]
 
