@@ -214,9 +214,9 @@ public:
             // ROS_INFO에서는 도 단위로 출력
             ROS_INFO("Global Yaw (deg): %.10f", global_yaw_deg);
             // 실제로 발행되는 값은 라디안으로 변환
-            double global_yaw_rad = global_yaw_deg * M_PI / 180.0;
+            // double global_yaw_rad = global_yaw_deg * M_PI / 180.0;
             std_msgs::Float64 yaw_msg;
-            yaw_msg.data = global_yaw_rad;
+            yaw_msg.data = global_yaw_deg;
             pubGlobalYaw.publish(yaw_msg);
         }
 

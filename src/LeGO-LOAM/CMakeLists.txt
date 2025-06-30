@@ -60,3 +60,8 @@ target_link_libraries(featureAssociation ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${
 
 add_executable(transformFusion src/transformFusion.cpp)
 target_link_libraries(transformFusion ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${OpenCV_LIBRARIES})
+
+
+add_executable(yaw_text_marker src/yaw_text_marker.cpp)
+target_link_libraries(yaw_text_marker ${catkin_LIBRARIES})
+add_dependencies(yaw_text_marker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
