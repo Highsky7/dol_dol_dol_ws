@@ -280,7 +280,7 @@ def main():
     rospy.init_node('lane_follower_node', anonymous=True)
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./weights.pt')
+    parser.add_argument('--weights', type=str, default='./weights1.pt')
     parser.add_argument('--device', default='0')
     parser.add_argument('--img-size', type=int, default=640)
     parser.add_argument('--conf-thres', type=float, default=0.6)
