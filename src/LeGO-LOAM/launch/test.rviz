@@ -10,6 +10,7 @@ Panels:
         - /TF1/Frames1
         - /TF1/Tree1
         - /Marker1
+        - /Marker2
       Splitter Ratio: 0.519138753414154
     Tree Height: 694
   - Class: rviz/Selection
@@ -43,9 +44,13 @@ Visualization Manager:
       Frame Timeout: 15
       Frames:
         All Enabled: false
+        antenna:
+          Value: true
         camera_init:
           Value: true
         laser_odom:
+          Value: true
+        reference:
           Value: true
         velodyne:
           Value: true
@@ -61,9 +66,12 @@ Visualization Manager:
         camera_init:
           laser_odom:
             {}
+        reference:
+          antenna:
+            velodyne:
+              {}
         velodyne_init:
-          velodyne:
-            {}
+          {}
       Update Interval: 0
       Value: true
     - Alpha: 1
@@ -78,8 +86,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 22.441164016723633
-        Min Value: -4.883259296417236
+        Max Value: 22.027053833007812
+        Min Value: -6.44534158706665
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -105,10 +113,18 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /yaw_marker
+      Marker Topic: /legoloam_yaw_corrected_deg_marker
       Name: Marker
       Namespaces:
         yaw_text: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /global_yaw_deg_marker
+      Name: Marker
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -127,7 +143,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 83.2739028930664
+      Distance: 101.79066467285156
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -143,9 +159,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 1.069796085357666
       Target Frame: velodyne
-      Yaw: 3.135388135910034
+      Yaw: 3.0203864574432373
     Saved: ~
 Window Geometry:
   Displays:

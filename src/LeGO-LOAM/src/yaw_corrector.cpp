@@ -12,12 +12,12 @@ public:
   {
     // Degree-corrected 퍼블리셔
     pub_deg_ = nh_.advertise<std_msgs::Float64>(
-      "global_yaw_legoloam_correction_deg", 10);
+      "legoloam_yaw_corrected_deg", 10);
     // Radian-corrected 퍼블리셔
     pub_rad_ = nh_.advertise<std_msgs::Float64>(
-      "global_yaw_legoloam_correction_rad", 10);
+      "legoloam_yaw_corrected_rad", 10);
     sub_ = nh_.subscribe<std_msgs::Float64>(
-      "global_yaw_legoloam", 10,
+      "legoloam_yaw", 10,
       &YawCorrector::callback, this);
   }
 
@@ -83,7 +83,7 @@ private:
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "global_yaw_legoloam_correction_deg");
+  ros::init(argc, argv, "legoloam_yaw_corrected_deg");
   YawCorrector yc;
   ros::spin();
   return 0;

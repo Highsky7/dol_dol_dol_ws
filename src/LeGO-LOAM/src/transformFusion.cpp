@@ -30,7 +30,7 @@ private:
     // 이동벡터 토픽 퍼블리셔 (geometry_msgs::Vector3 사용)
     ros::Publisher pubMovingVector;
 
-    // global yaw 퍼블리셔 (이제 이름이 /global_yaw_legoloam)
+    // global yaw 퍼블리셔 (이제 이름이 /legoloam_yaw)
     ros::Publisher pubGlobalYaw;
 
     ros::Subscriber subLaserOdometry;
@@ -64,7 +64,7 @@ public:
     TransformFusion(double yaw_init) : yaw_init_(yaw_init) {
         pubOdom = nh.advertise<nav_msgs::Odometry>("/odometry", 5);
         pubMovingVector = nh.advertise<geometry_msgs::Vector3>("/moving_vector", 5);
-        pubGlobalYaw = nh.advertise<std_msgs::Float64>("/global_yaw_legoloam", 5);
+        pubGlobalYaw = nh.advertise<std_msgs::Float64>("/legoloam_yaw", 5);
 
         subLaserOdometry = nh.subscribe<nav_msgs::Odometry>("/laser_odom_to_init", 5, &TransformFusion::laserOdometryHandler, this);
         // subOdomAftMapped = nh.subscribe<nav_msgs::Odometry>("/aft_mapped_to_init", 5, &TransformFusion::odomAftMappedHandler, this);

@@ -62,4 +62,13 @@ rostopic echo /ublox_gps/fix                status
 
 
 roslaunch lego_loam run.launch
-roslaunch lego_loam run.launch yaw_init:=1.4058729410171509    # 실행 안 해도 상관 없음. 뒤에 yaw_init:=100 처럼 숫자 조건 추가하면 /global_yaw_legoloam
+roslaunch lego_loam run.launch yaw_init:=1.4058729410171509    # 실행 안 해도 상관 없음. 뒤에 yaw_init:=100 처럼 숫자 조건 추가하면 /legoloam_yaw
+
+/legoloam_yaw  (deg)
+/legoloam_yaw_correction_deg   (deg)
+
+
+/legoloam_yaw_correction_rad   (rad)
+/global_yaw    (rad)
+
+
