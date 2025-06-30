@@ -16,7 +16,7 @@ public:
 
     sub_ = nh.subscribe("/global_yaw_legoloam", 1,
                         &YawTextMarker::yawCb, this);
-    pub_ = nh.advertise<visualization_msgs::Marker>("yaw_marker", 1);
+    pub_ = nh.advertise<visualization_msgs::Marker>("global_yaw_legoloam", 1);
   }
 
 private:
@@ -29,9 +29,12 @@ private:
     m.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
     m.action = visualization_msgs::Marker::ADD;
 
-    // 원점(0,0,0)에 텍스트
+    // 텍스트
+    m.pose.position.x = 1.5;   // 예: x = 1.0 m
+    m.pose.position.y = 0.0;   // 예: y = 2.0 m
+    m.pose.position.z = 3.5;   // 예: z = 0.5 m (지면 위 0.5 m)
     m.pose.orientation.w = 1.0;            // 방향 무시
-    m.scale.z = 1.3;                       // 글씨 크기(m 단위)
+    m.scale.z = 4.0;                       // 글씨 크기(m 단위)
     m.color.a = 1.0;
     m.color.r = color_r_;
     m.color.g = color_g_;

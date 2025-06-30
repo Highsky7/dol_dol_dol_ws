@@ -9,8 +9,7 @@ Panels:
         - /TF1
         - /TF1/Frames1
         - /TF1/Tree1
-        - /detected_objects_center1
-        - /Velodyne1
+        - /Marker1
       Splitter Ratio: 0.519138753414154
     Tree Height: 694
   - Class: rviz/Selection
@@ -76,27 +75,11 @@ Visualization Manager:
       Reference Frame: velodyne_init
       Show Trail: false
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /detected_objects_center
-      Name: detected_objects_center
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
-    - Class: rviz/MarkerArray
-      Enabled: false
-      Marker Topic: /visual/tree_marker_array
-      Name: RRT Tree MarkerArray
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 23.785497665405273
-        Min Value: -4.628509998321533
+        Max Value: 23.770977020263672
+        Min Value: -2.571056604385376
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -120,11 +103,19 @@ Visualization Manager:
       Use Fixed Frame: true
       Use rainbow: true
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /global_yaw_legoloam
+      Name: Marker
+      Namespaces:
+        yaw_text: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 0; 0; 0
     Default Light: true
-    Fixed Frame: velodyne_init
+    Fixed Frame: velodyne
     Frame Rate: 30
   Name: root
   Tools:
@@ -136,7 +127,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 34.77384948730469
+      Distance: 83.2739028930664
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -144,17 +135,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: -0.06204244866967201
-        Y: 0.008080745115876198
-        Z: 0.002805268159136176
+        X: 0.503726601600647
+        Y: 0.1777709424495697
+        Z: 0.2727128863334656
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
-      Target Frame: velodyne_init
-      Yaw: 3.130388021469116
+      Target Frame: velodyne
+      Yaw: 3.135388135910034
     Saved: ~
 Window Geometry:
   Displays:

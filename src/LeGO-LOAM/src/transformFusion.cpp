@@ -5,6 +5,8 @@
 #include <std_msgs/Float64.h>
 #include <deque>
 #include <cstdlib>  // atof
+#include <angles/angles.h>
+
 
 #ifndef NULL
 #define NULL 0
@@ -51,6 +53,9 @@ private:
 
     // yaw 초기값 (단위: degree)
     double yaw_init_;
+
+    // 언랩핑을 위해 이전 raw yaw(rad) 값 저장
+    double prev_raw_yaw_{0.0};
 
 public:
     // 생성자에서 yaw_init 값을 전달받습니다.
@@ -169,7 +174,27 @@ public:
 
         double roll, pitch, yaw;
         geometry_msgs::Quaternion geoQuat = laserOdometry->pose.pose.orientation;
-        tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
+        // tf::Matrix3x3(tf::Quaternion(geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w)).getRPY(roll, pitch, yaw);
+
+
+        // ① extract raw RPY; raw_yaw ∈ –π…+π
+        double raw_yaw;
+        tf::Matrix3x3(tf::Quaternion(
+            geoQuat.x, geoQuat.y, geoQuat.z, geoQuat.w))
+        .getRPY(roll, pitch, raw_yaw);
+    
+        // ② unwrap raw_yaw → [0,2π) → continuous around ±π
+        double yaw_2pi = angles::normalize_angle_positive(raw_yaw);
+        double diff    = yaw_2pi - prev_raw_yaw_;
+        if      (diff >  M_PI) yaw_2pi -= 2.0 * M_PI;
+        else if (diff < -M_PI) yaw_2pi += 2.0 * M_PI;
+        prev_raw_yaw_ = yaw_2pi;
+    
+        // ③ now use yaw_2pi
+        double y_deg = yaw_2pi * 180.0 / M_PI;
+
+
+
 
         transformSum[0] = roll;
         transformSum[1] = pitch;
@@ -216,6 +241,7 @@ public:
             // 실제로 발행되는 값은 라디안으로 변환
             // double global_yaw_rad = global_yaw_deg * M_PI / 180.0;
             std_msgs::Float64 yaw_msg;
+            // yaw_msg.data = global_yaw_rad;
             yaw_msg.data = global_yaw_deg;
             pubGlobalYaw.publish(yaw_msg);
         }
