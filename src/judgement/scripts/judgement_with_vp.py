@@ -7,7 +7,7 @@ class Judgement:
         # 구독자 설정: ROS 토픽에서 데이터를 수신
         self.sub_lane = rospy.Subscriber('auto_steer_angle_lane', Float32, self.lane_callback)
         self.sub_cone = rospy.Subscriber('auto_steer_angle_cone', Float32, self.cone_callback)
-        self.sub_tunnel = rospy.Subscriber('auto_steer_angle_tunnel', Float32, self.tunnel_callback)
+        # self.sub_tunnel = rospy.Subscriber('auto_steer_angle_tunnel', Float32, self.tunnel_callback)
         self.sub_lane_status = rospy.Subscriber('lane_detection_status', Bool, self.lane_status_callback)
         # self.sub_dynamic_obstacle = rospy.Subscriber("dynamic_obstacle", Bool, self.obstacle_callback)
 
