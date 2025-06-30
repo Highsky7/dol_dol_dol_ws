@@ -26,7 +26,7 @@
 
   <!-- Local Cartesian Path Publisher 노드 -->
   <node pkg="gps_to_utm_pkg" type="local_cartesian_path_publisher_cpp" name="local_cartesian_path_publisher" output="screen">
-    <param name="csv_filename"  value="$(find gps_to_utm_pkg)/data/nocheon2.csv"/>
+    <param name="csv_filename"  value="$(find gps_to_utm_pkg)/data/science1.csv"/>
     <param name="target_spacing" value="0.2"/>
     <param name="min_distance"   value="0.3"/>
     <param name="ref_lat"        value="$(arg ref_lat)"/>  <!-- :contentReference[oaicite:2]{index=2} -->
@@ -45,4 +45,8 @@
   <node pkg="gps_to_utm_pkg" type="roi_path_publisher_cpp" name="roi_path_publisher" output="screen">
     <param name="roi_arc_length" value="$(arg roi_arc_length)"/>       <!-- :contentReference[oaicite:4]{index=4} -->
   </node>
+
+  <!-- Ublox Fix Processor 노드 -->
+  <node pkg="gps_to_utm_pkg" type="ublox_fix_processor_cpp" name="ublox_fix_processor" output="screen"/>
+  
 </launch>

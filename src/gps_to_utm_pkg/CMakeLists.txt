@@ -92,6 +92,14 @@ target_link_libraries(ref_ant_vel_tf_broadcaster_cpp
 )
 
 
+add_executable(ublox_fix_processor_cpp
+  scripts/ublox_fix_processor.cpp)
+
+target_link_libraries(ublox_fix_processor_cpp
+  ${catkin_LIBRARIES})
+
+
+
 # add_executable(navpvt_global_yaw_estimator_cpp
 #   scripts/navpvt_global_yaw_estimator.cpp
 # )
@@ -115,6 +123,18 @@ target_link_libraries(roi_path_publisher_cpp
   ${CUDA_LIBRARIES}
 )
 
+
+# -------------------------
+# 의존성 설정
+add_dependencies(global_yaw_estimator_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(gps_to_local_cartesian_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(gps_to_utm_node_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(local_cartesian_path_publisher_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(ref_ant_vel_tf_broadcaster_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(ublox_fix_processor_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(roi_path_publisher_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+
 # -------------------------
 # 설치 설정
 # -------------------------
@@ -125,5 +145,6 @@ install(TARGETS
   local_cartesian_path_publisher_cpp
   ref_ant_vel_tf_broadcaster_cpp
   roi_path_publisher_cpp
+  ublox_fix_processor_cpp
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
