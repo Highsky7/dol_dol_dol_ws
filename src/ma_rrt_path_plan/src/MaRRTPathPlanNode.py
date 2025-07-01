@@ -182,7 +182,7 @@ class MaRRTPathPlanNode:
             x = marker.pose.position.x
             y = marker.pose.position.y
             # 각 마커 중심 좌표를 반지름 ~m 장애물로 추가
-            self.predictedEndpointObstacleList.append((x, y, 0.6))
+            self.predictedEndpointObstacleList.append((x, y, 0.0))
 
 
 
@@ -194,7 +194,7 @@ class MaRRTPathPlanNode:
         for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
             x, y, z = p[:3]
             # Append as a circular obstacle with radius ~m
-            self.compressedWallObstacleList.append((x, y, 0.2))
+            self.compressedWallObstacleList.append((x, y, 0.3))
 
 
 
@@ -244,7 +244,7 @@ class MaRRTPathPlanNode:
         
         # 이후 기존 코드대로 rrtTarget 설정 및 RRT 실행
         rrtTarget = []
-        targetRadius = 0.1  # 원하는 보수적인 rrt_target 반경 값
+        targetRadius = 0.01  # 원하는 보수적인 rrt_target 반경 값
                 
         if self.rrt_target is not None:
             rrtTarget.append((self.rrt_target.x, self.rrt_target.y, targetRadius))
@@ -294,7 +294,7 @@ class MaRRTPathPlanNode:
         expandDistance = 0.7
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
-        expandAngle = 20
+        expandAngle = 25
 
 
         """트리 파라미터 조정 구간""" 
