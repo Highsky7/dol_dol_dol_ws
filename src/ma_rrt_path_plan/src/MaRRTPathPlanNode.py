@@ -288,7 +288,7 @@ class MaRRTPathPlanNode:
         iterationNumber = 20
         
         # RRT 경로 계획에서 최대 트리 가지 길이
-        planDistance = 3.6
+        planDistance = 5.6
         
         # RRT 노드 간 이동 거리 (스텝 길이)
         expandDistance = 0.7
