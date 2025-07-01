@@ -71,4 +71,8 @@ roslaunch lego_loam run.launch yaw_init:=1.4058729410171509    # 실행 안 해�
 /legoloam_yaw_correction_rad   (rad)
 /global_yaw    (rad)
 
+---------------------
+MaRRTPathPlanNode 
+MaRRTPathPlanNode에서 /obstacle_existence 불리안 토픽 발행 추가. (조건: 장애물 반경이 없다면 False. 델로나 삼각형 교점 안 생겨도 False)
+/gps_to_utm_pkg/scripts/purepursuit.cpp 에서 /lookahead_gps_marker
 
