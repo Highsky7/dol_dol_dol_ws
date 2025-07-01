@@ -11,17 +11,17 @@ class PurePursuit:
         rospy.init_node("purepursuit", anonymous=True)
         
         # 파라미터: lookahead distance와 차량 휠베이스 (단위: 미터)
-        self.lookahead_distance = rospy.get_param("~lookahead_distance", 3.5)
-        self.wheelbase = rospy.get_param("~wheelbase", 0.75)
+        self.lookahead_distance = 3.5
+        self.wheelbase = 0.75
         
         # ROI Marker를 구독하여 최신 데이터를 저장
         rospy.Subscriber("roi_path_marker", Marker, self.roi_callback)
         
         # 조향각을 publish할 토픽 (Float32, 단위: degree)
-        self.steer_pub = rospy.Publisher("/auto_steer_angle_cone", Float32, queue_size=10)
+        self.steer_pub = rospy.Publisher("/auto_steer_angle_gps", Float32, queue_size=10)
         
         # Lookahead point Marker를 publish할 토픽
-        self.lookahead_pub = rospy.Publisher("lookahead_marker", Marker, queue_size=10)
+        self.lookahead_pub = rospy.Publisher("lookahead_gps_marker", Marker, queue_size=10)
         
         self.latest_roi_marker = None
         
@@ -64,7 +64,7 @@ class PurePursuit:
         steer_angle = math.atan2(2 * self.wheelbase * math.sin(alpha), dist)
         
         # 라디안으로 계산된 조향각을 degree로 변환
-        steer_angle_deg = math.degrees(steer_angle)
+        steer_angle_deg = - math.degrees(steer_angle)
         
         # 좌회전이면 양수, 우회전이면 음수로 degree 단위로 publish
         self.steer_pub.publish(Float32(data=steer_angle_deg))
@@ -75,9 +75,9 @@ class PurePursuit:
         # Lookahead point Marker (SPHERE)
         lookahead_marker = Marker()
         lookahead_marker.header = Header(stamp=rospy.Time.now(), frame_id="velodyne")
-        lookahead_marker.ns = "purepursuit"
+        lookahead_marker.ns = "only_gps_purepursuit"
         lookahead_marker.id = 0
-        lookahead_marker.type = Marker.SPHERE
+        lookahead_marker.type = Marker.CUBE
         lookahead_marker.action = Marker.ADD
         lookahead_marker.scale.x = 0.5
         lookahead_marker.scale.y = 0.5
