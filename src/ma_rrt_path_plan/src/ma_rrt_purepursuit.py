@@ -41,8 +41,8 @@ class MaRRTPurePursuit:
         
         # 퍼블리셔
         # 판단노드가 std_msgs/Float32를 구독하므로, 해당 타입으로 publish합니다.
-        self.cmd_pub              = rospy.Publisher("/auto_steer_angle_cone", Float32, queue_size=10)
-        self.lookahead_marker_pub = rospy.Publisher("/lookahead_marker", Marker, queue_size=10)
+        self.cmd_pub              = rospy.Publisher("/auto_steer_angle_rrt", Float32, queue_size=10)
+        self.lookahead_marker_pub = rospy.Publisher("/lookahead_rrt_marker", Marker, queue_size=10)
         self.final_waypoints_pub  = rospy.Publisher("/final_waypoints", Path, queue_size=10)
         
         # 구독자: MaRRTPathPlanNode.py에서 publish하는 /waypoints와 /odometry 토픽을 구독
