@@ -2,7 +2,7 @@
 <개별 런치파일>
 
 
-터미널 12개 필요
+터미널 13개 필요
 doldol_motor.ino 업로드
 1터미널: rosrun rosserial_python serial_node.py /dev/ttyACM0
 2터미널: rosrun judgement judgement_with_vp.py
@@ -18,7 +18,7 @@ doldol_motor.ino 업로드
 10터미널: 가상환경(dol) roslaunch ma_rrt_path_plan startExploring.launch
 11터미널: 가상환경(dol) roslaunch sort_ros_pkg sort_ros_node.launch            (테스트 더 해보고 삭제 여부 결정)
 12터미널: 가상환경(dol) roslaunch tunnel_pkg wall_detection.launch
-
+13터미널: 가상환경(dol) rosrun gps_to_utm_pkg purepursuit_cpp
 
 
 
@@ -38,4 +38,5 @@ doldol_motor.ino 업로드
 6터미널: roslaunch ublox_gps ublox_zed-f9p.launch               (GPS on)
 7터미널: roslaunch ntrip_ros ntrip_ros.launch                   (핫스팟 연결되고 받아오기 on)
 
-8터미널: roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 9, 10, 12 on)
+8터미널: 가상환경(dol) roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 9, 10, 12 on)
+9터미널: 가상환경(dol) rosrun gps_to_utm_pkg purepursuit_cpp
