@@ -37,7 +37,7 @@ from utils.utils import (
 # argparse 설정
 def make_parser():
     parser = argparse.ArgumentParser(description="Roboflow Instance Segmentation with BEV Transformation")
-    parser.add_argument('--weights', type=str, default='./weights.pt', help='path to your roboflow model.pt file')
+    parser.add_argument('--weights', type=str, default='./weights2.pt', help='path to your roboflow model.pt file')
     parser.add_argument('--source', type=str,
                         # default='2',
                         default='/home/highsky/Videos/Webcam/left_bev_params_2.mp4',
