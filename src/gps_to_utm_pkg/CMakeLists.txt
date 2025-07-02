@@ -106,6 +106,12 @@ target_link_libraries(purepursuit_cpp
   ${catkin_LIBRARIES}
 )
 
+add_executable(cone_frenet_projector_cpp
+  scripts/cone_frenet_projector.cpp
+)
+target_link_libraries(cone_frenet_projector_cpp
+  ${catkin_LIBRARIES}
+)
 
 # add_executable(navpvt_global_yaw_estimator_cpp
 #   scripts/navpvt_global_yaw_estimator.cpp
@@ -140,8 +146,8 @@ add_dependencies(local_cartesian_path_publisher_cpp ${${PROJECT_NAME}_EXPORTED_T
 add_dependencies(ref_ant_vel_tf_broadcaster_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(ublox_fix_processor_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(roi_path_publisher_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(purepursuit_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS}
-)
+add_dependencies(purepursuit_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(cone_frenet_projector_cpp ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 # -------------------------
 # 설치 설정
