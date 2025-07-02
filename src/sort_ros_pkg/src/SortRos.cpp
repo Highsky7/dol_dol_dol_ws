@@ -7,7 +7,7 @@
 #include <sstream>
 #include <opencv2/core.hpp>
 #include "visualization_msgs/Marker.h"
-#include <dynamic_static_pkg/TrackedObjects.h>  // MODIFIED: 올바른 include
+// #include <dynamic_static_pkg/TrackedObjects.h>  // MODIFIED: 올바른 include
 
 // 정적 멤버 정의
 SortRos* SortRos::instance = nullptr;
