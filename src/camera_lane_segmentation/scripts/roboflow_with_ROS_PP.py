@@ -135,7 +135,7 @@ class LaneFollowerNode:
             # 각 마스크와 해당하는 신뢰도 점수를 함께 순회합니다.
             for i, mask_tensor in enumerate(result.masks.data):
                 # 신뢰도 점수가 0.7 이상인지 확인합니다.
-                if confidences[i] >= 0.7:
+                if confidences[i] >= 0.5:
                     mask_np = (mask_tensor.cpu().numpy() * 255).astype(np.uint8)
                     if mask_np.shape != result.orig_shape:
                         mask_np = cv2.resize(mask_np, (result.orig_shape[1], result.orig_shape[0]))
@@ -280,7 +280,7 @@ def main():
     rospy.init_node('lane_follower_node', anonymous=True)
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--weights', type=str, default='./weights1.pt')
+    parser.add_argument('--weights', type=str, default='./weights2.pt')
     parser.add_argument('--device', default='0')
     parser.add_argument('--img-size', type=int, default=640)
     parser.add_argument('--conf-thres', type=float, default=0.6)
