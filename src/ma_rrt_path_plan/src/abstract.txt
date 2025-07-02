@@ -1,0 +1,33 @@
+RRT 샘플링 & 노드 생성
+
+시작 위치에서 expandDis만큼 전진하거나 회전(turnAngle) 제약을 두고 새 노드를 생성
+
+무작위 샘플링 방향(get_random_point 또는 목표 주변) → 가장 가까운 기존 노드 선택(GetNearestListIndex) → steerConstrained로 새 노드 계산
+
+생성된 노드가 충돌이 없으면 트리에 추가
+
+리프 노드 및 베스트 브랜치 선정
+
+목표 거리(planDistance) 이상 도달한 노드를 리프 노드로 저장
+
+각 리프 노드까지의 경로(브랜치)를 평가(장애물과의 거리 기반)하여 최적 브랜치를 선택
+
+Delaunay 삼각분할을 이용한 웨이포인트 추출
+
+트랙 콘(전방 장애물) 좌표들에 대해 Delaunay 삼각분할 수행
+
+최적 브랜치의 각 세그먼트와 교차하는 Delaunay 엣지를 찾아 교차점 또는 중간점(웨이포인트) 생성
+
+웨이포인트 필터링 & 저장
+
+현재 위치와 가깝고, 이전에 저장된 웨이포인트와 중복되지 않는 새 웨이포인트만 savedWaypoints에 추가
+
+Pure Pursuit 제어
+
+저장된 웨이포인트를 B-spline으로 부드럽게 보간(scipy의 splprep/splev)
+
+호 길이(arc length)를 기준으로 등간격 제어점 생성 → control_points
+
+차량 좌표계로 변환한 후, 고정된 룩어헤드 거리(Ld)에 가장 근접한 점을 룩어헤드 포인트로 선택
+
+Pure Pursuit 수식으로 조향각 계산 후 퍼블리시

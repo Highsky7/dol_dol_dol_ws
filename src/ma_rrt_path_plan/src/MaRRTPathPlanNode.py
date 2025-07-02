@@ -23,6 +23,7 @@ from nav_msgs.msg import Path
 from scipy.spatial import Delaunay
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs import point_cloud2
+from std_msgs.msg import Bool
 
 class MaRRTPathPlanNode:
 
@@ -50,6 +51,8 @@ class MaRRTPathPlanNode:
         self.waypointsPublishInterval = 1.0 / waypointsFrequency
         self.lastPublishWaypointsTime = 0
 
+        # 새로 추가: 장애물 유무 발행
+        self.obstacleExistencePub = rospy.Publisher("/obstacle_existence", Bool, queue_size=1)
         
         """
         구독자들
@@ -227,6 +230,12 @@ class MaRRTPathPlanNode:
         # 두 종류의 장애물 리스트 병합
         obstacleList = self.coneObstacleList + self.predictedEndpointObstacleList + self.compressedWallObstacleList
         
+        # 새로 추가: 장애물 유무 발행
+        exists = Bool()
+        exists.data = (len(obstacleList) > 0)
+        self.obstacleExistencePub.publish(exists)
+        
+        
         rospy.loginfo("-----")
         rospy.loginfo("coneObstacleList: %d", len(self.coneObstacleList))
         rospy.loginfo("predictedEndpointObstacleList: %d", len(self.predictedEndpointObstacleList))
@@ -285,7 +294,7 @@ class MaRRTPathPlanNode:
         """트리 파라미터 조정 구간"""                
 
         start = [self.carPosX, self.carPosY, self.carPosYaw]
-        iterationNumber = 20
+        iterationNumber = 60
         
         # RRT 경로 계획에서 최대 트리 가지 길이
         planDistance = 5.6
@@ -294,7 +303,7 @@ class MaRRTPathPlanNode:
         expandDistance = 0.7
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
-        expandAngle = 25
+        expandAngle = 20
 
 
         """트리 파라미터 조정 구간""" 
@@ -323,11 +332,25 @@ class MaRRTPathPlanNode:
 
                 if newWaypoints:
                     self.mergeWaypoints(newWaypoints)
-
+                
+                
+                # 새 웨이포인트가 전혀 없으면 False 발행
+                else:
+                    no_wp = Bool()
+                    no_wp.data = False
+                    self.obstacleExistencePub.publish(no_wp)
+                            
                 self.publishWaypoints(newWaypoints)
 
+
+
     def mergeWaypoints(self, newWaypoints):
+        
+        # 새 웨이포인트가 전혀 없으면 False 발행
         if not newWaypoints:
+            no_wp = Bool()
+            no_wp.data = False
+            self.obstacleExistencePub.publish(no_wp)
             return
 
         # 차량의 현재 위치와 후보 웨이포인트 간의 거리가 2.0미터 이하일 때만 해당 웨이포인트를 저장 대상으로 고려
@@ -349,7 +372,6 @@ class MaRRTPathPlanNode:
                     break
 
         newSavedPoints = []
-
         for i in range(len(newWaypoints)):
             waypointCandidate = newWaypoints[i]
 

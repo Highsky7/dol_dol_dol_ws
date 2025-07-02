@@ -9,12 +9,16 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/ModelCoefficients.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/approximate_voxel_grid.h>
 
 class WallDetector {
 public:
     WallDetector() {
         // 구독자 설정: Velodyne 포인트 클라우드 구독
-        sub_ = nh_.subscribe("/velodyne_points", 1, &WallDetector::pointCloudCallback, this);
+        sub_ = nh_.subscribe("/velodyne_points", 1,
+            &WallDetector::pointCloudCallback, this,
+            ros::TransportHints().tcpNoDelay(true)
+        );
         // 퍼블리셔 설정: 벽 포인트 클라우드 퍼블리시
         pub_ = nh_.advertise<sensor_msgs::PointCloud2>("/detected_wall", 1);
     }
@@ -25,105 +29,128 @@ private:
     ros::Publisher pub_;
 
     void pointCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud_msg) {
-        // ROS PointCloud2 메시지를 PCL PointCloud로 변환 (xyz 만 사용)
+        // 1) ROS → PCL 변환
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*cloud_msg, *cloud);
 
-        // VoxelGrid 다운샘플링 필터 적용
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_down(new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::VoxelGrid<pcl::PointXYZ> voxel;
-        voxel.setInputCloud(cloud);
-        voxel.setLeafSize(0.1f, 0.1f, 0.1f);            // [파라미터] 10cm voxel 크기 (XYZ 각각) - 필요시 조절
-        voxel.filter(*cloud_down);
-        // [변경] 입력 데이터를 다운샘플링하여 처리 속도 향상 및 일관된 결과 사용
+        // 2) ROI 필터1: 0 < x < 6
+        pcl::PassThrough<pcl::PointXYZ> pass_x;
+        pass_x.setInputCloud(cloud);
+        pass_x.setFilterFieldName("x");
+        pass_x.setFilterLimits(0.0f, 6.0f);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_x(new pcl::PointCloud<pcl::PointXYZ>);
+        pass_x.filter(*cloud_roi_x);
 
-        // PassThrough 필터 적용 (예: z축 방향 바닥/천장 제거)
+        // 3) ROI 필터2: -3 < y < 3
+        pcl::PassThrough<pcl::PointXYZ> pass_y;
+        pass_y.setInputCloud(cloud_roi_x);
+        pass_y.setFilterFieldName("y");
+        pass_y.setFilterLimits(-3.0f, 3.0f);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_y(new pcl::PointCloud<pcl::PointXYZ>);
+        pass_y.filter(*cloud_roi_y);
+
+        // 4) ROI 필터3: -1 < z < 2
+        pcl::PassThrough<pcl::PointXYZ> pass_z;
+        pass_z.setInputCloud(cloud_roi_y);
+        pass_z.setFilterFieldName("z");
+        pass_z.setFilterLimits(-1.0f, 2.0f);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi(new pcl::PointCloud<pcl::PointXYZ>);
+        pass_z.filter(*cloud_roi);
+
+        // 5) ApproximateVoxelGrid 다운샘플링 (leaf = 0.05m)
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_down(new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxel;
+        voxel.setInputCloud(cloud_roi);
+        voxel.setLeafSize(0.05f, 0.05f, 0.05f);
+        voxel.filter(*cloud_down);
+
+        // 6) z 필터 (바닥/천장 제거)
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::PassThrough<pcl::PointXYZ> pass;
         pass.setInputCloud(cloud_down);
         pass.setFilterFieldName("z");
-        pass.setFilterLimits(-1.0, 1.0);                // [파라미터] z 범위 제한값 (환경에 따라 바닥/천장 높이 조정)
+        pass.setFilterLimits(-1.0, 1.0);
         pass.filter(*cloud_filtered);
-        // [변경] 센서 기준 너무 낮거나 높은 위치의 점 제거 (불필요한 바닥/천장 평면 배제)
 
-        // 평면 세그멘테이션 객체와 보조 객체 생성
+        // 7) RANSAC 평면 세그멘테이션 설정
         pcl::SACSegmentation<pcl::PointXYZ> seg;
-        seg.setOptimizeCoefficients(true);              // (옵션) 계수 최적화 활성화
-        seg.setModelType(pcl::SACMODEL_PLANE);          // 평면 모델 유형
-        seg.setMethodType(pcl::SAC_RANSAC);             // RANSAC 방법 사용
-        seg.setMaxIterations(60);                     // (옵션) RANSAC 최대 반복 횟수
-        seg.setDistanceThreshold(0.02);                  // [파라미터] 평면으로 간주할 거리 임계값 (0.1m 내의 점들을 인라이어로)
-        // ※ DistanceThreshold 값이 작으면 평면 적합 정확도 ↑, 크면 노이즈에 민감 ↓:contentReference[oaicite:7]{index=7}
+        seg.setOptimizeCoefficients(true);
+        seg.setModelType(pcl::SACMODEL_PLANE);
+        seg.setMethodType(pcl::SAC_RANSAC);
+        seg.setMaxIterations(60);
+        seg.setDistanceThreshold(0.02);
 
         pcl::ExtractIndices<pcl::PointXYZ> extract;
-        pcl::PointCloud<pcl::PointXYZ>::Ptr wall_cloud(new pcl::PointCloud<pcl::PointXYZ>);  
-        // 최종 벽 포인트들을 담을 클라우드 (초기 비어있음)
+        pcl::PointCloud<pcl::PointXYZ>::Ptr wall_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+
+        // 최소 포인트 개수 기준
+        constexpr size_t MIN_WALL_POINTS = 50;
 
         // 최대 10개의 평면까지 추출 시도
         for (int i = 0; i < 10; ++i) {
-            if (cloud_filtered->points.empty()) break;  // 남은 점이 없으면 종료
+            if (cloud_filtered->points.empty()) break;
 
-            // 평면 모델 계수와 인라이어 인덱스 객체
-            pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients);
+            // 7.1) 평면 모델 추출
             pcl::PointIndices::Ptr inliers(new pcl::PointIndices);
-
-            // 현재 남은 점군에서 가장 큰 평면 추출 (세그멘테이션)
+            pcl::ModelCoefficients::Ptr coeff(new pcl::ModelCoefficients);
             seg.setInputCloud(cloud_filtered);
             seg.segment(*inliers, *coeff);
-            if (inliers->indices.empty()) {
-                // 더 이상 평면을 찾지 못함
-                break;
-            }
-
-            // 추출한 평면의 법선 계산 (계수: ax+by+cz+d=0에서 법선 = [a,b,c])
-            Eigen::Vector3f plane_normal(coeff->values[0], coeff->values[1], coeff->values[2]);
-            plane_normal.normalize();
-            float nz = plane_normal[2];
+            if (inliers->indices.empty()) break;
 
             // 평면 법선의 Z성분을 확인하여 수직에 가까운지 판단
-            bool isWall = (std::fabs(nz) < 0.1736f);     // 0.1736 ≈ cos(80°), |nz| < 0.1736이면 법선이 거의 수평 -> 평면은 거의 수직
-            // [변경] ±10° 이내로 수직인 평면만 벽으로 간주 (벽은 Z축 대비 수직, 법선의 Z성분이 작음):contentReference[oaicite:8]{index=8}
+            Eigen::Vector3f plane_normal(coeff->values[0],
+                                         coeff->values[1],
+                                         coeff->values[2]);
+            plane_normal.normalize();
+            float nz = plane_normal[2];
+            const float cos_60 = 0.5f;
+            const float cos_70 = 0.3420f;
+            const float cos_75 = 0.2588f;
+            const float cos_80 = 0.1736f;
+            const float cos_85 = 0.0871f;
+            const float cos_90 = 0.0f;
+            bool isWall = (std::fabs(nz) < cos_80);
 
             if (isWall) {
-                // 벽 평면으로 확인된 경우: 인라이어 점들을 추출하여 wall_cloud에 누적
-                pcl::PointCloud<pcl::PointXYZ>::Ptr plane_points(new pcl::PointCloud<pcl::PointXYZ>);
+                // 7.2) 인라이어 점 추출
                 extract.setInputCloud(cloud_filtered);
                 extract.setIndices(inliers);
-                extract.setNegative(false);             // 인라이어 추출
+                extract.setNegative(false);
+                pcl::PointCloud<pcl::PointXYZ>::Ptr plane_points(new pcl::PointCloud<pcl::PointXYZ>);
                 extract.filter(*plane_points);
-                // 추출된 평면 점들을 최종 벽 포인트 클라우드에 추가
-                wall_cloud->points.insert(wall_cloud->points.end(), 
-                                          plane_points->points.begin(), plane_points->points.end());
+
+                // ─── 포인트 개수 체크 추가 ───
+                if (plane_points->points.size() < MIN_WALL_POINTS) {
+                    // 작으면 이 평면만 제거하고 다음 반복
+                    extract.setNegative(true);
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr tmp(new pcl::PointCloud<pcl::PointXYZ>);
+                    extract.filter(*tmp);
+                    cloud_filtered.swap(tmp);
+                    continue;
+                }
+                // ─────────────────────────────
+
+                // 7.3) wall_cloud에 누적
+                wall_cloud->points.insert(
+                    wall_cloud->points.end(),
+                    plane_points->points.begin(),
+                    plane_points->points.end()
+                );
             }
-            // 인라이어 점들을 입력 클라우드에서 제거하여 다음 평면 검색 준비
+
+            // 7.4) 현재 평면 제거
             extract.setInputCloud(cloud_filtered);
             extract.setIndices(inliers);
-            extract.setNegative(true);                  // 인라이어 제거하고 나머지 유지
+            extract.setNegative(true);
             pcl::PointCloud<pcl::PointXYZ>::Ptr remaining(new pcl::PointCloud<pcl::PointXYZ>);
             extract.filter(*remaining);
             cloud_filtered.swap(remaining);
         }
 
-        // 벽 포인트들의 PCL 클라우드가 준비됨
-        if (!wall_cloud->points.empty()) {
-            // (옵션) 이상치 제거 필터 적용하여 노이즈 감소
-            pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-            sor.setInputCloud(wall_cloud);
-            sor.setMeanK(50);                           // [파라미터] 이웃 점 50개 사용
-            sor.setStddevMulThresh(1.0);                // [파라미터] 허용 표준편차 거리: 1.0 -> 평균거리 + 1σ 이상은 제거
-            sor.filter(*wall_cloud);
-            // [옵션 변경] 벽 클라우드에서 주변과 동떨어진 노이즈 점 제거 (MeanK, StddevMulThresh 조절 가능):contentReference[oaicite:9]{index=9}
-
-            // wall_cloud의 width/height 갱신
-            wall_cloud->width = wall_cloud->points.size();
-            wall_cloud->height = 1;
-            wall_cloud->is_dense = true;
-        }
-
-        // ROS 메시지로 변환 후 퍼블리시
+        // 8) 결과 퍼블리시
         sensor_msgs::PointCloud2 output_msg;
         pcl::toROSMsg(*wall_cloud, output_msg);
-        output_msg.header = cloud_msg->header;           // 입력과 동일한 헤더 사용 (frame_id, timestamp 유지)
+        output_msg.header = cloud_msg->header;
         pub_.publish(output_msg);
     }
 };
