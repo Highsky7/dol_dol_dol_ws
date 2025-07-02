@@ -216,6 +216,7 @@ class MaRRTPurePursuit:
         marker.color.g = 1.0
         marker.color.b = 1.0
         marker.color.a = 1.0
+        marker.lifetime = rospy.Duration(0.2)
         self.lookahead_marker_pub.publish(marker)
     
     def run(self):

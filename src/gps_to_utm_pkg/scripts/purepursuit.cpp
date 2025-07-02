@@ -99,6 +99,7 @@ private:
         lookahead_marker.color.g = 1.0;
         lookahead_marker.color.b = 1.0;
         lookahead_marker.color.a = 1.0;
+        lookahead_marker.lifetime = ros::Duration(0.2);
         lookahead_marker.pose.position = lookahead_pt;
         lookahead_marker.pose.orientation.w = 1.0;
         lookahead_pub_.publish(lookahead_marker);

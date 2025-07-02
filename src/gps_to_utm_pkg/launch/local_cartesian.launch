@@ -35,9 +35,10 @@
 
   <!-- Reference→Antenna→Velodyne TF 브로드캐스터 노드 -->
   <!-- 2. 이건 실제로 ref_ant_vel_tf_broadcaster 노드의 파라미터로 **‘할당’**하는 부분-->
+  <!--안테나( antenna 프레임) 기준으로 Velodyne LiDAR( velodyne 프레임)가 어디에 달려 있는가-->
   <node pkg="gps_to_utm_pkg" type="ref_ant_vel_tf_broadcaster_cpp" name="ref_ant_vel_tf_broadcaster" output="screen">
-    <param name="velodyne_offset_x" value="0.0"/>  <!-- :contentReference[oaicite:3]{index=3} -->
-    <param name="velodyne_offset_y" value="0.0"/>
+    <param name="velodyne_offset_x" value="-0.36"/>  <!-- :contentReference[oaicite:3]{index=3} -->
+    <param name="velodyne_offset_y" value="0.12"/>
     <param name="velodyne_offset_z" value="$(arg velodyne_offset_z)"/>
   </node>
 
@@ -51,5 +52,6 @@
   
   <node pkg="gps_to_utm_pkg" type="purepursuit_cpp" name="purepursuit" output="screen"/>
   
+  <node pkg="gps_to_utm_pkg" type="cone_frenet_projector_cpp" name="cone_frenet_projector" output="screen"/>
 
 </launch>
