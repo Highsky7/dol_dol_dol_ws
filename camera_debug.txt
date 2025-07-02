@@ -1,0 +1,1 @@
+v4l2-ctl -d /dev/video1 --list-formats-ext (웹캠의 상세 성능 정보 확인 방법)
