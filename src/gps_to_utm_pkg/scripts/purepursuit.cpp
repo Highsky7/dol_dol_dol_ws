@@ -8,14 +8,14 @@
 
 class PurePursuit {
 public:
-    PurePursuit() : lookahead_distance_(3.5), wheelbase_(0.75), has_latest_roi_(false) {
+    PurePursuit() : lookahead_distance_(3.0), wheelbase_(0.75), has_latest_roi_(false) {
         // 파라미터: lookahead distance와 차량 휠베이스 (단위: 미터)
         // ROI Marker를 구독하여 최신 데이터를 저장
         roi_sub_ = nh_.subscribe("roi_path_marker", 10, &PurePursuit::roiCallback, this);
         // 조향각을 publish할 토픽 (Float32, 단위: degree)
         steer_pub_ = nh_.advertise<std_msgs::Float32>("/auto_steer_angle_gps", 10);
         // Lookahead point Marker를 publish할 토픽
-        lookahead_pub_ = nh_.advertise<visualization_msgs::Marker>("lookahead_gps_marker", 10);
+        lookahead_gps_pub_ = nh_.advertise<visualization_msgs::Marker>("lookahead_gps_marker", 10);
         // 타이머 콜백: 10Hz (0.1초 간격)
         timer_ = nh_.createTimer(ros::Duration(0.1), &PurePursuit::timerCallback, this);
         ROS_INFO("PurePursuit 노드 시작 (lookahead_distance: %.2f m, wheelbase: %.2f m)", 
@@ -26,7 +26,7 @@ private:
     ros::NodeHandle nh_;
     ros::Subscriber roi_sub_;
     ros::Publisher steer_pub_;
-    ros::Publisher lookahead_pub_;
+    ros::Publisher lookahead_gps_pub_;
     ros::Timer timer_;
     double lookahead_distance_;
     double wheelbase_;
@@ -95,14 +95,14 @@ private:
         lookahead_marker.scale.x = 0.5;
         lookahead_marker.scale.y = 0.5;
         lookahead_marker.scale.z = 0.5;
-        lookahead_marker.color.r = 0.0;
-        lookahead_marker.color.g = 1.0;
-        lookahead_marker.color.b = 1.0;
+        lookahead_marker.color.r = 1.0;
+        lookahead_marker.color.g = 0.0;
+        lookahead_marker.color.b = 0.0;
         lookahead_marker.color.a = 1.0;
         lookahead_marker.lifetime = ros::Duration(0.2);
         lookahead_marker.pose.position = lookahead_pt;
         lookahead_marker.pose.orientation.w = 1.0;
-        lookahead_pub_.publish(lookahead_marker);
+        lookahead_gps_pub_.publish(lookahead_marker);
     }
 };
 
