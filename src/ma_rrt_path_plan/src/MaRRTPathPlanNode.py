@@ -524,13 +524,13 @@ class MaRRTPathPlanNode:
         savedWaypointsMarker.type = savedWaypointsMarker.SPHERE_LIST
         savedWaypointsMarker.action = savedWaypointsMarker.ADD
         savedWaypointsMarker.pose.orientation.w = 1
-        savedWaypointsMarker.scale.x = 0.25
-        savedWaypointsMarker.scale.y = 0.25
-        savedWaypointsMarker.scale.z = 0.25
+        savedWaypointsMarker.scale.x = 0.15
+        savedWaypointsMarker.scale.y = 0.15
+        savedWaypointsMarker.scale.z = 0.15
 
-        savedWaypointsMarker.color.a = 1.0
+        savedWaypointsMarker.color.a = 0.1
         savedWaypointsMarker.color.r = 0.0
-        savedWaypointsMarker.color.g = 1.0
+        savedWaypointsMarker.color.g = 0.5
         savedWaypointsMarker.color.b = 1.0
 
         for waypoint in self.savedWaypoints:
@@ -550,9 +550,9 @@ class MaRRTPathPlanNode:
             newWaypointsMarker.type = newWaypointsMarker.SPHERE_LIST
             newWaypointsMarker.action = newWaypointsMarker.ADD
             newWaypointsMarker.pose.orientation.w = 1
-            newWaypointsMarker.scale.x = 0.15
-            newWaypointsMarker.scale.y = 0.15
-            newWaypointsMarker.scale.z = 0.15
+            newWaypointsMarker.scale.x = 0.25
+            newWaypointsMarker.scale.y = 0.25
+            newWaypointsMarker.scale.z = 0.25
 
             newWaypointsMarker.color.a = 1.0
             newWaypointsMarker.color.r = 0.0
