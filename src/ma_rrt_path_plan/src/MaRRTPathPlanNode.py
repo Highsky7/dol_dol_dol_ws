@@ -294,13 +294,13 @@ class MaRRTPathPlanNode:
         """트리 파라미터 조정 구간"""                
 
         start = [self.carPosX, self.carPosY, self.carPosYaw]
-        iterationNumber = 60
+        iterationNumber = 100
         
         # RRT 경로 계획에서 최대 트리 가지 길이
-        planDistance = 5.6
+        planDistance = 5.4
         
         # RRT 노드 간 이동 거리 (스텝 길이)
-        expandDistance = 0.7
+        expandDistance = 0.6
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
         expandAngle = 20
@@ -449,30 +449,30 @@ class MaRRTPathPlanNode:
         return waypoints
 
     def getDelaunayEdges(self, frontCones):
-        if len(frontCones) < 4:
+        # frontCones: TrackCone 리스트
+        # 내부에서 compressedWallObstacleList까지 합침
+        obstacles = []
+        # TrackCone 타입이면 .x/.y, 아니면 (x,y,_) 튜플 처리
+        for cone in frontCones:
+            obstacles.append((cone.x, cone.y))
+        for w in self.compressedWallObstacleList:
+            obstacles.append((w[0], w[1]))
+        if len(obstacles) < 4:
             return
 
-        conePoints = np.zeros((len(frontCones), 2))
-
-        for i in range(len(frontCones)):
-            cone = frontCones[i]
-            conePoints[i] = ([cone.x, cone.y])
-
-        tri = Delaunay(conePoints)
-
+        pts = np.array(obstacles)
+        tri = Delaunay(pts)
         delaunayEdges = []
         for simp in tri.simplices:
-
             for i in range(3):
-                j = i + 1
-                if j == 3:
-                    j = 0
-                edge = Edge(conePoints[simp[i]][0], conePoints[simp[i]][1], conePoints[simp[j]][0], conePoints[simp[j]][1])
-
+                j = (i + 1) % 3
+                x1, y1 = pts[simp[i]]
+                x2, y2 = pts[simp[j]]
+                edge = Edge(x1, y1, x2, y2)
                 if edge not in delaunayEdges:
                     delaunayEdges.append(edge)
-
         return delaunayEdges
+
 
     def dist(self, x1, y1, x2, y2, shouldSqrt = True):
         distSq = (x1 - x2) ** 2 + (y1 - y2) ** 2
