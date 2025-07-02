@@ -294,7 +294,7 @@ class MaRRTPathPlanNode:
         """트리 파라미터 조정 구간"""                
 
         start = [self.carPosX, self.carPosY, self.carPosYaw]
-        iterationNumber = 20
+        iterationNumber = 60
         
         # RRT 경로 계획에서 최대 트리 가지 길이
         planDistance = 5.6
@@ -303,7 +303,7 @@ class MaRRTPathPlanNode:
         expandDistance = 0.7
         
         # 다음 노드 생성 시 각도 제한 (회전 제한)
-        expandAngle = 25
+        expandAngle = 20
 
 
         """트리 파라미터 조정 구간""" 

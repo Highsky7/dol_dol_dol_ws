@@ -49,4 +49,7 @@
   <!-- Ublox Fix Processor 노드 -->
   <node pkg="gps_to_utm_pkg" type="ublox_fix_processor_cpp" name="ublox_fix_processor" output="screen"/>
   
+  <node pkg="gps_to_utm_pkg" type="purepursuit_cpp" name="purepursuit" output="screen"/>
+  
+
 </launch>

@@ -41,7 +41,7 @@ private:
 
     void timerCallback(const ros::TimerEvent&) {
         if (!has_latest_roi_ || latest_roi_marker_.points.empty()) {
-            ROS_WARN_THROTTLE(5, "ROI Marker 데이터가 없습니다.");
+            ROS_WARN_THROTTLE(5, "No ROI Marker.");
             return;
         }
 
