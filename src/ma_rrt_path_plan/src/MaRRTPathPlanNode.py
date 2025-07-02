@@ -185,7 +185,7 @@ class MaRRTPathPlanNode:
             x = marker.pose.position.x
             y = marker.pose.position.y
             # 각 마커 중심 좌표를 반지름 ~m 장애물로 추가
-            self.predictedEndpointObstacleList.append((x, y, 0.0))
+            self.predictedEndpointObstacleList.append((x, y, 0.6))
 
 
 

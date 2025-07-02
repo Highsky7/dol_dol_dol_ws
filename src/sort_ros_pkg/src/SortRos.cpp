@@ -158,7 +158,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
 
         // 3. 예측 경로 퍼블리싱 (PredictTrajectory 모듈 사용)
         TrackerState currentState = rect.toTrackerState();
-        int predictionSteps = 4;
+        int predictionSteps = 10;
 
         // Transition matrix is defined locally or obtained from tracker
         cv::Mat transitionMatrix = (cv::Mat_<float>(7, 7) <<
