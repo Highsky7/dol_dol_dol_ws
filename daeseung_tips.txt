@@ -76,3 +76,7 @@ MaRRTPathPlanNode
 MaRRTPathPlanNode에서 /obstacle_existence 불리안 토픽 발행 추가. (조건: 장애물 반경이 없다면 False. 델로나 삼각형 교점 안 생겨도 False)
 /gps_to_utm_pkg/scripts/purepursuit.cpp 에서 /lookahead_gps_marker
 
+/obstacle_existence 를 구독했을  때,
+트루면 /auto_steer_angle_rrt 구독.
+폴스면 /auto_steer_angle_gps 구독.
+
