@@ -31,7 +31,7 @@ doldol_motor.ino 업로드
 doldol_motor.ino 업로드
 1터미널: ra                                                     (rosrun rosserial_python serial_node.py /dev/ttyACM0 alias 처리함)
 2터미널: rosrun judgement judgement_with_vp.py
-3터미널: roslaunch camera_lane_segmentation camera.launch
+3터미널: rosrun usb_cam usb_cam_node _video_device:=/dev/video2 _image_width:=1280 _image_height:=720(roslaunch camera_lane_segmentation camera.launch) launch 에러뜨면 roscore 껐다가 다시키기
 4터미널: rosrun camera_lane_segmentation roboflow_with_ROS_PP.py
 5터미널: rv                                                     (roslaunch velodyne_pointcloud VLP16_points.launch alias 처리함)
 
