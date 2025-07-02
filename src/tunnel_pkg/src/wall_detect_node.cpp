@@ -37,7 +37,7 @@ private:
         pcl::PassThrough<pcl::PointXYZ> pass_x;
         pass_x.setInputCloud(cloud);
         pass_x.setFilterFieldName("x");
-        pass_x.setFilterLimits(0.0f, 6.0f);
+        pass_x.setFilterLimits(0.0f, 7.0f);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_x(new pcl::PointCloud<pcl::PointXYZ>);
         pass_x.filter(*cloud_roi_x);
 
@@ -45,7 +45,7 @@ private:
         pcl::PassThrough<pcl::PointXYZ> pass_y;
         pass_y.setInputCloud(cloud_roi_x);
         pass_y.setFilterFieldName("y");
-        pass_y.setFilterLimits(-3.0f, 3.0f);
+        pass_y.setFilterLimits(-2.0f, 2.0f);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_y(new pcl::PointCloud<pcl::PointXYZ>);
         pass_y.filter(*cloud_roi_y);
 
@@ -57,11 +57,11 @@ private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi(new pcl::PointCloud<pcl::PointXYZ>);
         pass_z.filter(*cloud_roi);
 
-        // 5) ApproximateVoxelGrid 다운샘플링 (leaf = 0.05m)
+        // 5) ApproximateVoxelGrid 다운샘플링 (leaf = ~m)
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_down(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxel;
         voxel.setInputCloud(cloud_roi);
-        voxel.setLeafSize(0.05f, 0.05f, 0.05f);
+        voxel.setLeafSize(0.01f, 0.01f, 0.01f);
         voxel.filter(*cloud_down);
 
         // 6) z 필터 (바닥/천장 제거)

@@ -27,7 +27,7 @@ Panels:
   - Class: rviz/Time
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: PointCloud2
 Preferences:
   PromptSaveOnExit: true
 Toolbars:
@@ -343,7 +343,7 @@ Visualization Manager:
   Global Options:
     Background Color: 48; 48; 48
     Default Light: true
-    Fixed Frame: reference
+    Fixed Frame: velodyne
     Frame Rate: 30
   Name: root
   Tools:
@@ -366,8 +366,8 @@ Visualization Manager:
   Value: true
   Views:
     Current:
-      Class: rviz/ThirdPersonFollower
-      Distance: 34.13224792480469
+      Class: rviz/Orbit
+      Distance: 24.90403938293457
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -383,9 +383,9 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.544796347618103
+      Pitch: 1.5697963237762451
       Target Frame: velodyne
-      Yaw: 3.000399112701416
+      Yaw: 3.1453990936279297
     Saved: ~
 Window Geometry:
   Displays:
