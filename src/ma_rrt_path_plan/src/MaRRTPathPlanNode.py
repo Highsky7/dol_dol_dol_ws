@@ -197,7 +197,7 @@ class MaRRTPathPlanNode:
         for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
             x, y, z = p[:3]
             # Append as a circular obstacle with radius ~m
-            self.compressedWallObstacleList.append((x, y, 0.3))
+            self.compressedWallObstacleList.append((x, y, 0.15))
 
 
 
@@ -635,13 +635,15 @@ class MaRRTPathPlanNode:
 
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
-        marker.scale.x = 0.05
+        marker.scale.x = 0.01
 
         marker.pose.orientation.w = 1
 
         marker.color.a = 1.0
         marker.color.r = 1.0
-        marker.color.b = 1.0
+        marker.color.g = 1.0
+        
+        marker.lifetime = rospy.Duration(0.1)
 
         for edge in edges:
             # print edge
@@ -769,17 +771,18 @@ class MaRRTPathPlanNode:
         marker = Marker()
         marker.header.frame_id = self.world_frame
         marker.header.stamp = rospy.Time.now()
-        marker.lifetime = rospy.Duration(0.2)
+        marker.lifetime = rospy.Duration(0.3)
         marker.ns = "publisshFilteredBranchVisual"
 
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
-        marker.scale.x = 0.07
+        marker.scale.x = 0.35
 
         marker.pose.orientation.w = 1
 
         marker.color.a = 1.0
-        marker.color.b = 1.0
+        marker.color.b = 0.8
+        marker.color.g = 0.4
 
         for i in range(len(self.filteredBestBranch)):
             node = self.filteredBestBranch[i]
@@ -811,7 +814,7 @@ class MaRRTPathPlanNode:
 
         treeMarker.pose.orientation.w = 1
 
-        treeMarker.color.a = 1.0
+        treeMarker.color.a = 0.5
         treeMarker.color.g = 0.7
 
         treeMarker.lifetime = rospy.Duration(0.2)
