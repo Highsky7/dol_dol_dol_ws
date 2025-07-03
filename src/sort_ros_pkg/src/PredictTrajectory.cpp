@@ -103,9 +103,9 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     endpointMarker.pose.orientation.z = 0.0;
     endpointMarker.pose.orientation.w = 1.0;
     // Sphere size
-    endpointMarker.scale.x = 0.3;
-    endpointMarker.scale.y = 0.3;
-    endpointMarker.scale.z = 0.3;
+    endpointMarker.scale.x = 0.38;
+    endpointMarker.scale.y = 0.38;
+    endpointMarker.scale.z = 0.38;
     // Color: yellow
     endpointMarker.color.a = 1.0;
     endpointMarker.color.r = 1.0;

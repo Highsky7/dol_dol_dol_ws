@@ -224,14 +224,14 @@ def publish_center_markers(output_dicts, pub_detected_objects, class_names):
             marker.pose.orientation.y = 0.0
             marker.pose.orientation.z = 0.0
             marker.pose.orientation.w = 1.0
-            marker.scale.x = 0.3
-            marker.scale.y = 0.3
-            marker.scale.z = 0.3
+            marker.scale.x = 0.38
+            marker.scale.y = 0.38
+            marker.scale.z = 0.38
             marker.color.a = 1.0
             marker.color.r = 0.0
             marker.color.g = 1.0
             marker.color.b = 0.0             
-            marker.lifetime = rospy.Duration(0.1)
+            marker.lifetime = rospy.Duration(0.3)
             marker_array.markers.append(marker)
 
             
