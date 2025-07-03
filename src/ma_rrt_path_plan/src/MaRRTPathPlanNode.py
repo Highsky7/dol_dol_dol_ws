@@ -197,7 +197,7 @@ class MaRRTPathPlanNode:
         for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
             x, y, z = p[:3]
             # Append as a circular obstacle with radius ~m
-            self.compressedWallObstacleList.append((x, y, 0.15))
+            self.compressedWallObstacleList.append((x, y, 0.2))
 
 
 
@@ -457,6 +457,16 @@ class MaRRTPathPlanNode:
             obstacles.append((cone.x, cone.y))
         for w in self.compressedWallObstacleList:
             obstacles.append((w[0], w[1]))
+            
+        # 디버깅 로그 추가
+        rospy.loginfo("getDelaunayEdges: cones=%d, walls=%d, total obstacles=%d", 
+                    len(frontCones), len(self.compressedWallObstacleList), len(obstacles))
+        
+        if len(obstacles) < 4:
+            rospy.loginfo("getDelaunayEdges: Not enough obstacles (< 4), skipping Delaunay")
+            return []            
+                
+            
         if len(obstacles) < 4:
             return
 
@@ -656,13 +666,88 @@ class MaRRTPathPlanNode:
 
         self.delaunayLinesVisualPub.publish(marker)
 
+    # def findBestBranch(self, leafNodes, nodeList, largerGroupFrontCones, coneObstacleSize, expandDistance, planDistance):
+    #     if not leafNodes:
+    #         return
+
+    #     coneDistLimit = 4.0
+    #     coneDistanceLimitSq = coneDistLimit * coneDistLimit;
+
+    #     bothSidesImproveFactor = 3
+    #     minAcceptableBranchRating = 90
+
+    #     leafRatings = []
+    #     for leaf in leafNodes:
+    #         branchRating = 0
+    #         node = leaf
+
+    #         while node.parent is not None:
+    #             nodeRating = 0
+
+    #             leftCones = []
+    #             rightCones = []
+
+    #             for cone in largerGroupFrontCones:
+    #                 coneDistSq = ((cone.x - node.x) ** 2 + (cone.y - node.y) ** 2)
+
+    #                 if coneDistSq < coneDistanceLimitSq:
+    #                     actualDist = math.sqrt(coneDistSq)
+
+    #                     if actualDist < coneObstacleSize:
+    #                         continue
+
+    #                     nodeRating += (coneDistLimit - actualDist)
+
+    #                     if self.isLeftCone(node, nodeList[node.parent], cone):
+    #                         leftCones.append(cone)
+    #                     else:
+    #                         rightCones.append(cone)
+
+    #             if ((len(leftCones) == 0 and len(rightCones)) > 0 or (len(leftCones) > 0 and len(rightCones) == 0)):
+    #                 nodeRating /= bothSidesImproveFactor
+
+    #             if (len(leftCones) > 0 and len(rightCones) > 0):
+    #                 nodeRating *= bothSidesImproveFactor
+
+    #             nodeFactor = (node.cost - expandDistance)/(planDistance - expandDistance) + 1
+
+    #             branchRating += nodeRating * nodeFactor
+    #             node = nodeList[node.parent]
+
+    #         leafRatings.append(branchRating)
+
+    #     maxRating = max(leafRatings)
+    #     maxRatingInd = leafRatings.index(maxRating)
+
+    #     node = leafNodes[maxRatingInd]
+
+    #     if maxRating < minAcceptableBranchRating:
+    #         return
+
+    #     self.publishBestBranchVisual(nodeList, node)
+
+    #     reverseBranch = []
+    #     reverseBranch.append(node)
+    #     while node.parent is not None:
+    #         node = nodeList[node.parent]
+    #         reverseBranch.append(node)
+
+    #     directBranch = []
+    #     for n in reversed(reverseBranch):
+    #         directBranch.append(n)
+
+    #     return directBranch
+    
+        
     def findBestBranch(self, leafNodes, nodeList, largerGroupFrontCones, coneObstacleSize, expandDistance, planDistance):
         if not leafNodes:
             return
 
         coneDistLimit = 4.0
-        coneDistanceLimitSq = coneDistLimit * coneDistLimit;
-
+        coneDistanceLimitSq = coneDistLimit * coneDistLimit
+        wallSafetyMargin = 0.35  # 벽과의 안전 거리
+        penalty_factor = 20.0   # 벽 페널티 계수
+        epsilon = 0.01           # division by zero 방지
         bothSidesImproveFactor = 3
         minAcceptableBranchRating = 90
 
@@ -673,34 +758,37 @@ class MaRRTPathPlanNode:
 
             while node.parent is not None:
                 nodeRating = 0
-
                 leftCones = []
                 rightCones = []
 
+                # 콘에 대한 점수 계산 (기존 로직)
                 for cone in largerGroupFrontCones:
                     coneDistSq = ((cone.x - node.x) ** 2 + (cone.y - node.y) ** 2)
-
                     if coneDistSq < coneDistanceLimitSq:
                         actualDist = math.sqrt(coneDistSq)
-
                         if actualDist < coneObstacleSize:
                             continue
-
                         nodeRating += (coneDistLimit - actualDist)
-
                         if self.isLeftCone(node, nodeList[node.parent], cone):
                             leftCones.append(cone)
                         else:
                             rightCones.append(cone)
 
-                if ((len(leftCones) == 0 and len(rightCones)) > 0 or (len(leftCones) > 0 and len(rightCones) == 0)):
-                    nodeRating /= bothSidesImproveFactor
+                # 벽에 대한 점수 계산 (추가 로직)
+                for wall in self.compressedWallObstacleList:
+                    wall_x, wall_y, wall_size = wall
+                    wallDistSq = (wall_x - node.x) ** 2 + (wall_y - node.y) ** 2
+                    if wallDistSq < (wall_size + wallSafetyMargin) ** 2:
+                        # 벽에 가까울수록 페널티 부여
+                        nodeRating -= penalty_factor / (wallDistSq + epsilon)
 
-                if (len(leftCones) > 0 and len(rightCones) > 0):
+                # 양쪽 콘 존재 여부에 따른 조정 (기존 로직)
+                if (len(leftCones) == 0 and len(rightCones) > 0) or (len(leftCones) > 0 and len(rightCones) == 0):
+                    nodeRating /= bothSidesImproveFactor
+                if len(leftCones) > 0 and len(rightCones) > 0:
                     nodeRating *= bothSidesImproveFactor
 
-                nodeFactor = (node.cost - expandDistance)/(planDistance - expandDistance) + 1
-
+                nodeFactor = (node.cost - expandDistance) / (planDistance - expandDistance) + 1
                 branchRating += nodeRating * nodeFactor
                 node = nodeList[node.parent]
 
@@ -708,25 +796,22 @@ class MaRRTPathPlanNode:
 
         maxRating = max(leafRatings)
         maxRatingInd = leafRatings.index(maxRating)
-
         node = leafNodes[maxRatingInd]
 
         if maxRating < minAcceptableBranchRating:
             return
 
         self.publishBestBranchVisual(nodeList, node)
-
-        reverseBranch = []
-        reverseBranch.append(node)
+        reverseBranch = [node]
         while node.parent is not None:
             node = nodeList[node.parent]
             reverseBranch.append(node)
 
-        directBranch = []
-        for n in reversed(reverseBranch):
-            directBranch.append(n)
-
+        directBranch = [n for n in reversed(reverseBranch)]
         return directBranch
+    
+    
+    
 
     def isLeftCone(self, node, parentNode, cone):
         return ((node.x - parentNode.x) * (cone.y - parentNode.y) - (node.y - parentNode.y) * (cone.x - parentNode.x)) > 0;

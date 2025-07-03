@@ -47,9 +47,12 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     trajMarker.scale.x = 0.05;
     // Color: pink
     trajMarker.color.a = 1.0;
-    trajMarker.color.r = 240.0 / 255.0;
-    trajMarker.color.g = 15.0 / 255.0;
-    trajMarker.color.b = 135.0 / 255.0;
+    trajMarker.color.r = 1;
+    trajMarker.color.g = 1;
+    trajMarker.color.b = 1;
+    // trajMarker.color.r = 240.0 / 255.0;
+    // trajMarker.color.g = 15.0 / 255.0;
+    // trajMarker.color.b = 135.0 / 255.0;
     // Identity pose (points are in the specified frame coordinates)
     trajMarker.pose.orientation.w = 1.0;
     trajMarker.pose.orientation.x = 0.0;

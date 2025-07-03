@@ -37,7 +37,7 @@ private:
         pcl::PassThrough<pcl::PointXYZ> pass_x;
         pass_x.setInputCloud(cloud);
         pass_x.setFilterFieldName("x");
-        pass_x.setFilterLimits(0.0f, 7.0f);
+        pass_x.setFilterLimits(0.0f, 8.0f);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_x(new pcl::PointCloud<pcl::PointXYZ>);
         pass_x.filter(*cloud_roi_x);
 
@@ -45,7 +45,7 @@ private:
         pcl::PassThrough<pcl::PointXYZ> pass_y;
         pass_y.setInputCloud(cloud_roi_x);
         pass_y.setFilterFieldName("y");
-        pass_y.setFilterLimits(-2.0f, 2.0f);
+        pass_y.setFilterLimits(-3.0f, 3.0f);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_y(new pcl::PointCloud<pcl::PointXYZ>);
         pass_y.filter(*cloud_roi_y);
 
@@ -61,7 +61,7 @@ private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_down(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxel;
         voxel.setInputCloud(cloud_roi);
-        voxel.setLeafSize(0.01f, 0.01f, 0.01f);
+        voxel.setLeafSize(0.1f, 0.1f, 0.1f);
         voxel.filter(*cloud_down);
 
         // 6) z 필터 (바닥/천장 제거)
@@ -84,7 +84,7 @@ private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr wall_cloud(new pcl::PointCloud<pcl::PointXYZ>);
 
         // 최소 포인트 개수 기준
-        constexpr size_t MIN_WALL_POINTS = 50;
+        constexpr size_t MIN_WALL_POINTS = 30;
 
         // 최대 10개의 평면까지 추출 시도
         for (int i = 0; i < 10; ++i) {
