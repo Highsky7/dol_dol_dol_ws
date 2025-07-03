@@ -5,3 +5,22 @@ rostopic echo /velodyne_points  # 라이다 데이터 확인
 rostopic echo /images          # 카메라 이미지 데이터 확인
 rosbag record /velodyne_points /images # 지정된 토픽
 rosbag record -a # 전체 토픽
+
+
+
+
+
+rosbag record -O sensor_raw_$(date +%y%m%d_%H%M).bag \
+  /velodyne_packets /velodyne_points /scan \
+  /velodyne_nodelet_manager/bond \
+  /velodyne_nodelet_manager_driver/parameter_descriptions \
+  /velodyne_nodelet_manager_driver/parameter_updates \
+  /velodyne_nodelet_manager_laserscan/parameter_descriptions \
+  /velodyne_nodelet_manager_laserscan/parameter_updates \
+  /velodyne_nodelet_manager_transform/parameter_descriptions \
+  /velodyne_nodelet_manager_transform/parameter_updates \
+  /ublox_gps/fix /ublox_gps/fix_velocity /ublox_gps/navclock \
+  /ublox_gps/navposecef /ublox_gps/navpvt /ublox_gps/navrelposned \
+  /ublox_gps/navsat /ublox_gps/navstatus /ublox_gps/rtcm \
+  /ublox_position_covariance /ublox_status \
+  /tf /diagnostics /rosout /rosout_agg
