@@ -57,9 +57,9 @@ if __name__ == '__main__':
     # 기본적으로 git/gnss/src/gps_to_utm_pkg/data 폴더 내에 있다고 가정합니다.
     data_dir = "src/gps_to_utm_pkg/data"
     # 예를 들어, bag 파일 이름이 "contest_data.bag"라면:
-    bag_filepath = os.path.join(data_dir, "kai_0702.bag")
+    bag_filepath = os.path.join(data_dir, "250703_1.bag")
     # 출력 CSV 파일은 course1.csv로 저장
-    output_csv = os.path.join(data_dir, "kai_0702.csv")
+    output_csv = os.path.join(data_dir, "250703_1.csv")
     
     # 만약 명령행 인자로 bag 파일 경로를 전달하고 싶다면
     if len(sys.argv) > 1:

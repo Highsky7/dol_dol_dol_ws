@@ -155,7 +155,7 @@ class MaRRTPathPlanNode:
         self.compressedWallObstacleList = []  # 기존 리스트 초기화
         for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
             x, y, z = p[:3]  # x, y, z 좌표 추출 (z는 사용 안 함)
-            self.compressedWallObstacleList.append((x, y, 0.2))  # (x, y, 반지름 0.2m) 튜플 추가
+            self.compressedWallObstacleList.append((x, y, 0.01))  # (x, y, 반지름 0.2m) 튜플 추가
 
     def sampleTree(self):
         # RRT 트리 생성 및 웨이포인트 생성 함수

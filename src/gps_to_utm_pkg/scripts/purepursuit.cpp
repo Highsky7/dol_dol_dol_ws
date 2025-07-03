@@ -8,7 +8,7 @@
 
 class PurePursuit {
 public:
-    PurePursuit() : lookahead_distance_(3.0), wheelbase_(0.75), has_latest_roi_(false) {
+    PurePursuit() : lookahead_distance_(3.5), wheelbase_(0.75), has_latest_roi_(false) {
         // 파라미터: lookahead distance와 차량 휠베이스 (단위: 미터)
         // ROI Marker를 구독하여 최신 데이터를 저장
         roi_sub_ = nh_.subscribe("roi_path_marker", 10, &PurePursuit::roiCallback, this);
