@@ -79,7 +79,11 @@ class LaneFollowerNode:
 
         # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.003015625, 1.8, 0.002734375 # for bev_params_1.npz
         # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.004015625, 1.83, 0.00278125 # for bev_params_2.npz
-        self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.00309375, 1.98, 0.00375 # for bev_params_3.npz
+        # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.00309375, 1.98, 0.00375 # for bev_params_3.npz
+        # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.004265625, 2.93, 0.004046875 # for bev_params_manual.npz
+        # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.00421875, 2.88, 0.003640625 # for bev_params_4.npz
+        # self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.00421875, 2.88, 0.003640625 # for bev_params_5.npz
+        self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.002796875, 1.39, 0.002984375 # for bev_params_y_5.npz
 
         # --- LANE TRACKING PARAMETERS ---
         self.tracked_lanes = {'left': {'coeff': None, 'age': 0}, 'right': {'coeff': None, 'age': 0}}
@@ -90,7 +94,7 @@ class LaneFollowerNode:
         # --- PURE PURSUIT PARAMETERS ---
         # *** Need to be tuned with real world parameters ***
         self.L = 0.73  # Wheelbase in meters
-        self.lookahead_distance = 3.7 # Lookahead distance in meters
+        self.lookahead_distance = 1.6 # Lookahead distance in meters
 
         self.pub_steering = rospy.Publisher('auto_steer_angle_lane', Float32, queue_size=1)
         self.pub_lane_status = rospy.Publisher('lane_detection_status', Bool, queue_size=1)
@@ -285,7 +289,7 @@ def main():
     parser.add_argument('--img-size', type=int, default=640)
     parser.add_argument('--conf-thres', type=float, default=0.6)
     parser.add_argument('--iou-thres', type=float, default=0.5)
-    parser.add_argument('--param-file', type=str, default='./bev_params_3.npz')
+    parser.add_argument('--param-file', type=str, default='./bev_params_y_5.npz')
     opt, _ = parser.parse_known_args()
 
     node = LaneFollowerNode(opt)
