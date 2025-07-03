@@ -114,11 +114,11 @@ class MaRRTPathPlanNode:
             marker.scale.x = radius * 2.0  # 구의 x 지름 (반지름 * 2)
             marker.scale.y = radius * 2.0  # 구의 y 지름
             marker.scale.z = 0.1  # z는 얇게 (평면 표시)
-            marker.color.a = 0.2  # 투명도
+            marker.color.a = 0.5  # 투명도
             marker.color.r = 1.0  # 빨간색
             marker.color.g = 0.65  # 주황빛
             marker.color.b = 0.0  # 파란색 없음
-            marker.lifetime = rospy.Duration(0.2)  # 마커 지속 시간 (0.2초)
+            marker.lifetime = rospy.Duration(0.2)  # 마커 지속 시간
             markerArray.markers.append(marker)
         self.obstacleVisualPub.publish(markerArray)  # 마커 발행
 
@@ -238,7 +238,7 @@ class MaRRTPathPlanNode:
         iterationNumber = 100  # 최대 반복 횟수
         planDistance = 5.4  # 최대 트리 확장 거리 (미터)
         expandDistance = 0.6  # 노드 간 이동 거리 (스텝 크기)
-        expandAngle = 20  # 노드 생성 시 각도 제한 (도)
+        expandAngle = 20  # 노드 생성 각도 (도)
 
         # RRT 객체 생성 및 경로 계획 실행
         rrt = ma_rrt.RRT(start, planDistance, obstacleList=obstacleList, expandDis=expandDistance, turnAngle=expandAngle, maxIter=iterationNumber, rrtTargets=rrtTarget)
@@ -575,7 +575,7 @@ class MaRRTPathPlanNode:
         marker.action = marker.ADD
         marker.scale.x = 0.01
         marker.pose.orientation.w = 1
-        marker.color.a = 1.3
+        marker.color.a = 0.7
         marker.color.r = 1.0
         marker.color.g = 1.0
         marker.lifetime = rospy.Duration(0.1)
@@ -624,7 +624,7 @@ class MaRRTPathPlanNode:
         marker.action = marker.ADD
         marker.scale.x = 0.7
         marker.pose.orientation.w = 1
-        marker.color.a = 0.6
+        marker.color.a = 0.7
         marker.color.r = 0.0
         marker.color.g = 122.0 / 255.0
         marker.color.b = 204.0 / 255.0
@@ -650,7 +650,7 @@ class MaRRTPathPlanNode:
         treeMarker.action = treeMarker.ADD
         treeMarker.scale.x = 0.03
         treeMarker.pose.orientation.w = 1
-        treeMarker.color.a = 0.5
+        treeMarker.color.a = 0.7
         treeMarker.color.r = 0.0
         treeMarker.color.g = 122.0 / 255.0
         treeMarker.color.b = 204.0 / 255.0
@@ -673,7 +673,7 @@ class MaRRTPathPlanNode:
         leavesMarker.scale.x = 0.05
         leavesMarker.scale.y = 0.05
         leavesMarker.scale.z = 0.05
-        leavesMarker.color.a = 0.5
+        leavesMarker.color.a = 0.7
         leavesMarker.color.r = 0.0
         leavesMarker.color.g = 122.0 / 255.0
         leavesMarker.color.b = 204.0 / 255.0

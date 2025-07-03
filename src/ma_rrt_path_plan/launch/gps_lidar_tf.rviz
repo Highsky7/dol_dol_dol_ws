@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /Global Options1
+        - /Grid1
         - /MarkerArray1
         - /MarkerArray2
         - /MarkerArray3
@@ -13,14 +14,17 @@ Panels:
         - /MarkerArray6
         - /Marker1
         - /MarkerArray7
+        - /Axes1
         - /MarkerArray8
         - /Marker3
         - /Marker4
         - /MarkerArray9
         - /Marker5
         - /Marker6
+        - /Axes2
+        - /Axes3
       Splitter Ratio: 0.46347030997276306
-    Tree Height: 826
+    Tree Height: 363
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -49,7 +53,7 @@ Visualization Manager:
     - Alpha: 0.5
       Cell Size: 1
       Class: rviz/Grid
-      Color: 160; 160; 164
+      Color: 85; 87; 83
       Enabled: true
       Line Style:
         Line Width: 0.029999999329447746
@@ -62,7 +66,7 @@ Visualization Manager:
         Z: 0
       Plane: XY
       Plane Cell Count: 10
-      Reference Frame: <Fixed Frame>
+      Reference Frame: velodyne
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
@@ -154,8 +158,7 @@ Visualization Manager:
       Marker Topic: /visual/waypoints
       Name: MarkerArray
       Namespaces:
-        new-publishWaypointsVisuals: true
-        saved-publishWaypointsVisuals: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -204,34 +207,19 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz/Axes
       Enabled: true
-      Length: 1
+      Length: 0.5
       Name: Axes
       Radius: 0.009999999776482582
       Reference Frame: antenna
       Show Trail: false
       Value: true
-    - Alpha: 1
-      Class: rviz/Axes
-      Enabled: true
-      Length: 1
-      Name: Axes
-      Radius: 0.10000000149011612
-      Reference Frame: <Fixed Frame>
-      Show Trail: false
-      Value: true
     - Class: rviz/TF
-      Enabled: true
+      Enabled: false
       Filter (blacklist): ""
       Filter (whitelist): ""
       Frame Timeout: 15
       Frames:
         All Enabled: true
-        antenna:
-          Value: true
-        reference:
-          Value: true
-        velodyne:
-          Value: true
       Marker Alpha: 1
       Marker Scale: 1
       Name: TF
@@ -239,12 +227,9 @@ Visualization Manager:
       Show Axes: true
       Show Names: true
       Tree:
-        reference:
-          antenna:
-            velodyne:
-              {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -322,7 +307,7 @@ Visualization Manager:
       Marker Topic: /lookahead_rrt_marker
       Name: Marker
       Namespaces:
-        lookahead: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -346,12 +331,30 @@ Visualization Manager:
       Marker Topic: /visual/filtered_tree_branch
       Name: Marker
       Namespaces:
-        publisshFilteredBranchVisual: true
+        {}
       Queue Size: 100
+      Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 0.699999988079071
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: velodyne
+      Show Trail: false
+      Value: true
+    - Alpha: 1
+      Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: reference
+      Show Trail: false
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 48; 48; 48
+    Background Color: 20; 20; 20
     Default Light: true
     Fixed Frame: velodyne
     Frame Rate: 30
@@ -377,7 +380,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 27.473604202270508
+      Distance: 22.783414840698242
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -385,17 +388,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 3.040132761001587
-        Y: 0.07051726430654526
-        Z: -1.5059770345687866
+        X: 3.4028127193450928
+        Y: -0.2212754189968109
+        Z: -1.5056134462356567
       Focal Shape Fixed Size: false
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5597963333129883
+      Pitch: 1.5697963237762451
       Target Frame: velodyne
-      Yaw: 3.140397071838379
+      Yaw: 3.1353719234466553
     Saved: ~
 Window Geometry:
   Displays:
