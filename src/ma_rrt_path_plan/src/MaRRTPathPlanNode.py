@@ -575,7 +575,7 @@ class MaRRTPathPlanNode:
         marker.action = marker.ADD
         marker.scale.x = 0.01
         marker.pose.orientation.w = 1
-        marker.color.a = 0.3
+        marker.color.a = 1.3
         marker.color.r = 1.0
         marker.color.g = 1.0
         marker.lifetime = rospy.Duration(0.1)

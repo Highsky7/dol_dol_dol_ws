@@ -30,7 +30,7 @@ void cloudCallback(const sensor_msgs::PointCloud2ConstPtr& input)
     pcl::PointCloud<pcl::PointXYZ> cloud_filtered;
     pcl::ApproximateVoxelGrid<pcl::PointXYZ> sor;
     sor.setInputCloud(cloud.makeShared());
-    sor.setLeafSize(0.5f, 0.5f, 0.5f);
+    sor.setLeafSize(0.3f, 0.3f, 0.3f);
     sor.filter(cloud_filtered);
 
     // 5) 다시 PointCloud2로 변환 후 퍼블리시

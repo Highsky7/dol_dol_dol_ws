@@ -33,23 +33,23 @@ private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*cloud_msg, *cloud);
 
-        // 2) ROI 필터1: 0 < x < 6
+        // 2) ROI 필터1: x
         pcl::PassThrough<pcl::PointXYZ> pass_x;
         pass_x.setInputCloud(cloud);
         pass_x.setFilterFieldName("x");
-        pass_x.setFilterLimits(0.0f, 8.0f);
+        pass_x.setFilterLimits(0.0f, 6.0f);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_x(new pcl::PointCloud<pcl::PointXYZ>);
         pass_x.filter(*cloud_roi_x);
 
-        // 3) ROI 필터2: -3 < y < 3
+        // 3) ROI 필터2: y
         pcl::PassThrough<pcl::PointXYZ> pass_y;
         pass_y.setInputCloud(cloud_roi_x);
         pass_y.setFilterFieldName("y");
-        pass_y.setFilterLimits(-3.0f, 3.0f);
+        pass_y.setFilterLimits(-2.0f, 2.0f);
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_roi_y(new pcl::PointCloud<pcl::PointXYZ>);
         pass_y.filter(*cloud_roi_y);
 
-        // 4) ROI 필터3: -1 < z < 2
+        // 4) ROI 필터3: z
         pcl::PassThrough<pcl::PointXYZ> pass_z;
         pass_z.setInputCloud(cloud_roi_y);
         pass_z.setFilterFieldName("z");
@@ -61,7 +61,7 @@ private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_down(new pcl::PointCloud<pcl::PointXYZ>);
         pcl::ApproximateVoxelGrid<pcl::PointXYZ> voxel;
         voxel.setInputCloud(cloud_roi);
-        voxel.setLeafSize(0.1f, 0.1f, 0.1f);
+        voxel.setLeafSize(0.25f, 0.25f, 0.25f);
         voxel.filter(*cloud_down);
 
         // 6) z 필터 (바닥/천장 제거)
@@ -77,8 +77,8 @@ private:
         seg.setOptimizeCoefficients(true);
         seg.setModelType(pcl::SACMODEL_PLANE);
         seg.setMethodType(pcl::SAC_RANSAC);
-        seg.setMaxIterations(60);
-        seg.setDistanceThreshold(0.02);
+        seg.setMaxIterations(1000);
+        seg.setDistanceThreshold(0.03);
 
         pcl::ExtractIndices<pcl::PointXYZ> extract;
         pcl::PointCloud<pcl::PointXYZ>::Ptr wall_cloud(new pcl::PointCloud<pcl::PointXYZ>);
@@ -104,10 +104,10 @@ private:
             plane_normal.normalize();
             float nz = plane_normal[2];
             const float cos_60 = 0.5f;
-            const float cos_70 = 0.3420f;
-            const float cos_75 = 0.2588f;
-            const float cos_80 = 0.1736f;
-            const float cos_85 = 0.0871f;
+            const float cos_70 = 0.34; // 0.3420f;
+            const float cos_75 = 0.26; // 0.2588f;
+            const float cos_80 = 0.17; // 0.1736f;
+            const float cos_85 = 0.09; // 0.0871f;
             const float cos_90 = 0.0f;
             bool isWall = (std::fabs(nz) < cos_80);
 
