@@ -23,7 +23,7 @@ doldol_motor.ino 업로드
 
 
 --------------------------------------------
-<테스트용 묶음 런치파일> 07.01 ver
+<테스트용 묶음 런치파일> 07.03 ver
 
 터미널 8개 필요(대승이 gps코드 cpp수정 버전)
 ***--- 주행 전 항상 .ros폴더 내의 log폴더 삭제---***
@@ -38,5 +38,5 @@ doldol_motor.ino 업로드
 6터미널: roslaunch ublox_gps ublox_zed-f9p.launch               (GPS on)
 7터미널: roslaunch ntrip_ros ntrip_ros.launch                   (핫스팟 연결되고 받아오기 on)
 
-8터미널: 가상환경(dol) roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 9, 10, 12 on)
-9터미널: 가상환경(dol) rosrun gps_to_utm_pkg purepursuit_cpp
+8터미널: 가상환경(dol) roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 9, 10, 12, 13 on)
+9터미널: 가상환경(dol) roslaunch sort_ros_pkg sort_ros_node.launch
