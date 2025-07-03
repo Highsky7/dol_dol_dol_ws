@@ -575,7 +575,7 @@ class MaRRTPathPlanNode:
         marker.action = marker.ADD
         marker.scale.x = 0.01
         marker.pose.orientation.w = 1
-        marker.color.a = 1.0
+        marker.color.a = 0.3
         marker.color.r = 1.0
         marker.color.g = 1.0
         marker.lifetime = rospy.Duration(0.1)
@@ -624,7 +624,7 @@ class MaRRTPathPlanNode:
         marker.action = marker.ADD
         marker.scale.x = 0.7
         marker.pose.orientation.w = 1
-        marker.color.a = 1.0
+        marker.color.a = 0.6
         marker.color.r = 0.0
         marker.color.g = 122.0 / 255.0
         marker.color.b = 204.0 / 255.0
@@ -651,7 +651,9 @@ class MaRRTPathPlanNode:
         treeMarker.scale.x = 0.03
         treeMarker.pose.orientation.w = 1
         treeMarker.color.a = 0.5
-        treeMarker.color.g = 0.7
+        treeMarker.color.r = 0.0
+        treeMarker.color.g = 122.0 / 255.0
+        treeMarker.color.b = 204.0 / 255.0
         treeMarker.lifetime = rospy.Duration(0.2)
         for node in nodeList:
             if node.parent is not None:
@@ -668,11 +670,13 @@ class MaRRTPathPlanNode:
         leavesMarker.type = leavesMarker.SPHERE_LIST
         leavesMarker.action = leavesMarker.ADD
         leavesMarker.pose.orientation.w = 1
-        leavesMarker.scale.x = 0.15
-        leavesMarker.scale.y = 0.15
-        leavesMarker.scale.z = 0.15
-        leavesMarker.color.a = 1.0
-        leavesMarker.color.b = 0.1
+        leavesMarker.scale.x = 0.05
+        leavesMarker.scale.y = 0.05
+        leavesMarker.scale.z = 0.05
+        leavesMarker.color.a = 0.5
+        leavesMarker.color.r = 0.0
+        leavesMarker.color.g = 122.0 / 255.0
+        leavesMarker.color.b = 204.0 / 255.0
         for node in leafNodes:
             p = Point(node.x, node.y, 0)
             leavesMarker.points.append(p)
