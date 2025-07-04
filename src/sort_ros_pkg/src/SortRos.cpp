@@ -32,7 +32,7 @@ void SortRos::setup(void) {
     // 구독 및 퍼블리셔 초기화
     SortRos::sub = nh.subscribe<visualization_msgs::MarkerArray>("/detected_2D_Box", 1, SortRos::rectArrayCallback);
     SortRos::pub = nh.advertise<visualization_msgs::MarkerArray>("/tracked_3D_Box", 1);
-    SortRos::pub_text = nh.advertise<visualization_msgs::MarkerArray>("/tracked_vx_vy", 1);
+    SortRos::pub_text = nh.advertise<visualization_msgs::MarkerArray>("/realtive_velodyne_vx_vy", 1);
     SortRos::pub_pred = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectory", 1);
     SortRos::pub_pred_endpoint = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectory_endpoint", 1);
     SortRos::pub_tracks = nh.advertise<dynamic_static_pkg::TrackedObjects>("/tracked_objects", 1);
@@ -132,7 +132,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textMarker.header.stamp = ros::Time::now();
         textMarker.header.frame_id = frame_id;
         textMarker.frame_locked = true;
-        textMarker.ns = "tracked_vx_vy";
+        textMarker.ns = "relative_velodyne_vx_vy";
         textMarker.id = rect.id;
         textMarker.action = visualization_msgs::Marker::ADD;
         textMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
@@ -144,7 +144,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textMarker.pose.orientation.z = 0.0;
         textMarker.pose.orientation.w = 1.0;
         std::stringstream ss;
-        ss << "vx: " << vx << "\nvy: " << vy;
+        ss << "vx" << vx << "\nvy" << vy;
         textMarker.text = ss.str();
         textMarker.color.a = 1.0;
         textMarker.color.r = 1.0;

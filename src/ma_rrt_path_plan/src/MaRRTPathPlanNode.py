@@ -237,7 +237,7 @@ class MaRRTPathPlanNode:
         start = [self.carPosX, self.carPosY, self.carPosYaw]  # 시작 위치 (차량 위치 및 방향)
         iterationNumber = 100  # 최대 반복 횟수
         planDistance = 5.4  # 최대 트리 확장 거리 (미터)
-        expandDistance = 0.6  # 노드 간 이동 거리 (스텝 크기)
+        expandDistance = 0.3  # 노드 간 이동 거리 (스텝 크기)
         expandAngle = 20  # 노드 생성 각도 (도)
 
         # RRT 객체 생성 및 경로 계획 실행
