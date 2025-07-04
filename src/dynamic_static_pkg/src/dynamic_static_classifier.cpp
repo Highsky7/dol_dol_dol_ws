@@ -146,13 +146,13 @@ private:
       text_marker.id = tracks->id[i];
       text_marker.action = visualization_msgs::Marker::ADD;
       text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-      text_marker.pose.position.x = tracks->center[i].x;
-      text_marker.pose.position.y = tracks->center[i].y;
-      text_marker.pose.position.z = tracks->center[i].z + 10.;
+      text_marker.pose.position.x = tracks->center[i].x - 0.4 ;
+      text_marker.pose.position.y = tracks->center[i].y + 1.2 ;
+      text_marker.pose.position.z = tracks->center[i].z + 0.5 ;
       text_marker.pose.orientation.w = 1.0;
       std::stringstream ss;
-      ss << "abs_vx: " << std::fixed << std::setprecision(2) << abs_vx
-         << "\nabs_vy: " << std::fixed << std::setprecision(2) << abs_vy;
+      ss << "abs_vx: " << std::fixed << std::setprecision(3) << abs_vx
+         << "\nabs_vy: " << std::fixed << std::setprecision(3) << abs_vy;
       text_marker.text = ss.str();
       text_marker.color.a = 1.0;
       text_marker.color.r = 1.0;
