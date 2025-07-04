@@ -176,8 +176,9 @@ def detect_and_publish(opt, pub_steering, pub_lane_status):
     bev_params = np.load(bev_param_file)
     
     # m_per_pixel_y, y_offset_m, m_per_pixel_x = 0.003015625, 1.8, 0.002734375 # for bev_params_1.npz
-    m_per_pixel_y, y_offset_m, m_per_pixel_x = 0.004015625, 1.83, 0.00278125 # for bev_params_2.npz
-    
+    # m_per_pixel_y, y_offset_m, m_per_pixel_x = 0.004015625, 1.83, 0.00278125 # for bev_params_2.npz
+    m_per_pixel_y, y_offset_m, m_per_pixel_x = 0.00309375, 1.98, 0.00375 # for bev_params_3.npz
+
     # --- 차선 및 경로 추적 상태 변수 ---
     tracked_lanes = {'left': {'coeff': None, 'age': 0}, 'right': {'coeff': None, 'age': 0}}
     tracked_center_path = {'coeff': None}
