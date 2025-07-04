@@ -2,8 +2,8 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <geometry_msgs/Point.h>
+#include <cmath>
 
-// Define static members
 ros::NodeHandle* TrajectoryPredictor::nh_pred = nullptr;
 ros::Publisher TrajectoryPredictor::pub_pred_traj;
 ros::Publisher TrajectoryPredictor::pub_pred_endpoint;
@@ -11,9 +11,7 @@ bool TrajectoryPredictor::initialized = false;
 
 void TrajectoryPredictor::initPublishers() {
     if (!initialized) {
-        // Create a NodeHandle for this predictor (will use the existing ROS node context)
         nh_pred = new ros::NodeHandle();
-        // Advertise the predicted trajectory and endpoint topics
         pub_pred_traj = nh_pred->advertise<visualization_msgs::MarkerArray>("/predicted_trajectory", 1);
         pub_pred_endpoint = nh_pred->advertise<visualization_msgs::MarkerArray>("/predicted_trajectory_endpoint", 1);
         initialized = true;
@@ -25,15 +23,12 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
                                                      int steps,
                                                      int track_id,
                                                      const std::string& frame_id) {
-    // Ensure publishers are initialized
     if (!initialized) {
         initPublishers();
     }
 
-    // Predict future states of the object
-    std::vector<TrackerState> predictedStates = TrajectoryPredictor::predictTrajectory(currentState, transitionMatrix, steps);
+    std::vector<TrackerState> predictedStates = predictTrajectory(currentState, transitionMatrix, steps);
 
-    // Prepare LINE_STRIP marker for the predicted trajectory
     visualization_msgs::Marker trajMarker;
     trajMarker.header.stamp = ros::Time::now();
     trajMarker.header.frame_id = frame_id;
@@ -43,17 +38,11 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     trajMarker.action = visualization_msgs::Marker::ADD;
     trajMarker.lifetime = ros::Duration(0.2);
     trajMarker.frame_locked = true;
-    // Line width
     trajMarker.scale.x = 0.05;
-    // Color: pink
     trajMarker.color.a = 1.0;
-    trajMarker.color.r = 1;
-    trajMarker.color.g = 1;
-    trajMarker.color.b = 1;
-    // trajMarker.color.r = 240.0 / 255.0;
-    // trajMarker.color.g = 15.0 / 255.0;
-    // trajMarker.color.b = 135.0 / 255.0;
-    // Identity pose (points are in the specified frame coordinates)
+    trajMarker.color.r = 1.0;
+    trajMarker.color.g = 1.0;
+    trajMarker.color.b = 1.0;
     trajMarker.pose.orientation.w = 1.0;
     trajMarker.pose.orientation.x = 0.0;
     trajMarker.pose.orientation.y = 0.0;
@@ -61,13 +50,13 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     trajMarker.pose.position.x = 0.0;
     trajMarker.pose.position.y = 0.0;
     trajMarker.pose.position.z = 0.0;
-    // Start the trajectory at the current object position
+
     geometry_msgs::Point pt;
     pt.x = currentState.centerX;
     pt.y = currentState.centerY;
     pt.z = 0.0;
     trajMarker.points.push_back(pt);
-    // Append predicted future positions to the trajectory
+
     for (const TrackerState& predState : predictedStates) {
         pt.x = predState.centerX;
         pt.y = predState.centerY;
@@ -75,10 +64,6 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
         trajMarker.points.push_back(pt);
     }
 
-
-
-    
-    // Prepare SPHERE marker for the endpoint of the predicted trajectory
     visualization_msgs::Marker endpointMarker;
     endpointMarker.header.stamp = ros::Time::now();
     endpointMarker.header.frame_id = frame_id;
@@ -88,7 +73,6 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     endpointMarker.action = visualization_msgs::Marker::ADD;
     endpointMarker.lifetime = ros::Duration(0.2);
     endpointMarker.frame_locked = true;
-    // Position the sphere at the last predicted point (or current position if no prediction)
     if (!predictedStates.empty()) {
         const TrackerState& finalState = predictedStates.back();
         endpointMarker.pose.position.x = finalState.centerX;
@@ -102,17 +86,14 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     endpointMarker.pose.orientation.y = 0.0;
     endpointMarker.pose.orientation.z = 0.0;
     endpointMarker.pose.orientation.w = 1.0;
-    // Sphere size
     endpointMarker.scale.x = 0.38;
     endpointMarker.scale.y = 0.38;
     endpointMarker.scale.z = 0.38;
-    // Color: yellow
     endpointMarker.color.a = 1.0;
     endpointMarker.color.r = 1.0;
     endpointMarker.color.g = 1.0;
     endpointMarker.color.b = 0.0;
 
-    // Publish the markers using MarkerArray messages (one for each topic)
     visualization_msgs::MarkerArray trajArray;
     trajArray.markers.push_back(trajMarker);
     visualization_msgs::MarkerArray endpointArray;
@@ -125,21 +106,21 @@ std::vector<TrackerState> TrajectoryPredictor::predictTrajectory(const TrackerSt
                                                                  const cv::Mat& transitionMatrix,
                                                                  int steps) {
     std::vector<TrackerState> trajectory;
-    // Initialize the state vector (7x1) from current state: 
-    // [0]: centerX, [1]: centerY, [2]: area, [3]: aspectRatio, [4]: vx, [5]: vy, [6]: area_change_rate
-    cv::Mat state = cv::Mat::zeros(7, 1, CV_32F);
+    cv::Mat state = cv::Mat::zeros(8, 1, CV_32F);
     state.at<float>(0, 0) = currentState.centerX;
     state.at<float>(1, 0) = currentState.centerY;
     state.at<float>(2, 0) = currentState.area;
     state.at<float>(3, 0) = currentState.aspectRatio;
     state.at<float>(4, 0) = currentState.vx;
     state.at<float>(5, 0) = currentState.vy;
-    state.at<float>(6, 0) = 0.0f;  // assume no immediate area change unless provided
+    state.at<float>(6, 0) = currentState.d;
+    state.at<float>(7, 0) = currentState.vd;
 
-    // Apply the transition matrix repeatedly for 'steps' future frames
+    float prev_vx = currentState.vx;
+    float prev_vy = currentState.vy;
+
     for (int i = 0; i < steps; ++i) {
         state = transitionMatrix * state;
-        // Convert the predicted state vector back to TrackerState structure
         TrackerState predicted;
         predicted.centerX     = state.at<float>(0, 0);
         predicted.centerY     = state.at<float>(1, 0);
@@ -147,7 +128,32 @@ std::vector<TrackerState> TrajectoryPredictor::predictTrajectory(const TrackerSt
         predicted.aspectRatio = state.at<float>(3, 0);
         predicted.vx          = state.at<float>(4, 0);
         predicted.vy          = state.at<float>(5, 0);
-        // (Note: area_change_rate at index 6 is not stored in TrackerState in this implementation)
+        predicted.d           = state.at<float>(6, 0);
+        predicted.vd          = state.at<float>(7, 0);
+
+        // 회전 여부 판단
+        float dot_product = prev_vx * predicted.vx + prev_vy * predicted.vy;
+        float mag_prev = std::sqrt(prev_vx * prev_vx + prev_vy * prev_vy);
+        float mag_curr = std::sqrt(predicted.vx * predicted.vx + predicted.vy * predicted.vy);
+        float cos_theta = (mag_prev > 0 && mag_curr > 0) ? dot_product / (mag_prev * mag_curr) : 1.0f;
+        float angular_change = std::acos(std::max(-1.0f, std::min(1.0f, cos_theta)));
+
+        // 정규화 비율 조정
+        float normalization_factor;
+        if (angular_change > 0.1f && predicted.d > 0) { // 회전 운동
+            normalization_factor = 1.0f / predicted.d; // 강한 정규화
+        } else { // 직선 운동
+            normalization_factor = 1.0f / std::sqrt(predicted.d + 1.0f); // 약한 정규화
+        }
+
+        if (predicted.d > 0) {
+            predicted.vx *= normalization_factor;
+            predicted.vy *= normalization_factor;
+        }
+
+        prev_vx = predicted.vx;
+        prev_vy = predicted.vy;
+
         trajectory.push_back(predicted);
     }
 
