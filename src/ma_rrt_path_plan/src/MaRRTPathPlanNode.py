@@ -414,7 +414,7 @@ class MaRRTPathPlanNode:
             node2 = filteredBranch[i + 1]
             a1 = np.array([node1.x, node1.y])  # 경로 시작점
             a2 = np.array([node2.x, node2.y])  # 경로 끝점
-            maxAcceptedEdgeLength = 7  # 최대 허용 에지 길이
+            maxAcceptedEdgeLength = 5  # 최대 허용 에지 길이
             maxEdgePartsRatio = 3  # 에지 분할 비율 제한
             intersectedEdges = []
             for edge in delaunayEdges:
