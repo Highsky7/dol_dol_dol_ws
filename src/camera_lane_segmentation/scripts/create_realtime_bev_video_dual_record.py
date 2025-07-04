@@ -44,7 +44,7 @@ def make_parser():
                         default='2',
                         help='카메라 인덱스. 일반적으로 내장 카메라는 "0", 외부 카메라는 "1" 등. 예: 0')
     parser.add_argument('--img-size', type=int, default=640, help='처리할 이미지 해상도 (LoadCamera 클래스에 전달)')
-    parser.add_argument('--param-file', type=str, default='/home/highsky/dol_dol_dol_ws/bev_params_3.npz', help='BEV 파라미터 파일 경로. 예: ./bev_params_1.npz')
+    parser.add_argument('--param-file', type=str, default='/home/highsky/dol_dol_dol_ws/bev_params_y_5.npz', help='BEV 파라미터 파일 경로. 예: ./bev_params_1.npz')
     parser.add_argument('--output-dir', type=str, default='runs/bev_output', help='결과 영상이 저장될 폴더')
     return parser
 
