@@ -41,7 +41,7 @@ def make_parser():
     """
     parser = argparse.ArgumentParser(description="영상 파일을 BEV(Bird's-Eye-View) 영상으로 변환하고 저장하는 스크립트")
     parser.add_argument('--source', type=str,
-                        default='/home/highsky/Downloads/bev추가데이터.mp4',
+                        default='/home/highsky/Downloads/2025-06-29-144725.mp4',
                         help='변환할 원본 영상 파일 경로. 예: /path/to/video.mp4')
     parser.add_argument('--img-size', type=int, default=640, help='처리할 이미지 해상도 (LoadImages 클래스에 전달)')
     parser.add_argument('--param-file', type=str, default='./bev_params_3.npz', help='BEV 파라미터 파일 경로. 예: ./bev_params_1.npz')
@@ -96,7 +96,11 @@ def bev_transform_and_save(opt):
         # 첫 프레임에서 VideoWriter 초기화
         if not opt.nosave and writer is None:
             fps = vid_cap.get(cv2.CAP_PROP_FPS)
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+            # =================================================================
+            # ★★★ H.264 코덱으로 변경 ★★★
+            # 'mp4v' 대신 'avc1' 또는 'h264' 사용. 'avc1'이 mp4와 호환성이 더 좋음.
+            # =================================================================
+            fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H.264 코덱
             writer = cv2.VideoWriter(str(output_path), fourcc, fps, (output_w, output_h))
         
         # `im0s`가 이미 비율 유지 리사이즈가 완료된 프레임임
@@ -123,7 +127,7 @@ def bev_transform_and_save(opt):
         vid_cap.release()
     if writer is not None:
         writer.release()
-        print("\n\n[완료] BEV 영상 변환 및 저장이 완료되었습니다.")
+        print("\n\n[완료] H.264 코덱으로 BEV 영상 변환 및 저장이 완료되었습니다.")
         print(f"결과물은 '{output_path}'에서 확인하실 수 있습니다.")
     else:
         print("\n\n[완료] 영상 처리가 종료되었습니다.")
