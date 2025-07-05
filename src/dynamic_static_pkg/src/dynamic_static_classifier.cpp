@@ -7,6 +7,8 @@
 #include <cmath>
 #include <set>
 #include <map>
+#include <iomanip>       
+#include <boost/bind.hpp>
 
 using namespace message_filters;
 
@@ -14,7 +16,7 @@ class DynamicStaticClassifier
 {
 public:
   DynamicStaticClassifier()
-    : v_thresh_(0.9),
+    : v_thresh_(0.8),
       have_vel_(false),
       global_yaw_(0.0),
       alpha_(0.05), // EMA 필터 강도 강화
@@ -24,7 +26,9 @@ public:
       prev_auto_throttle_(0.0),      // 추가: 이전 오토쓰로틀 값
       have_auto_throttle_(false),     // 추가: 오토쓰로틀 수신 여부
       weight_x_(0.5), // 추가: x축 속도 가중치
-      weight_y_(30.0)  // 추가: y축 속도 가중치
+      weight_y_(30.0),  // 추가: y축 속도 가중치
+      roi_x_min_(0.0),  roi_x_max_(5.0),
+      roi_y_min_(-2.5), roi_y_max_(2.5)   // NEW
   {
     ros::NodeHandle pnh("~");
     pnh.param("v_thresh", v_thresh_, v_thresh_);
@@ -102,6 +106,15 @@ private:
 
     for (size_t i = 0; i < tracks->id.size(); ++i)
     {
+      const auto& center = tracks->center[i];
+
+      bool in_roi =
+          center.x >= roi_x_min_ && center.x <= roi_x_max_ &&
+          center.y >= roi_y_min_ && center.y <= roi_y_max_;   // 수정
+      if (!in_roi) {
+        ROS_DEBUG("ID %d skipped (out of ROI)", tracks->id[i]);
+        continue;
+      }
       float obj_vx = tracks->vx[i];
       float obj_vy = tracks->vy[i];
 
@@ -210,6 +223,8 @@ private:
   bool have_auto_throttle_;          // 추가
   float weight_x_;                   // 추가: x축 속도 가중치
   float weight_y_;                   // 추가: y축 속도 가중치
+  double roi_x_min_, roi_x_max_;
+  double roi_y_min_, roi_y_max_;   // NEW
 };
 
 int main(int argc, char** argv)
