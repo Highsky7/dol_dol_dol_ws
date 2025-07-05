@@ -32,7 +32,7 @@ void SortRos::setup(void) {
     // 구독 및 퍼블리셔 초기화
     SortRos::sub = nh.subscribe<visualization_msgs::MarkerArray>("/detected_2D_Box", 1, SortRos::rectArrayCallback);
     SortRos::pub = nh.advertise<visualization_msgs::MarkerArray>("/tracked_3D_Box", 1);
-    SortRos::pub_text = nh.advertise<visualization_msgs::MarkerArray>("/realtive_velodyne_vx_vy", 1);
+    SortRos::pub_text = nh.advertise<visualization_msgs::MarkerArray>("/relative_velodyne_vx_vy", 1);
     SortRos::pub_pred = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectory", 1);
     SortRos::pub_pred_endpoint = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectory_endpoint", 1);
     SortRos::pub_tracks = nh.advertise<dynamic_static_pkg::TrackedObjects>("/tracked_objects", 1);
