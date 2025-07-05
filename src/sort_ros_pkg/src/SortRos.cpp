@@ -144,7 +144,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textMarker.pose.orientation.z = 0.0;
         textMarker.pose.orientation.w = 1.0;
         std::stringstream ss;
-        ss << "rel_vx " << std::fixed << std::setprecision(3) << vx << "\nrel_vy " << std::fixed << std::setprecision(3) << vy;
+        ss << "vx " << std::fixed << std::setprecision(3) << vx << "\nvy " << std::fixed << std::setprecision(3) << vy;
         textMarker.text = ss.str();
         textMarker.color.a = 1.0;
         textMarker.color.r = 1.0;
@@ -158,6 +158,13 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
 
         // 3. 예측 경로 퍼블리싱 (PredictTrajectory 모듈 사용)
         TrackerState currentState = rect.toTrackerState();
+
+
+
+        currentState.vx = 0.0; // 수정: 예측에서 vx를 0으로 설정
+
+
+
         int predictionSteps = 10;
 
         // Transition matrix is defined locally or obtained from tracker
