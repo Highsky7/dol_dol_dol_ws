@@ -3,31 +3,22 @@
 
 import rospy
 from std_msgs.msg import Float32, Bool
+from collections import deque # 최근 데이터를 저장하기 위해 deque를 임포트합니다.
 
 class Judgement:
     def __init__(self):
         rospy.loginfo("Initializing Judgement Node as Geoffrey Hinton would...")
 
         # --- 구독자 설정: ROS 토픽에서 데이터를 수신 ---
-        # 1. 차선 기반 조향각
         self.sub_lane = rospy.Subscriber('auto_steer_angle_lane', Float32, self.lane_callback)
         self.sub_lane_status = rospy.Subscriber('lane_detection_status', Bool, self.lane_status_callback)
-
-        # 2. 장애물 유무 및 경로 계획 기반 조향각
         self.sub_obstacle_existence = rospy.Subscriber('/obstacle_existence', Bool, self.obstacle_callback)
         self.sub_rrt = rospy.Subscriber('/auto_steer_angle_rrt', Float32, self.rrt_callback)
         self.sub_gps = rospy.Subscriber('/auto_steer_angle_gps', Float32, self.gps_callback)
-
-        # 3. [추가됨] 동적 장애물 감지
         self.sub_dynamic_obstacle = rospy.Subscriber('dynamic_obstacle', Bool, self.dynamic_obstacle_callback)
 
-        # 4. 터널 기반 조향각 (필요시 주석 해제)
-        # self.sub_tunnel = rospy.Subscriber('auto_steer_angle_tunnel', Float32, self.tunnel_callback)
-
         # --- 퍼블리셔 설정 ---
-        # 1. 최종 조향각 발행
         self.pub_steering = rospy.Publisher("steering_angle", Float32, queue_size=10)
-        # 2. 계산된 쓰로틀값 발행
         self.pub_throttle = rospy.Publisher("auto_throttle", Float32, queue_size=10)
 
         # --- 변수 초기화 ---
@@ -36,16 +27,25 @@ class Judgement:
         self.obstacle_exists = False
         self.rrt_angle = None
         self.gps_angle = None
-        self.tunnel_angle = None
-        self.dynamic_obstacle_detected = False # 동적 장애물 감지 상태 변수
-
         self.current_steering_angle = 0.0
         self.steering_source_valid = False
+
+        # --- 동적 장애물 대응 로직을 위한 변수 ---
+        # 최근 5개의 dynamic_obstacle 메시지를 저장할 deque
+        self.dynamic_obstacle_history = deque(maxlen=5)
+        # 긴급 정지 상태 플래그
+        self.is_emergency_stopping = False
+        # 긴급 정지 시작 시간을 기록할 변수
+        self.emergency_stop_start_time = None
+        # 긴급 정지 지속 시간 (5초)
+        self.EMERGENCY_STOP_DURATION = rospy.Duration(5.0)
 
         # --- 속도 계획 파라미터 ---
         self.max_throttle = rospy.get_param("~max_throttle", 0.5)
         self.min_throttle = rospy.get_param("~min_throttle", 0.3)
         self.steering_throttle_reduction_factor = rospy.get_param("~steering_throttle_reduction_factor", 0.01)
+        self.CAUTION_THROTTLE = 0.2 # 주의 감속 스로틀
+        self.EMERGENCY_STOP_THROTTLE = 0.0 # 긴급 정지 스로틀
 
         rospy.loginfo("Throttle parameters initialized: max_throttle=%.2f, min_throttle=%.2f, reduction_factor=%.4f",
                       self.max_throttle, self.min_throttle, self.steering_throttle_reduction_factor)
@@ -69,39 +69,38 @@ class Judgement:
     def gps_callback(self, msg):
         self.gps_angle = msg.data
 
-    def tunnel_callback(self, msg):
-        self.tunnel_angle = msg.data
-        
     def dynamic_obstacle_callback(self, msg):
-        """동적 장애물 감지 상태를 업데이트하는 콜백 함수"""
-        self.dynamic_obstacle_detected = msg.data
+        """동적 장애물 데이터를 수신하고, 긴급 정지 조건을 확인하는 콜백 함수"""
+        # 수신된 데이터를 deque의 오른쪽에 추가 (오래된 데이터는 자동으로 왼쪽에서 제거됨)
+        self.dynamic_obstacle_history.append(msg.data)
+        
+        # 현재 긴급 정지 상태가 아닐 때만 새로운 긴급 정지 조건을 검사
+        if not self.is_emergency_stopping:
+            # deque에 저장된 True의 개수를 셈
+            true_count = self.dynamic_obstacle_history.count(True)
+            
+            # 5번의 메시지 중 2번 이상 True가 감지되면 긴급 정지 상태로 전환
+            if true_count >= 2:
+                self.is_emergency_stopping = True
+                self.emergency_stop_start_time = rospy.Time.now()
+                rospy.logerr("!!! EMERGENCY STOP TRIGGERED !!! Obstacle detected %d/5 times. Stopping for %.1f seconds.",
+                             true_count, self.EMERGENCY_STOP_DURATION.to_sec())
 
     # --- 데이터 발행 로직 ---
     def publish_steering(self, event):
         steering_angle_output = None
         chosen_source = "None"
 
-        # 우선순위 1: 차선이 감지되면 차선 조향각 사용
         if self.lane_detected and self.lane_angle is not None:
             steering_angle_output = self.lane_angle
             chosen_source = "lane"
-            
-        # 우선순위 2: (정적)장애물이 있으면 RRT 조향각 사용
         elif self.obstacle_exists and self.rrt_angle is not None:
             steering_angle_output = self.rrt_angle
             chosen_source = "rrt"
-
-        # 우선순위 3: (정적)장애물이 없으면 GPS 조향각 사용
         elif not self.obstacle_exists and self.gps_angle is not None:
             steering_angle_output = self.gps_angle
             chosen_source = "gps"
 
-        # 우선순위 4: (필요시) 터널 조향각 사용
-        # elif self.tunnel_angle is not None:
-        #     steering_angle_output = self.tunnel_angle
-        #     chosen_source = "tunnel"
-
-        # 최종 판단된 조향각에 따라 상태 업데이트 및 발행
         if steering_angle_output is not None:
             self.pub_steering.publish(Float32(data=steering_angle_output))
             self.current_steering_angle = steering_angle_output
@@ -114,22 +113,36 @@ class Judgement:
     def publish_throttle(self, event):
         final_throttle = 0.0
 
-        # [수정된 로직] 최우선 순위: 동적 장애물이 감지되면 즉시 감속
-        if self.dynamic_obstacle_detected:
-            final_throttle = 0.2
-            rospy.logwarn("!!! DYNAMIC OBSTACLE DETECTED !!! Forcing throttle to %.2f for safety.", final_throttle)
+        # 우선순위 1: 긴급 정지 상태 확인
+        if self.is_emergency_stopping:
+            # 정지 시작 후 5초가 지났는지 확인
+            if rospy.Time.now() - self.emergency_stop_start_time < self.EMERGENCY_STOP_DURATION:
+                # 5초가 지나지 않았으면 스로틀을 0으로 유지
+                final_throttle = self.EMERGENCY_STOP_THROTTLE
+                rospy.logwarn("!!! EMERGENCY STOPPING !!! Throttle forced to %.2f.", final_throttle)
+            else:
+                # 5초가 지났으면 긴급 정지 상태 해제 및 관련 변수 초기화
+                rospy.loginfo("Emergency stop duration finished. Resuming normal operation.")
+                self.is_emergency_stopping = False
+                self.emergency_stop_start_time = None
+                self.dynamic_obstacle_history.clear() # 상태 초기화하여 즉시 재진입 방지
+                # 상태 해제 후에는 아래의 일반 로직을 따름
+                final_throttle = self.min_throttle # 안전을 위해 최소 스로틀로 시작
+        
+        # 우선순위 2: 주의 감속 상태 확인 (최근 동적 장애물이 한 번이라도 감지된 경우)
+        elif True in self.dynamic_obstacle_history:
+            final_throttle = self.CAUTION_THROTTLE
+            rospy.logwarn("!! Dynamic Obstacle detected. Applying CAUTION throttle: %.2f", final_throttle)
+
+        # 우선순위 3: 일반 주행 상태
         else:
-            # 동적 장애물이 없을 경우, 기존의 속도 계획 로직 수행
             if not self.steering_source_valid:
-                # 유효한 조향각 소스가 없으면 최소 스로틀 사용
                 final_throttle = self.min_throttle
                 rospy.logwarn("No valid steering source, setting throttle to min_throttle: %.2f", final_throttle)
             else:
-                # 조향각에 따라 스로틀 계산
                 abs_steering = abs(self.current_steering_angle)
                 throttle_reduction = abs_steering * self.steering_throttle_reduction_factor
                 calculated_throttle = self.max_throttle - throttle_reduction
-                # 최종 스로틀 값을 min/max 범위 내로 제한 (Clamping)
                 final_throttle = max(self.min_throttle, min(self.max_throttle, calculated_throttle))
                 rospy.loginfo("Current steering: %.2f deg, Throttle reduction: %.2f, Published throttle: %.2f",
                               self.current_steering_angle, throttle_reduction, final_throttle)
@@ -138,8 +151,8 @@ class Judgement:
 
     def timer_callback(self, event):
         """타이머에 맞춰 조향각과 쓰로틀을 주기적으로 발행"""
-        self.publish_steering(event)  # 먼저 조향각 결정
-        self.publish_throttle(event)  # 결정된 조향각 및 동적 장애물 상태에 따라 쓰로틀 계산
+        self.publish_steering(event)
+        self.publish_throttle(event)
 
 if __name__ == '__main__':
     try:
