@@ -224,9 +224,9 @@ def publish_center_markers(output_dicts, pub_detected_objects, class_names):
             marker.pose.orientation.y = 0.0
             marker.pose.orientation.z = 0.0
             marker.pose.orientation.w = 1.0
-            marker.scale.x = 0.38
-            marker.scale.y = 0.38
-            marker.scale.z = 0.38
+            marker.scale.x = 0.15
+            marker.scale.y = 0.15
+            marker.scale.z = 0.15
             marker.color.a = 1.0
             marker.color.r = 0.0
             marker.color.g = 1.0

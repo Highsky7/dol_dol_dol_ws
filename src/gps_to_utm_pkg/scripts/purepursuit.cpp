@@ -97,7 +97,7 @@ private:
         lookahead_marker.scale.z = 0.5;
         lookahead_marker.color.r = 1.0;
         lookahead_marker.color.g = 0.0;
-        lookahead_marker.color.b = 0.0;
+        lookahead_marker.color.b = 1.0;
         lookahead_marker.color.a = 1.0;
         lookahead_marker.lifetime = ros::Duration(0.2);
         lookahead_marker.pose.position = lookahead_pt;

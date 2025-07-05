@@ -45,7 +45,7 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     trajMarker.frame_locked = true;
     // Line width
     trajMarker.scale.x = 0.05;
-    // Color: pink
+    // Color: white
     trajMarker.color.a = 1.0;
     trajMarker.color.r = 1;
     trajMarker.color.g = 1;
@@ -103,9 +103,9 @@ void TrajectoryPredictor::publishPredictedTrajectory(const TrackerState& current
     endpointMarker.pose.orientation.z = 0.0;
     endpointMarker.pose.orientation.w = 1.0;
     // Sphere size
-    endpointMarker.scale.x = 0.38;
-    endpointMarker.scale.y = 0.38;
-    endpointMarker.scale.z = 0.38;
+    endpointMarker.scale.x = 0.15;
+    endpointMarker.scale.y = 0.15;
+    endpointMarker.scale.z = 0.15;
     // Color: yellow
     endpointMarker.color.a = 1.0;
     endpointMarker.color.r = 1.0;

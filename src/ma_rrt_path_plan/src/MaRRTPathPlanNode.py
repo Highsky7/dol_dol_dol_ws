@@ -148,7 +148,7 @@ class MaRRTPathPlanNode:
         for marker in msg.markers:
             x = marker.pose.position.x  # 마커의 x 좌표
             y = marker.pose.position.y  # 마커의 y 좌표
-            self.predictedEndpointObstacleList.append((x, y, 0.6))  # (x, y, 반지름 0.6m) 튜플 추가
+            self.predictedEndpointObstacleList.append((x, y, 0.4))  # (x, y, 반지름 0.6m) 튜플 추가
 
     def compressedWallCallback(self, msg):
         # /compressed_wall 토픽에서 벽 포인트 클라우드 처리
@@ -238,7 +238,7 @@ class MaRRTPathPlanNode:
         iterationNumber = 100  # 최대 반복 횟수
         planDistance = 5.4  # 최대 트리 확장 거리 (미터)
         expandDistance = 0.3  # 노드 간 이동 거리 (스텝 크기)
-        expandAngle = 20  # 노드 생성 각도 (도)
+        expandAngle = 30  # 노드 생성 각도 (도)
 
         # RRT 객체 생성 및 경로 계획 실행
         rrt = ma_rrt.RRT(start, planDistance, obstacleList=obstacleList, expandDis=expandDistance, turnAngle=expandAngle, maxIter=iterationNumber, rrtTargets=rrtTarget)
@@ -622,12 +622,18 @@ class MaRRTPathPlanNode:
         marker.ns = "publishFilteredBranchVisual"
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
-        marker.scale.x = 0.7
+        # marker.scale.x = 0.7
+        # marker.pose.orientation.w = 1
+        # marker.color.a = 0.7
+        # marker.color.r = 0.0
+        # marker.color.g = 122.0 / 255.0
+        # marker.color.b = 204.0 / 255.0
+        marker.scale.x = 0.3
         marker.pose.orientation.w = 1
-        marker.color.a = 0.7
-        marker.color.r = 0.0
-        marker.color.g = 122.0 / 255.0
-        marker.color.b = 204.0 / 255.0
+        marker.color.a = 1.0
+        marker.color.r = 1.0
+        marker.color.g = 0
+        marker.color.b = 0
         for i in range(len(self.filteredBestBranch)):
             node = self.filteredBestBranch[i]
             p = Point(node.x, node.y, 0)
