@@ -9,6 +9,7 @@
 #include <map>
 #include <iomanip>       
 #include <boost/bind.hpp>
+#include <std_msgs/Bool.h>
 
 using namespace message_filters;
 
@@ -16,7 +17,7 @@ class DynamicStaticClassifier
 {
 public:
   DynamicStaticClassifier()
-    : v_thresh_(0.8),
+    : v_thresh_(0.9),
       have_vel_(false),
       global_yaw_(0.0),
       alpha_(0.05), // EMA 필터 강도 강화
@@ -44,11 +45,13 @@ public:
     pub_static_ = nh_.advertise<visualization_msgs::MarkerArray>("/static_objects", 1);
     pub_dynamic_ = nh_.advertise<visualization_msgs::MarkerArray>("/dynamic_objects", 1);
     pub_absolute_vx_vy_ = nh_.advertise<visualization_msgs::MarkerArray>("/absolute_vx_vy", 1);
+    pub_dyn_flag_ = nh_.advertise<std_msgs::Bool>("/dynamic_obstacle", 1, /*latched=*/true); // NEW
 
     ROS_INFO("Node initialized successfully");
   }
 
 private:
+  ros::Publisher pub_dyn_flag_;
   void yawCallback(const std_msgs::Float32::ConstPtr& msg)
   {
     global_yaw_ = alpha_ * msg->data + (1.0 - alpha_) * prev_global_yaw_;
@@ -77,6 +80,7 @@ private:
   {
     std::set<int> current_ids(tracks->id.begin(), tracks->id.end());
     visualization_msgs::MarkerArray static_markers, dynamic_markers, absolute_vx_vy_markers;
+    bool dynamic_present = false;
 
     for (int lost_id : last_ids_) {
       if (!current_ids.count(lost_id)) {
@@ -149,6 +153,8 @@ private:
       last_centers_[tracks->id[i]] = tracks->center[i];
 
       bool is_static = (obj_speed <= v_thresh_) || is_static_by_position;
+      if (!is_static)
+        dynamic_present = true;            // <── ROI 안 동적 발견!
 
       visualization_msgs::Marker m;
       m.header = tracks->header;
@@ -200,6 +206,9 @@ private:
     pub_static_.publish(static_markers);
     pub_dynamic_.publish(dynamic_markers);
     pub_absolute_vx_vy_.publish(absolute_vx_vy_markers);
+    std_msgs::Bool flag;        // NEW
+    flag.data = dynamic_present; // NEW
+    pub_dyn_flag_.publish(flag);  // NEW
     last_ids_.swap(current_ids);
   }
 
