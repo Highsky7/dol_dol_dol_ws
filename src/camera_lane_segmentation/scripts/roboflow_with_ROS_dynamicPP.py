@@ -77,7 +77,7 @@ class LaneFollowerNode:
         self.bev_params = np.load(self.opt.param_file)
         self.bev_h, self.bev_w = int(self.bev_params['warp_h']), int(self.bev_params['warp_w'])
         
-        self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.002796875, 1.39, 0.002984375 # for bev_params_y_5.npz
+        self.m_per_pixel_y, self.y_offset_m, self.m_per_pixel_x = 0.0025, 1.25, 0.003578125 # for bev_params_y_5.npz
 
         # --- 차선 추적 파라미터 ---
         self.tracked_lanes = {'left': {'coeff': None, 'age': 0}, 'right': {'coeff': None, 'age': 0}}
@@ -92,8 +92,8 @@ class LaneFollowerNode:
         # throttle 입력 범위 0.3 ~ 0.5에 맞춰 파라미터를 설정합니다. (주행하며 튜닝 권장)
         self.THROTTLE_MIN = 0.3
         self.THROTTLE_MAX = 0.5
-        self.MIN_LOOKAHEAD_DISTANCE = 1.4 # 최소 전방주시거리 (throttle=0.3일 때) [m]
-        self.MAX_LOOKAHEAD_DISTANCE = 1.8 # 최대 전방주시거리 (throttle=0.5일 때) [m]
+        self.MIN_LOOKAHEAD_DISTANCE = 1.75 # 최소 전방주시거리 (throttle=0.3일 때) [m]
+        self.MAX_LOOKAHEAD_DISTANCE = 2.35 # 최대 전방주시거리 (throttle=0.5일 때) [m]
         self.current_throttle = self.THROTTLE_MIN # 초기 throttle 값, 최소값으로 안전하게 시작
         # ========================================================================================
 
@@ -275,6 +275,8 @@ class LaneFollowerNode:
         else: normalized_throttle = (self.current_throttle - self.THROTTLE_MIN) / throttle_range
         viz_lookahead = self.MIN_LOOKAHEAD_DISTANCE + (self.MAX_LOOKAHEAD_DISTANCE - self.MIN_LOOKAHEAD_DISTANCE) * normalized_throttle
         cv2.putText(bev_im_for_drawing, f"Lookahead: {viz_lookahead:.2f}m", (10, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+        cv2.putText(bev_im_for_drawing, f"Throttle: {self.current_throttle:.2f}", (10, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+
 
         cv2.imshow("Original Camera View", im0s)
         cv2.imshow("Roboflow Detections (on BEV)", annotated_frame)
