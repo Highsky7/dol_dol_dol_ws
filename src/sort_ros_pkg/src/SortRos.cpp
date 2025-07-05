@@ -136,7 +136,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textMarker.id = rect.id;
         textMarker.action = visualization_msgs::Marker::ADD;
         textMarker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-        textMarker.pose.position.x = rect.centerX + 0.4 ;
+        textMarker.pose.position.x = rect.centerX + 0.35 ;
         textMarker.pose.position.y = rect.centerY + 1.2;
         textMarker.pose.position.z = rect.height + 1.5;
         textMarker.pose.orientation.x = 0.0;
@@ -151,7 +151,7 @@ void SortRos::rectArrayCallback(const visualization_msgs::MarkerArray::ConstPtr&
         textMarker.color.g = 1.0;
         textMarker.color.b = 1.0;
         textMarker.scale.z = 0.3;
-        textMarker.lifetime = ros::Duration(0.2);
+        textMarker.lifetime = ros::Duration(0.5);
         textArrayOutput.markers.push_back(textMarker);
 
 

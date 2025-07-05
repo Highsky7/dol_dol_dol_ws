@@ -146,7 +146,7 @@ private:
       text_marker.id = tracks->id[i];
       text_marker.action = visualization_msgs::Marker::ADD;
       text_marker.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-      text_marker.pose.position.x = tracks->center[i].x - 0.4 ;
+      text_marker.pose.position.x = tracks->center[i].x - 0.35 ;
       text_marker.pose.position.y = tracks->center[i].y + 1.2 ;
       text_marker.pose.position.z = tracks->center[i].z + 0.5 ;
       text_marker.pose.orientation.w = 1.0;
