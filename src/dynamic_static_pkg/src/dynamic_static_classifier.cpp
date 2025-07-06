@@ -12,7 +12,7 @@ ros::Publisher static_pub;
 ros::Publisher bool_pub;
 
 // 분류용 임계치
-float vy_threshold = 0.07f;
+float vy_threshold = 0.06f;
 float steering_angle_threshold = 10.0f;  // 스티어링 각 임계값 (기본값 10도)
 
 // ROI 파라미터 (기본값)
