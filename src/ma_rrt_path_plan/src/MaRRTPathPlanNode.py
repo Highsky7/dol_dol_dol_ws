@@ -113,8 +113,8 @@ class MaRRTPathPlanNode:
             marker.pose.orientation.w = 1.0  # 기본 방향
             marker.scale.x = radius * 2.0  # 구의 x 지름 (반지름 * 2)
             marker.scale.y = radius * 2.0  # 구의 y 지름
-            marker.scale.z = 0.1  # z는 얇게 (평면 표시)
-            marker.color.a = 0.5  # 투명도
+            marker.scale.z = 0.0  # z는 얇게 (평면 표시)
+            marker.color.a = 0.3  # 투명도
             marker.color.r = 1.0  # 빨간색
             marker.color.g = 0.65  # 주황빛
             marker.color.b = 0.0  # 파란색 없음
@@ -575,7 +575,7 @@ class MaRRTPathPlanNode:
         marker.action = marker.ADD
         marker.scale.x = 0.01
         marker.pose.orientation.w = 1
-        marker.color.a = 0.7
+        marker.color.a = 0.3
         marker.color.r = 1.0
         marker.color.g = 1.0
         marker.lifetime = rospy.Duration(0.1)
