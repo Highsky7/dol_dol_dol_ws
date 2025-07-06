@@ -3,65 +3,99 @@
 import rospy
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
+import math
 
 class CarVisualNode:
     def __init__(self):
-        # 노드 초기화
         rospy.init_node('car_visual_node', anonymous=True)
 
-        # 파라미터 읽기
+        # 파라미터 설정
         self.frame_id = rospy.get_param('~frame_id', 'velodyne')
-        self.x_min = rospy.get_param('~x_min', -0.1)  # 차량 중심 기준 왼쪽 끝
-        self.x_max = rospy.get_param('~x_max', 1.1)   # 차량 중심 기준 오른쪽 끝
-        self.y_min = rospy.get_param('~y_min', -0.35) # 차량 중심 기준 아래쪽 끝
-        self.y_max = rospy.get_param('~y_max', 0.35)  # 차량 중심 기준 위쪽 끝
-        self.publish_frequency = rospy.get_param('~publish_frequency', 10.0)  # 10Hz
+        self.x_min = rospy.get_param('~x_min', -0.1)
+        self.x_max = rospy.get_param('~x_max', 1.1)
+        self.y_min = rospy.get_param('~y_min', -0.35)
+        self.y_max = rospy.get_param('~y_max', 0.35)
+        self.publish_frequency = rospy.get_param('~publish_frequency', 10.0)
+        self.corner_radius = rospy.get_param('~corner_radius', 0.2)
+        self.corner_segments = rospy.get_param('~corner_segments', 8)
 
-        # 퍼블리셔 설정
         self.marker_pub = rospy.Publisher('/car_visual', Marker, queue_size=1)
-
-        # 타이머 설정
         rospy.Timer(rospy.Duration(1.0 / self.publish_frequency), self.publish_marker)
 
-        rospy.loginfo("CarVisualNode initialized with frame_id=%s, x_min=%f, x_max=%f, y_min=%f, y_max=%f",
-                      self.frame_id, self.x_min, self.x_max, self.y_min, self.y_max)
+        rospy.loginfo(
+            "Initialized CarVisualNode: frame=%s, x_min=%.2f, x_max=%.2f, y_min=%.2f, y_max=%.2f, radius=%.2f, seg=%d",
+            self.frame_id, self.x_min, self.x_max, self.y_min, self.y_max,
+            self.corner_radius, self.corner_segments
+        )
 
     def publish_marker(self, event):
-        # 마커 메시지 생성
         marker = Marker()
         marker.header.frame_id = self.frame_id
         marker.header.stamp = rospy.Time.now()
         marker.ns = "car_visual"
         marker.id = 0
-        marker.type = Marker.LINE_STRIP  # 테두리만 그리기 위해 LINE_STRIP 사용
+        marker.type = Marker.LINE_STRIP
         marker.action = Marker.ADD
-        marker.scale.x = 0.05  # 선 두께 (5cm)
-        marker.color.r = 1.0   # 하얀색 (R=1, G=1, B=1)
-        marker.color.g = 1.0
-        marker.color.b = 1.0
-        marker.color.a = 1.0   # 불투명
-        marker.pose.orientation.w = 1.0  # 기본 방향
+        marker.scale.x = 0.05
+        marker.color.r = marker.color.g = marker.color.b = 1.0
+        marker.color.a = 1.0
+        marker.pose.orientation.w = 1.0
 
-        # 사각형 꼭짓점 정의 (시계방향: 좌하 -> 우하 -> 우상 -> 좌상 -> 좌하)
-        points = [
-            Point(self.x_min, self.y_min, 0.0),  # 좌하
-            Point(self.x_max, self.y_min, 0.0),  # 우하
-            Point(self.x_max, self.y_max, 0.0),  # 우상
-            Point(self.x_min, self.y_max, 0.0),  # 좌상
-            Point(self.x_min, self.y_min, 0.0)   # 다시 좌하로 닫기
-        ]
-        marker.points = points
+        r = self.corner_radius
+        n = self.corner_segments
+        pts = []
 
-        # 마커 발행
+        # 1) 좌하 모서리 arc: 180° -> 270°
+        cx_bl = self.x_min + r
+        cy_bl = self.y_min + r
+        for i in range(n + 1):
+            theta = math.pi + (math.pi/2) * (i / float(n))
+            pts.append(Point(cx_bl + r * math.cos(theta), cy_bl + r * math.sin(theta), 0.0))
+
+        # 2) 하단 직선: (x_min+r, y_min) -> (x_max-r, y_min)
+        pts.append(Point(self.x_max - r, self.y_min, 0.0))
+
+        # 3) 우하 모서리 arc: 270° -> 360°
+        cx_br = self.x_max - r
+        cy_br = self.y_min + r
+        for i in range(n + 1):
+            theta = 3*math.pi/2 + (math.pi/2) * (i / float(n))
+            pts.append(Point(cx_br + r * math.cos(theta), cy_br + r * math.sin(theta), 0.0))
+
+        # 4) 우측 직선: (x_max, y_min+r) -> (x_max, y_max-r)
+        pts.append(Point(self.x_max, self.y_max - r, 0.0))
+
+        # 5) 우상 모서리 arc: 0° -> 90°
+        cx_tr = self.x_max - r
+        cy_tr = self.y_max - r
+        for i in range(n + 1):
+            theta = 0 + (math.pi/2) * (i / float(n))
+            pts.append(Point(cx_tr + r * math.cos(theta), cy_tr + r * math.sin(theta), 0.0))
+
+        # 6) 상단 직선: (x_max-r, y_max) -> (x_min+r, y_max)
+        pts.append(Point(self.x_min + r, self.y_max, 0.0))
+
+        # 7) 좌상 모서리 arc: 90° -> 180°
+        cx_tl = self.x_min + r
+        cy_tl = self.y_max - r
+        for i in range(n + 1):
+            theta = math.pi/2 + (math.pi/2) * (i / float(n))
+            pts.append(Point(cx_tl + r * math.cos(theta), cy_tl + r * math.sin(theta), 0.0))
+
+        # 8) 좌측 직선: (x_min, y_max-r) -> 첫 점 (cx_bl + r*cos(pi), cy_bl + r*sin(pi)) closes loop
+        pts.append(Point(self.x_min, self.y_min + r, 0.0))
+        # 마지막으로 시작점 재삽입
+        pts.append(pts[0])
+
+        marker.points = pts
         self.marker_pub.publish(marker)
-        rospy.logdebug("Published car_visual marker")
+        rospy.logdebug("Published car_visual marker with all corners rounded")
 
     def run(self):
         rospy.spin()
 
 if __name__ == '__main__':
     try:
-        node = CarVisualNode()
-        node.run()
+        CarVisualNode().run()
     except rospy.ROSInterruptException:
         rospy.loginfo("CarVisualNode terminated")
