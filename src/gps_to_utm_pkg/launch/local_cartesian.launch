@@ -4,11 +4,13 @@
   <arg name="ref_lon"        default="127.078786"/>
   <!-- Velodyne 센서 오프셋 파라미터 -->
   <!-- 1. 런치 파일 전체 어디서든 $(arg velodyne_offset_x) 같은 형태로 값을 재사용할 수 있게 기본값을 정의-->
-  <arg name="velodyne_offset_x" default="0.0"/>
-  <arg name="velodyne_offset_y" default="0.0"/>
+  <arg name="velodyne_offset_x" default="-0.36"/>
+  <arg name="velodyne_offset_y" default="0.12"/>
   <arg name="velodyne_offset_z" default="0.0"/>
   <!-- ROI arc length -->
   <arg name="roi_arc_length" default="6.0"/>
+  <!-- Covariance 임계값 (0.01 미만 = green, 이상 = red) -->
+  <arg name="cov_threshold" default="0.00008"/>
 
   <!-- GPS → Local Cartesian 변환 노드 -->
   <node pkg="gps_to_utm_pkg" type="gps_to_local_cartesian_cpp" name="gps_to_local_cartesian" output="screen">
@@ -31,14 +33,15 @@
     <param name="min_distance"   value="0.3"/>
     <param name="ref_lat"        value="$(arg ref_lat)"/>  <!-- :contentReference[oaicite:2]{index=2} -->
     <param name="ref_lon"        value="$(arg ref_lon)"/>
+    <param name="cov_threshold"  value="$(arg cov_threshold)"/>
   </node>
 
   <!-- Reference→Antenna→Velodyne TF 브로드캐스터 노드 -->
   <!-- 2. 이건 실제로 ref_ant_vel_tf_broadcaster 노드의 파라미터로 **‘할당’**하는 부분-->
   <!--안테나( antenna 프레임) 기준으로 Velodyne LiDAR( velodyne 프레임)가 어디에 달려 있는가-->
   <node pkg="gps_to_utm_pkg" type="ref_ant_vel_tf_broadcaster_cpp" name="ref_ant_vel_tf_broadcaster" output="screen">
-    <param name="velodyne_offset_x" value="-0.36"/>  <!-- :contentReference[oaicite:3]{index=3} -->
-    <param name="velodyne_offset_y" value="0.12"/>
+    <param name="velodyne_offset_x" value="$(arg velodyne_offset_x)"/>  <!-- :contentReference[oaicite:3]{index=3} -->
+    <param name="velodyne_offset_y" value="$(arg velodyne_offset_y)"/>
     <param name="velodyne_offset_z" value="$(arg velodyne_offset_z)"/>
   </node>
 
