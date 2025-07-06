@@ -80,3 +80,13 @@ MaRRTPathPlanNode에서 /obstacle_existence 불리안 토픽 발행 추가. (조
 트루면 /auto_steer_angle_rrt 구독.
 폴스면 /auto_steer_angle_gps 구독.
 
+
+coneDistLimit이 작을수록(예: 4m), 경로는 근거리 콘에 더 민감하게 반응하며, 단기적인 장애물 회피에 치중합니다.
+frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
+
+roipath (distance to rrt_target) 7.0
+ld 3.5
+node angle 30degree
+each tree node 0.15
+total tree node 6.0
+iter
