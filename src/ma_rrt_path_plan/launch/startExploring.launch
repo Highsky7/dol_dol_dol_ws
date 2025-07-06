@@ -6,6 +6,14 @@
     </node>
     
     <node pkg="ma_rrt_path_plan" type="ma_rrt_purepursuit.py" name="ma_rrt_purepursuit_node" output="screen" />
-    
+    <node pkg="ma_rrt_path_plan" type="car_visual.py" name="car_visual_node" output="screen">
+        <!-- 파라미터 설정 -->
+        <param name="frame_id" type="string" value="velodyne" />
+        <param name="x_min" type="double" value="-0.1" />
+        <param name="x_max" type="double" value="1.1" />
+        <param name="y_min" type="double" value="-0.35" />
+        <param name="y_max" type="double" value="0.35" />
+        <param name="publish_frequency" type="double" value="10.0" />
+    </node>
     <node pkg="rviz" type="rviz" name="rviz_node" args="-d $(find ma_rrt_path_plan)/launch/gps_lidar_tf.rviz" output="screen"/>
 </launch>
