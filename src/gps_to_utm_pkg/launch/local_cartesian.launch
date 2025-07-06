@@ -8,7 +8,7 @@
   <arg name="velodyne_offset_y" default="0.0"/>
   <arg name="velodyne_offset_z" default="0.0"/>
   <!-- ROI arc length -->
-  <arg name="roi_arc_length" default="5.6"/>
+  <arg name="roi_arc_length" default="6.0"/>
 
   <!-- GPS → Local Cartesian 변환 노드 -->
   <node pkg="gps_to_utm_pkg" type="gps_to_local_cartesian_cpp" name="gps_to_local_cartesian" output="screen">
