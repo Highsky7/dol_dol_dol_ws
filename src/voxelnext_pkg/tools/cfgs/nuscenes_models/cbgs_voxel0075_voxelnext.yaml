@@ -6,7 +6,7 @@ DATA_CONFIG:
 
     # [Minimum X, Minimum Y, Minimum Z, Maximum X, Maximum Y, Maximum Z]
     # POINT_CLOUD_RANGE: [-54.0, -54.0, -5.0, 54.0, 54.0, 3.0]
-    POINT_CLOUD_RANGE: [-1.5, -54.0, -5.0, 54.0, 54.0, 3.0]
+    POINT_CLOUD_RANGE: [-1.5, -7.0, -2.0, 20.0, 7.0, 3.0]
     INFO_PATH: {
         'train': [nuscenes_infos_10sweeps_train.pkl],
         'test': [nuscenes_infos_10sweeps_val.pkl],
