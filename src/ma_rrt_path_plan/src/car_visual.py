@@ -16,7 +16,7 @@ class CarVisualNode:
         self.y_min = rospy.get_param('~y_min', -0.35)
         self.y_max = rospy.get_param('~y_max', 0.35)
         self.publish_frequency = rospy.get_param('~publish_frequency', 10.0)
-        self.corner_radius = rospy.get_param('~corner_radius', 0.2)
+        self.corner_radius = rospy.get_param('~corner_radius', 0.35)
         self.corner_segments = rospy.get_param('~corner_segments', 8)
 
         self.marker_pub = rospy.Publisher('/car_visual', Marker, queue_size=1)
