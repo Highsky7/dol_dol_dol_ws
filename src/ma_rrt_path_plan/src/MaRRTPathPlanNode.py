@@ -49,8 +49,8 @@ class MaRRTPathPlanNode:
         else:
             self.world_frame = "velodyne"
 
-        # 웨이포인트 발행 주기 설정 (기본: 5Hz)
-        waypointsFrequency = rospy.get_param('~desiredWaypointsFrequency', 5)
+        # 웨이포인트 발행 주기 설정 ( ~ Hz)
+        waypointsFrequency = rospy.get_param('~desiredWaypointsFrequency', 10)
         self.waypointsPublishInterval = 1.0 / waypointsFrequency  # 발행 간격 (초)
         self.lastPublishWaypointsTime = 0  # 마지막 웨이포인트 발행 시간
 
@@ -105,7 +105,8 @@ class MaRRTPathPlanNode:
             marker.header.stamp = rospy.Time.now()  # 현재 시간 스탬프
             marker.ns = "obstacle_radius"  # 네임스페이스
             marker.id = i  # 마커 ID
-            marker.type = Marker.SPHERE  # 구형 마커
+            # marker.type = Marker.SPHERE  # 구형 마커
+            marker.type = Marker.CYLINDER;
             marker.action = Marker.ADD  # 마커 추가
             marker.pose.position.x = x  # 장애물 x 좌표
             marker.pose.position.y = y  # 장애물 y 좌표
@@ -114,11 +115,11 @@ class MaRRTPathPlanNode:
             marker.scale.x = radius * 2.0  # 구의 x 지름 (반지름 * 2)
             marker.scale.y = radius * 2.0  # 구의 y 지름
             marker.scale.z = 0.0  # z는 얇게 (평면 표시)
-            marker.color.a = 0.3  # 투명도
+            marker.color.a = 1.0  # 투명도
             marker.color.r = 1.0  # 빨간색
-            marker.color.g = 0.65  # 주황빛
-            marker.color.b = 0.0  # 파란색 없음
-            marker.lifetime = rospy.Duration(0.2)  # 마커 지속 시간
+            marker.color.g = 1.0  # 
+            marker.color.b = 0.0  #
+            marker.lifetime = rospy.Duration(0.5)  # 마커 지속 시간
             markerArray.markers.append(marker)
         self.obstacleVisualPub.publish(markerArray)  # 마커 발행
 
@@ -173,7 +174,7 @@ class MaRRTPathPlanNode:
         # frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
-        coneObstacleSize = 0.6  # 콘 장애물 반지름 (미터)
+        coneObstacleSize = 0.8  # 콘 장애물 반지름 (미터)
         # 콘 데이터를 (x, y, 반지름) 튜플 리스트로 변환
         self.coneObstacleList = [(cone.x, cone.y, coneObstacleSize) for cone in frontCones]
 
@@ -306,9 +307,21 @@ class MaRRTPathPlanNode:
         coneDistLimit = 4.0 # 최적 경로를 선택할 때, 각 노드의 점수(nodeRating)를 계산할 때 coneDistLimit 이내의 콘만 고려됩니다
         # coneDistLimit이 작을수록(예: 4m), 경로는 근거리 콘에 더 민감하게 반응하며, 단기적인 장애물 회피에 치중합니다.
         # frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
+        
+        #-----------------------
+        
+        # 0703 Thursday wall test success param
         coneDistanceLimitSq = coneDistLimit * coneDistLimit  # 거리 제곱
-        wallSafetyMargin = 0.35  # 벽과의 안전 거리 (미터)
-        penalty_factor = 20.0  # 벽 페널티 계수
+        # wallSafetyMargin = 0.35  # 벽과의 안전 거리 (미터)
+        # penalty_factor = 20.0  # 벽 페널티 계수.
+        
+        # untested params
+        wallSafetyMargin = 0.2  # 벽과의 안전 거리 (미터)
+        # 경로 노드가 벽에서 최소 wallSafetyMargin + radius 떨어져 있어야 페널티를 받지 않습니다.
+        penalty_factor = 5.0  # 벽 페널티 계수
+        
+        # ----------------------
+        
         epsilon = 0.01  # 제로 나누기 방지
         bothSidesImproveFactor = 3  # 양쪽 장애물 존재 시 점수 가중치
         minAcceptableBranchRating = 90  # 최소 허용 경로 점수
@@ -375,9 +388,23 @@ class MaRRTPathPlanNode:
             no_wp.data = False
             self.obstacleExistencePub.publish(no_wp)  # 웨이포인트 없음 발행
             return
+        
+        
+        # ---------------------
+        # 0703 Thursday wall test success param
         maxDistToSaveWaypoints = 2.0  # 차량과 웨이포인트 간 최대 거리
         maxWaypointAmountToSave = 2  # 저장할 최대 웨이포인트 수
         waypointsDistTollerance = 1000  # 웨이포인트 중복 제거 기준 거리
+          
+        
+        # ---------------------
+        # untested param
+        maxDistToSaveWaypoints = 2.0  # 차량과 웨이포인트 간 최대 거리
+        maxWaypointAmountToSave = 4  # 저장할 최대 웨이포인트 수
+        waypointsDistTollerance = 1000  # 웨이포인트 중복 제거 기준 거리
+        
+        
+        
         if len(self.savedWaypoints) > 15:
             firstSavedWaypoint = self.savedWaypoints[0]
             for waypoint in reversed(newWaypoints):
