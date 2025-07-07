@@ -25,7 +25,7 @@ from sensor_msgs.msg import PointCloud2
 from sensor_msgs import point_cloud2
 from std_msgs.msg import Bool
 
-# each delaunay to cone and wall
+# before adding each delaunay to cone and wall
 
 class MaRRTPathPlanNode:
     def __init__(self):
@@ -107,7 +107,8 @@ class MaRRTPathPlanNode:
             marker.header.stamp = rospy.Time.now()  # 현재 시간 스탬프
             marker.ns = "obstacle_radius"  # 네임스페이스
             marker.id = i  # 마커 ID
-            marker.type = Marker.CYLINDER
+            # marker.type = Marker.SPHERE  # 구형 마커
+            marker.type = Marker.CYLINDER;
             marker.action = Marker.ADD  # 마커 추가
             marker.pose.position.x = x  # 장애물 x 좌표
             marker.pose.position.y = y  # 장애물 y 좌표
@@ -150,14 +151,14 @@ class MaRRTPathPlanNode:
         for marker in msg.markers:
             x = marker.pose.position.x  # 마커의 x 좌표
             y = marker.pose.position.y  # 마커의 y 좌표
-            self.predictedEndpointObstacleList.append((x, y, 0.4))  # (x, y, 반지름 0.4m) 튜플 추가
+            self.predictedEndpointObstacleList.append((x, y, 0.4))  # (x, y, 반지름 0.6m) 튜플 추가
 
     def compressedWallCallback(self, msg):
         # /compressed_wall 토픽에서 벽 포인트 클라우드 처리
         self.compressedWallObstacleList = []  # 기존 리스트 초기화
         for p in point_cloud2.read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
             x, y, z = p[:3]  # x, y, z 좌표 추출 (z는 사용 안 함)
-            self.compressedWallObstacleList.append((x, y, 0.01))  # (x, y, 반지름 0.01m) 튜플 추가
+            self.compressedWallObstacleList.append((x, y, 0.01))  # (x, y, 반지름 0.2m) 튜플 추가
 
     def sampleTree(self):
         # RRT 트리 생성 및 웨이포인트 생성 함수
@@ -170,10 +171,12 @@ class MaRRTPathPlanNode:
             return
 
         # 차량 전방 ~m 내의 콘만 선택
-        frontConesDist = 12.0  # 트리 생성에 고려할 콘의 최대 거리 (미터)
+        frontConesDist = 12.0 # 트리 생성에 고려할 콘(장애물 회피)의 최대 거리를 정의 (미터)
+        # coneDistLimit이 작을수록(예: 4m), 경로는 근거리 콘에 더 민감하게 반응하며, 단기적인 장애물 회피에 치중합니다.
+        # frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
 
-        coneObstacleSize = 0.8  # 콘 장애물 반지름 (미터), 터널 폭에 맞게 축소
+        coneObstacleSize = 0.8  # 콘 장애물 반지름 (미터)
         # 콘 데이터를 (x, y, 반지름) 튜플 리스트로 변환
         self.coneObstacleList = [(cone.x, cone.y, coneObstacleSize) for cone in frontCones]
 
@@ -251,19 +254,17 @@ class MaRRTPathPlanNode:
         # 최적 경로 선택
         bestBranch = self.findBestBranch(leafNodes, nodeList, obstacleList, coneObstacleSize, expandDistance, planDistance)
 
-        # 델로네 삼각형 에지 생성 및 시각화 (콘과 벽 분리)
-        coneDelaunayEdges = self.getDelaunayEdges(self.coneObstacleList, "cone")  # 콘 장애물에 대한 델로네 에지
-        wallDelaunayEdges = self.getDelaunayEdges(self.compressedWallObstacleList, "wall")  # 벽 장애물에 대한 델로네 에지
-        delaunayEdges = coneDelaunayEdges + wallDelaunayEdges  # 시각화를 위해 두 에지 리스트 결합
+        # 델로네 삼각형 에지 생성 및 시각화
+        delaunayEdges = self.getDelaunayEdges(obstacleList)
         self.publishDelaunayEdgesVisual(delaunayEdges)
         
-        # 웨이포인트 생성 (콘 기반 에지만 사용)
+        # 웨이포인트 생성
         newWaypoints = []
-        if coneDelaunayEdges and bestBranch:
+        if delaunayEdges and bestBranch:
             filteredBestBranch = self.getFilteredBestBranch(bestBranch)  # 최적 경로 필터링
             if filteredBestBranch:
-                newWaypoints = self.getWaypointsFromEdges(filteredBestBranch, coneDelaunayEdges)  # 콘 에지로 웨이포인트 생성
-        elif coneDelaunayEdges:
+                newWaypoints = self.getWaypointsFromEdges(filteredBestBranch, delaunayEdges)  # 에지로부터 웨이포인트 생성
+        elif delaunayEdges:
             rospy.loginfo("No bestBranch, skipping waypoint generation")  # 최적 경로 없으면 웨이포인트 생성 생략
 
         # 웨이포인트 병합 및 발행
@@ -276,12 +277,12 @@ class MaRRTPathPlanNode:
 
         self.publishWaypoints(newWaypoints)  # 웨이포인트 발행
 
-    def getDelaunayEdges(self, obstacleList, obstacle_type=""):
-        # 델로네 삼각형 에지 생성 (콘과 벽 분리)
+    def getDelaunayEdges(self, obstacleList):
+        # 델로네 삼각형 에지 생성
         obstacles = [(obs[0], obs[1]) for obs in obstacleList]  # (x, y) 좌표만 추출
-        rospy.loginfo("getDelaunayEdges (%s): total obstacles=%d", obstacle_type, len(obstacles))  # 장애물 유형 및 수 로그
+        rospy.loginfo("getDelaunayEdges: total obstacles=%d", len(obstacles))  # 장애물 수 로그
         if len(obstacles) < 3:
-            rospy.loginfo("getDelaunayEdges (%s): 장애물 개수 부족 (< 3), 삼각형 생성 생략", obstacle_type)
+            rospy.loginfo("getDelaunayEdges: 장애물 개수 부족 (< 3), 삼각형 생성 생략")  # 최소 3개 점 필요
             return []
         pts = np.array(obstacles)  # numpy 배열로 변환
         try:
@@ -295,20 +296,34 @@ class MaRRTPathPlanNode:
                     edge = Edge(x1, y1, x2, y2)  # 에지 객체 생성
                     if edge not in delaunayEdges:  # 중복 에지 제외
                         delaunayEdges.append(edge)
-            rospy.loginfo("getDelaunayEdges (%s): 생성된 에지 수=%d", obstacle_type, len(delaunayEdges))
+            rospy.loginfo("getDelaunayEdges: 생성된 에지 수=%d", len(delaunayEdges))  # 생성된 에지 수 로그
             return delaunayEdges
         except Exception as e:
-            rospy.logwarn("델로네 삼각형 생성 실패 (%s): %s", obstacle_type, str(e))
+            rospy.logwarn("델로네 삼각형 생성 실패: %s", str(e))  # 예외 발생 시 경고
             return []
 
     def findBestBranch(self, leafNodes, nodeList, obstacleList, coneObstacleSize, expandDistance, planDistance):
         # 최적 경로 선택
         if not leafNodes:
             return  # 리프 노드 없으면 종료
-        coneDistLimit = 4.0  # 콘 거리 제한
+        coneDistLimit = 4.0 # 최적 경로를 선택할 때, 각 노드의 점수(nodeRating)를 계산할 때 coneDistLimit 이내의 콘만 고려됩니다
+        # coneDistLimit이 작을수록(예: 4m), 경로는 근거리 콘에 더 민감하게 반응하며, 단기적인 장애물 회피에 치중합니다.
+        # frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
+        
+        #-----------------------
+        
+        # 0703 Thursday wall test success param
         coneDistanceLimitSq = coneDistLimit * coneDistLimit  # 거리 제곱
-        wallSafetyMargin = 0.1  # 벽과의 안전 거리 (미터), 터널 여유(0.1m)에 맞게 조정
-        penalty_factor = 5.0  # 벽 페널티 계수, 터널 내부 경로 생성 용이하도록 완화
+        # wallSafetyMargin = 0.35  # 벽과의 안전 거리 (미터)
+        # penalty_factor = 20.0  # 벽 페널티 계수.
+        
+        # untested params
+        wallSafetyMargin = 0.1  # 벽과의 안전 거리 (미터)
+        # 경로 노드가 벽에서 최소 wallSafetyMargin + radius 떨어져 있어야 페널티를 받지 않습니다.
+        penalty_factor = 5.0  # 벽 페널티 계수
+        
+        # ----------------------
+        
         epsilon = 0.01  # 제로 나누기 방지
         bothSidesImproveFactor = 3  # 양쪽 장애물 존재 시 점수 가중치
         minAcceptableBranchRating = 90  # 최소 허용 경로 점수
@@ -375,9 +390,23 @@ class MaRRTPathPlanNode:
             no_wp.data = False
             self.obstacleExistencePub.publish(no_wp)  # 웨이포인트 없음 발행
             return
+        
+        
+        # ---------------------
+        # 0703 Thursday wall test success param
+        maxDistToSaveWaypoints = 2.0  # 차량과 웨이포인트 간 최대 거리
+        maxWaypointAmountToSave = 2  # 저장할 최대 웨이포인트 수
+        waypointsDistTollerance = 1000  # 웨이포인트 중복 제거 기준 거리
+          
+        
+        # ---------------------
+        # untested param
         maxDistToSaveWaypoints = 2.0  # 차량과 웨이포인트 간 최대 거리
         maxWaypointAmountToSave = 4  # 저장할 최대 웨이포인트 수
         waypointsDistTollerance = 1000  # 웨이포인트 중복 제거 기준 거리
+        
+        
+        
         if len(self.savedWaypoints) > 15:
             firstSavedWaypoint = self.savedWaypoints[0]
             for waypoint in reversed(newWaypoints):
@@ -418,7 +447,7 @@ class MaRRTPathPlanNode:
             node2 = filteredBranch[i + 1]
             a1 = np.array([node1.x, node1.y])  # 경로 시작점
             a2 = np.array([node2.x, node2.y])  # 경로 끝점
-            maxAcceptedEdgeLength = 7  # 최대 허용 에지 길이, 터널 폭(0.9m)에 맞게 조정
+            maxAcceptedEdgeLength = 7  # 최대 허용 에지 길이
             maxEdgePartsRatio = 3  # 에지 분할 비율 제한
             intersectedEdges = []
             for edge in delaunayEdges:
@@ -626,6 +655,12 @@ class MaRRTPathPlanNode:
         marker.ns = "publishFilteredBranchVisual"
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
+        # marker.scale.x = 0.7
+        # marker.pose.orientation.w = 1
+        # marker.color.a = 0.7
+        # marker.color.r = 0.0
+        # marker.color.g = 122.0 / 255.0
+        # marker.color.b = 204.0 / 255.0
         marker.scale.x = 0.3
         marker.pose.orientation.w = 1
         marker.color.a = 1.0
