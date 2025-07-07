@@ -90,3 +90,7 @@ node angle 30degree
 each tree node 0.15
 total tree node 6.0
 iter
+
+
+터미널: 가상환경(dol)  roslaunch sort_ros_pkg sort_ros_node.launch
+터미널: 가상환경(dol)  roslaunch dynamic_static_pkg dynamic_static_classifier.launch
