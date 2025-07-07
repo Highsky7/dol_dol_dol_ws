@@ -64,10 +64,10 @@ public:
         velodyne_tf.transform.rotation.w = 1.0;
         tf_broadcaster_->sendTransform(velodyne_tf);
 
-        ROS_INFO_THROTTLE(0.1,
-            "[Ref->Ant]->[Ant->Vel] TF: antenna=(%.2f, %.2f), yaw=%.2f deg; offset=(%.2f, %.2f)",
-            antenna_x_, antenna_y_, global_yaw_ * 180.0 / M_PI,
-            offset_x_, offset_y_);
+        // ROS_INFO_THROTTLE(0.1,
+        //     "[Ref->Ant]->[Ant->Vel] TF: antenna=(%.2f, %.2f), yaw=%.2f deg; offset=(%.2f, %.2f)",
+        //     antenna_x_, antenna_y_, global_yaw_ * 180.0 / M_PI,
+        //     offset_x_, offset_y_);
     }
 
 private:
