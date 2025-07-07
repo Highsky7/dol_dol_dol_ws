@@ -35,9 +35,9 @@ class Judgement:
         self.chosen_source = "None"
 
         # --- RViz 마커 색상 정의 ---
-        self.color_lane = ColorRGBA(0.0, 0.5, 1.0, 1.0)
-        self.color_rrt = ColorRGBA(0.0, 1.0, 0.5, 1.0)
-        self.color_gps = ColorRGBA(1.0, 0.65, 0.0, 1.0)
+        self.color_lane = ColorRGBA(0.0, 1.0, 0.0, 1.0)
+        self.color_rrt = ColorRGBA(0.0, 1.0, 1.0, 1.0)
+        self.color_gps = ColorRGBA(1.0, 0.0, 1.0, 1.0)
         self.color_none = ColorRGBA(1.0, 1.0, 1.0, 1.0)
 
         # --- 동적 장애물 대응 로직 ---
