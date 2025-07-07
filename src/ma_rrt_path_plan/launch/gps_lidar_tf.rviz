@@ -97,7 +97,7 @@ Visualization Manager:
       Marker Topic: /detected_center
       Name: MarkerArray
       Namespaces:
-        detected_center: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -113,7 +113,7 @@ Visualization Manager:
       Marker Topic: /visual/obstacle_radius
       Name: MarkerArray
       Namespaces:
-        obstacle_radius: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -138,8 +138,7 @@ Visualization Manager:
       Marker Topic: /visual/waypoints
       Name: MarkerArray
       Namespaces:
-        new-publishWaypointsVisuals: true
-        saved-publishWaypointsVisuals: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -263,7 +262,7 @@ Visualization Manager:
       Marker Topic: /lookahead_rrt_marker
       Name: Marker
       Namespaces:
-        lookahead: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -271,7 +270,7 @@ Visualization Manager:
       Marker Topic: /visual/delaunay_lines
       Name: Marker
       Namespaces:
-        publishDelaunayLinesVisual: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -279,7 +278,7 @@ Visualization Manager:
       Marker Topic: /visual/filtered_tree_branch
       Name: Marker
       Namespaces:
-        publishFilteredBranchVisual: true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -360,8 +359,7 @@ Visualization Manager:
       Marker Topic: /steering_angle_marker
       Name: Marker
       Namespaces:
-        chosen_steering_info: true
-        steering_sources_debug: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -392,7 +390,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 39.01849365234375
+      Distance: 18.120346069335938
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -429,4 +427,4 @@ Window Geometry:
     collapsed: false
   Width: 2774
   X: 254
-  Y: 341
+  Y: 304
