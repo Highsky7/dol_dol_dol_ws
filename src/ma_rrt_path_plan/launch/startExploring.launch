@@ -39,7 +39,7 @@
         – 값 증가 시: 한 번에 더 멀리 뻗어나가므로 전체 탐색 영역 확장 속도↑, 다만 세밀도↓
         – 값 감소 시: 세밀한 경로 생성 가능하나 더 많은 노드가 필요 → 느려짐
         -->
-        <param name="planDistance"      value="5.4"  type="double"/>
+        <param name="planDistance"      value="5.0"  type="double"/>
 
         <!--
         – 노드 간 단계별 이동(스텝) 간격입니다.
@@ -60,7 +60,7 @@
         – 값 증가 시: 먼 거리 콘까지 평가해 점수 계산 → 장애물 분포 반영 범위↑
         – 값 감소 시: 가까운 콘만 평가 → 계산량↓, 멀리 있는 장애물 간과 가능
         -->
-        <param name="coneDistLimit"     value="4.0"  type="double"/>
+        <param name="coneDistLimit"     value="5.0"  type="double"/>
 
         <!--
         – 벽 장애물 반지름에 추가로 더할 안전 여유(m)입니다.
