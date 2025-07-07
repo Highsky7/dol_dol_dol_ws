@@ -4,19 +4,21 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
         - /MarkerArray1
         - /MarkerArray3
         - /MarkerArray4
         - /MarkerArray5
-        - /MarkerArray6
-        - /MarkerArray7
+        - /Path1
         - /Marker3
         - /Marker4
         - /Marker5
         - /Marker6
+        - /MarkerArray6
+        - /MarkerArray7
         - /MarkerArray8
+        - /Marker7
         - /MarkerArray9
-        - /MarkerArray10
       Splitter Ratio: 0.46347030997276306
     Tree Height: 826
   - Class: rviz/Selection
@@ -74,7 +76,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: Intensity
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Min Color: 0; 0; 0
@@ -89,7 +91,7 @@ Visualization Manager:
       Unreliable: false
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /detected_center
@@ -106,22 +108,6 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /predicted_trajectory
-      Name: MarkerArray
-      Namespaces:
-        predicted_trajectory: true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /predicted_trajectory_endpoint
-      Name: MarkerArray
-      Namespaces:
-        predicted_trajectory_endpoint: true
-      Queue Size: 100
-      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /visual/obstacle_radius
@@ -152,13 +138,14 @@ Visualization Manager:
       Marker Topic: /visual/waypoints
       Name: MarkerArray
       Namespaces:
-        {}
+        new-publishWaypointsVisuals: true
+        saved-publishWaypointsVisuals: true
       Queue Size: 100
       Value: true
     - Alpha: 1
       Buffer Length: 1
       Class: rviz/Path
-      Color: 25; 255; 0
+      Color: 66; 233; 255
       Enabled: true
       Head Diameter: 0.30000001192092896
       Head Length: 0.20000000298023224
@@ -176,7 +163,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /resampled_path
+      Topic: /final_waypoints
       Unreliable: false
       Value: true
     - Class: rviz/Marker
@@ -184,7 +171,7 @@ Visualization Manager:
       Marker Topic: /roi_path_marker
       Name: Marker
       Namespaces:
-        {}
+        roi_path: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -276,7 +263,7 @@ Visualization Manager:
       Marker Topic: /lookahead_rrt_marker
       Name: Marker
       Namespaces:
-        {}
+        lookahead: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -292,7 +279,7 @@ Visualization Manager:
       Marker Topic: /visual/filtered_tree_branch
       Name: Marker
       Namespaces:
-        {}
+        publishFilteredBranchVisual: true
       Queue Size: 100
       Value: true
     - Alpha: 1
@@ -309,7 +296,7 @@ Visualization Manager:
       Marker Topic: /dynamic_objects
       Name: MarkerArray
       Namespaces:
-        dynamic_objects: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -317,7 +304,7 @@ Visualization Manager:
       Marker Topic: /static_objects
       Name: MarkerArray
       Namespaces:
-        static_objects: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -346,7 +333,7 @@ Visualization Manager:
       Value: true
   Enabled: true
   Global Options:
-    Background Color: 20; 20; 20
+    Background Color: 48; 48; 48
     Default Light: true
     Fixed Frame: velodyne
     Frame Rate: 30
@@ -372,7 +359,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 29.58204460144043
+      Distance: 23.811267852783203
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -390,7 +377,7 @@ Visualization Manager:
       Near Clip Distance: 0.009999999776482582
       Pitch: 1.5697963237762451
       Target Frame: velodyne
-      Yaw: 3.140000104904175
+      Yaw: 3.1349971294403076
     Saved: ~
 Window Geometry:
   Displays:

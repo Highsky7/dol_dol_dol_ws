@@ -150,7 +150,7 @@ private:
         m.header.stamp    = ros::Time::now();
         m.ns = "roi_path"; m.id = 0;
         m.type = visualization_msgs::Marker::LINE_STRIP;
-        m.scale.x = 0.05;
+        m.scale.x = 0.1;
         m.color.r = 1; m.color.g = 0; m.color.b = 1; m.color.a = 0.7;
         m.points.reserve(end_idx - min_idx);
         for (size_t i=min_idx; i<end_idx; ++i) {
