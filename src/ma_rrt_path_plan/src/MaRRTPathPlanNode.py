@@ -50,7 +50,7 @@ class MaRRTPathPlanNode:
 
         # 파라미터화된 변수들
         self.frontConesDist = rospy.get_param('~frontConesDist', 12.0)  # 트리 생성에 고려할 콘의 최대 거리 (미터)
-        self.coneObstacleSize = rospy.get_param('~coneObstacleSize', 10.8)  # 콘 장애물 반지름 (미터)
+        self.coneObstacleSize = rospy.get_param('~coneObstacleSize', 0.8)  # 콘 장애물 반지름 (미터)
         self.iterationNumber = rospy.get_param('~iterationNumber', 100)  # RRT 최대 반복 횟수
         self.planDistance = rospy.get_param('~planDistance', 5.4)  # 최대 트리 확장 거리 (미터)
         self.expandDistance = rospy.get_param('~expandDistance', 0.6)  # 노드 간 이동 거리 (스텝 크기)
@@ -125,7 +125,7 @@ class MaRRTPathPlanNode:
             marker.color.r = 1.0
             marker.color.g = 1.0
             marker.color.b = 0.0
-            marker.lifetime = rospy.Duration(0.5)
+            marker.lifetime = rospy.Duration(1.0)
             markerArray.markers.append(marker)
         self.obstacleVisualPub.publish(markerArray)
 
@@ -532,7 +532,7 @@ class MaRRTPathPlanNode:
         marker.ns = "publishDelaunayLinesVisual"
         marker.type = marker.LINE_LIST
         marker.action = marker.ADD
-        marker.scale.x = 0.01
+        marker.scale.x = 0.03
         marker.pose.orientation.w = 1
         marker.color.a = 0.3
         marker.color.r = 1.0
