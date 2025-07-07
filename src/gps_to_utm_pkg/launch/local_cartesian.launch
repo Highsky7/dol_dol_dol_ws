@@ -1,7 +1,9 @@
 <launch>
   <!-- 기준 위·경도 파라미터 (gps_to_local_cartesian, path_publisher) -->
-  <arg name="ref_lat"        default="37.541647"/>
-  <arg name="ref_lon"        default="127.078786"/>
+  <arg name="ref_lat"        default="33.305469"/>
+  <arg name="ref_lon"        default="126.314401"/>
+
+
   <!-- Velodyne 센서 오프셋 파라미터 -->
   <!-- 1. 런치 파일 전체 어디서든 $(arg velodyne_offset_x) 같은 형태로 값을 재사용할 수 있게 기본값을 정의-->
   <arg name="velodyne_offset_x" default="-0.36"/>
@@ -28,7 +30,7 @@
 
   <!-- Local Cartesian Path Publisher 노드 -->
   <node pkg="gps_to_utm_pkg" type="local_cartesian_path_publisher_cpp" name="local_cartesian_path_publisher" output="screen">
-    <param name="csv_filename"  value="$(find gps_to_utm_pkg)/data/250706_forward.csv"/>
+    <param name="csv_filename"  value="$(find gps_to_utm_pkg)/data/jeju_forward.csv"/>
     <param name="target_spacing" value="0.2"/>
     <param name="min_distance"   value="0.3"/>
     <param name="ref_lat"        value="$(arg ref_lat)"/>  <!-- :contentReference[oaicite:2]{index=2} -->
