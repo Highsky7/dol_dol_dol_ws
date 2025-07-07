@@ -1,19 +1,42 @@
 <?xml version="1.0"?>
 <launch>
+    <!-- RRT Path Planning 노드 -->
     <node pkg="ma_rrt_path_plan" type="main.py" name="ma_rrt_path_plan_node" output="screen">
-        <param name="desiredWaypointsFrequency" value="5" type="int" />
-        <param name="publishWaypoints" type="bool" value="true" />
+        <!-- 웨이포인트 발행 설정 -->
+        <param name="desiredWaypointsFrequency"  value="5"    type="int"    />
+        <param name="publishWaypoints"            value="true" type="bool"   />
+
+        <!-- RRT & 장애물 파라미터 -->
+        <param name="frontConesDist"              value="12.0" type="double"/>
+        <param name="coneObstacleSize"            value="0.8"  type="double"/>
+        <param name="iterationNumber"             value="100"  type="int"   />
+        <param name="planDistance"                value="5.4"  type="double"/>
+        <param name="expandDistance"              value="0.6"  type="double"/>
+        <param name="expandAngle"                 value="20"   type="double"/>
+        <param name="coneDistLimit"               value="4.0"  type="double"/>
+        <param name="wallSafetyMargin"            value="0.1"  type="double"/>
+        <param name="penalty_factor"              value="5.0"  type="double"/>
+        <param name="maxDistToSaveWaypoints"      value="2.0"  type="double"/>
+        <param name="maxWaypointAmountToSave"     value="4"    type="int"   />
+        <param name="newPointFilter"              value="0.2"  type="double"/>
+        <param name="wallObstacleRadius"          value="0.01" type="double"/>
     </node>
-    
+
+    <!-- Pure Pursuit 노드 (변경 없음) -->
     <node pkg="ma_rrt_path_plan" type="ma_rrt_purepursuit.py" name="ma_rrt_purepursuit_node" output="screen" />
+
+    <!-- Car Visualizer 노드: 시각화용 파라미터만 남김 -->
     <node pkg="ma_rrt_path_plan" type="car_visual.py" name="car_visual_node" output="screen">
-        <!-- 파라미터 설정 -->
-        <param name="frame_id" type="string" value="velodyne" />
-        <param name="x_min" type="double" value="-0.1" />
-        <param name="x_max" type="double" value="1.1" />
-        <param name="y_min" type="double" value="-0.35" />
-        <param name="y_max" type="double" value="0.35" />
-        <param name="publish_frequency" type="double" value="10.0" />
+        <param name="frame_id"          type="string" value="velodyne" />
+        <param name="x_min"             type="double" value="-0.1"      />
+        <param name="x_max"             type="double" value="1.1"       />
+        <param name="y_min"             type="double" value="-0.35"     />
+        <param name="y_max"             type="double" value="0.35"      />
+        <param name="publish_frequency" type="double" value="10.0"      />
     </node>
-    <node pkg="rviz" type="rviz" name="rviz_node" args="-d $(find ma_rrt_path_plan)/launch/gps_lidar_tf.rviz" output="screen"/>
+
+    <!-- RViz 실행 -->
+    <node pkg="rviz" type="rviz" name="rviz_node"
+          args="-d $(find ma_rrt_path_plan)/launch/gps_lidar_tf.rviz"
+          output="screen" />
 </launch>
