@@ -10,7 +10,7 @@
   <!-- ROI arc length -->
   <arg name="roi_arc_length" default="5.6"/>
   <!-- Covariance 임계값 (~ 미만 = green, 이상 = red) -->
-  <arg name="cov_threshold" default="0.0001"/>
+  <arg name="cov_threshold" default="0.001"/>
 
   <!-- GPS → Local Cartesian 변환 노드 -->
   <node pkg="gps_to_utm_pkg" type="gps_to_local_cartesian_cpp" name="gps_to_local_cartesian" output="screen">
@@ -28,7 +28,7 @@
 
   <!-- Local Cartesian Path Publisher 노드 -->
   <node pkg="gps_to_utm_pkg" type="local_cartesian_path_publisher_cpp" name="local_cartesian_path_publisher" output="screen">
-    <param name="csv_filename"  value="$(find gps_to_utm_pkg)/data/250703_1.csv"/>
+    <param name="csv_filename"  value="$(find gps_to_utm_pkg)/data/250706_forward.csv"/>
     <param name="target_spacing" value="0.2"/>
     <param name="min_distance"   value="0.3"/>
     <param name="ref_lat"        value="$(arg ref_lat)"/>  <!-- :contentReference[oaicite:2]{index=2} -->
