@@ -227,7 +227,7 @@ private:
         mk.id     = 0;
         mk.type   = visualization_msgs::Marker::LINE_STRIP;
         mk.action = visualization_msgs::Marker::ADD;
-        mk.scale.x = 0.08;               // 선 굵기
+        mk.scale.x = 0.1;               // 선 굵기
         mk.pose.orientation.w = 1.0;
 
         for (const auto& p : resampled_pts_) {
@@ -237,9 +237,9 @@ private:
 
             std_msgs::ColorRGBA c;
             if (p.cov >= cov_thresh_) {      // orange
-                c.r = 1.0; c.g = 127.0/255.0; c.b = 0.0; c.a = 1.0;
+                c.r = 1.0; c.g = 127.0/255.0; c.b = 0.0; c.a = 0.4;
             } else {                         // 초록색
-                c.r = 0.0; c.g = 1.0; c.b = 0.0; c.a = 1.0;
+                c.r = 0.0; c.g = 1.0; c.b = 0.0; c.a = 0.4;
             }
             mk.colors.push_back(c);          // Vertex별 색 지정 ★
         }
