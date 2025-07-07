@@ -54,8 +54,8 @@ def create_course_csv(bag_filepath, output_csv):
 if __name__ == '__main__':
     rospy.init_node('course_csv_creator', anonymous=True)
     data_dir = "src/gps_to_utm_pkg/data"
-    bag_filepath = os.path.join(data_dir, "nocheon.bag")
-    output_csv = os.path.join(data_dir, "nocheon_with_cov.csv")
+    bag_filepath = os.path.join(data_dir, "250706_reverse.bag")
+    output_csv = os.path.join(data_dir, "250706_reverse.csv")
 
     if len(sys.argv) > 1:
         bag_filepath = sys.argv[1]
