@@ -41,8 +41,8 @@ class Judgement:
         self.EMERGENCY_STOP_DURATION = rospy.Duration(5.0)
 
         # --- 속도 계획 파라미터 ---
-        self.max_throttle = rospy.get_param("~max_throttle", 0.5)
-        self.min_throttle = rospy.get_param("~min_throttle", 0.3)
+        self.max_throttle = rospy.get_param("~max_throttle", 0.6)
+        self.min_throttle = rospy.get_param("~min_throttle", 0.4)
         self.steering_throttle_reduction_factor = rospy.get_param("~steering_throttle_reduction_factor", 0.01)
         self.CAUTION_THROTTLE = 0.2 # 주의 감속 스로틀
         self.EMERGENCY_STOP_THROTTLE = 0.0 # 긴급 정지 스로틀
