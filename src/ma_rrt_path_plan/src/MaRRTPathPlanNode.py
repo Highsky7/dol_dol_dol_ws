@@ -168,7 +168,7 @@ class MaRRTPathPlanNode:
             return
 
         # 차량 전방 ~m 내의 콘만 선택
-        frontConesDist = 9.0 # 트리 생성에 고려할 콘(장애물 회피)의 최대 거리를 정의 (미터)
+        frontConesDist = 12.0 # 트리 생성에 고려할 콘(장애물 회피)의 최대 거리를 정의 (미터)
         # coneDistLimit이 작을수록(예: 4m), 경로는 근거리 콘에 더 민감하게 반응하며, 단기적인 장애물 회피에 치중합니다.
         # frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
         frontCones = self.getFrontConeObstacles(self.map, frontConesDist)
@@ -201,7 +201,7 @@ class MaRRTPathPlanNode:
         self.publishObstacleVisuals(obstacleList)  # 장애물 시각화 발행
 
         rrtTarget = []  # RRT 목표 지점 리스트
-        targetRadius = 0.001  # 목표 지점 반지름 (미터)
+        targetRadius = 0.01  # 목표 지점 반지름 (미터)
                 
         # /rrt_target 토픽에서 목표 지점 수신 시
         if self.rrt_target is not None:
@@ -237,10 +237,10 @@ class MaRRTPathPlanNode:
 
         # RRT 파라미터 설정
         start = [self.carPosX, self.carPosY, self.carPosYaw]  # 시작 위치 (차량 위치 및 방향)
-        iterationNumber = 150  # 최대 반복 횟수
-        planDistance = 6.0  # 최대 트리 확장 거리 (미터)
-        expandDistance = 0.15  # 노드 간 이동 거리 (스텝 크기)
-        expandAngle = 30  # 노드 생성 각도 (도)
+        iterationNumber = 100  # 최대 반복 횟수
+        planDistance = 5.4  # 최대 트리 확장 거리 (미터)
+        expandDistance = 0.6  # 노드 간 이동 거리 (스텝 크기)
+        expandAngle = 20  # 노드 생성 각도 (도)
 
         # RRT 객체 생성 및 경로 계획 실행
         rrt = ma_rrt.RRT(start, planDistance, obstacleList=obstacleList, expandDis=expandDistance, turnAngle=expandAngle, maxIter=iterationNumber, rrtTargets=rrtTarget)
@@ -303,14 +303,14 @@ class MaRRTPathPlanNode:
         # 최적 경로 선택
         if not leafNodes:
             return  # 리프 노드 없으면 종료
-        coneDistLimit = 5.0 # 최적 경로를 선택할 때, 각 노드의 점수(nodeRating)를 계산할 때 coneDistLimit 이내의 콘만 고려됩니다
+        coneDistLimit = 4.0 # 최적 경로를 선택할 때, 각 노드의 점수(nodeRating)를 계산할 때 coneDistLimit 이내의 콘만 고려됩니다
         # coneDistLimit이 작을수록(예: 4m), 경로는 근거리 콘에 더 민감하게 반응하며, 단기적인 장애물 회피에 치중합니다.
         # frontConesDist가 크면(예: 12m), 더 많은 콘을 장애물로 고려하여 트랙의 전반적인 구조를 반영하지만, 점수 계산은 여전히 coneDistLimit에 제한됩니다.
         coneDistanceLimitSq = coneDistLimit * coneDistLimit  # 거리 제곱
-        wallSafetyMargin = 0.45  # 벽과의 안전 거리 (미터)
-        penalty_factor = 50.0  # 벽 페널티 계수
+        wallSafetyMargin = 0.35  # 벽과의 안전 거리 (미터)
+        penalty_factor = 20.0  # 벽 페널티 계수
         epsilon = 0.01  # 제로 나누기 방지
-        bothSidesImproveFactor = 5  # 양쪽 장애물 존재 시 점수 가중치
+        bothSidesImproveFactor = 3  # 양쪽 장애물 존재 시 점수 가중치
         minAcceptableBranchRating = 90  # 최소 허용 경로 점수
         leafRatings = []  # 리프 노드별 점수 리스트
         for leaf in leafNodes:

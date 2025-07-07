@@ -8,9 +8,9 @@
   <arg name="velodyne_offset_y" default="0.12"/>
   <arg name="velodyne_offset_z" default="0.0"/>
   <!-- ROI arc length -->
-  <arg name="roi_arc_length" default="6.0"/>
-  <!-- Covariance 임계값 (0.01 미만 = green, 이상 = red) -->
-  <arg name="cov_threshold" default="0.00008"/>
+  <arg name="roi_arc_length" default="5.6"/>
+  <!-- Covariance 임계값 (~ 미만 = green, 이상 = red) -->
+  <arg name="cov_threshold" default="0.0001"/>
 
   <!-- GPS → Local Cartesian 변환 노드 -->
   <node pkg="gps_to_utm_pkg" type="gps_to_local_cartesian_cpp" name="gps_to_local_cartesian" output="screen">
@@ -51,10 +51,10 @@
   </node>
 
   <!-- Ublox Fix Processor 노드 -->
-  <node pkg="gps_to_utm_pkg" type="ublox_fix_processor_cpp" name="ublox_fix_processor" output="screen"/>
+  <!-- <node pkg="gps_to_utm_pkg" type="ublox_fix_processor_cpp" name="ublox_fix_processor" output="screen"/> -->
   
   <node pkg="gps_to_utm_pkg" type="purepursuit_cpp" name="purepursuit" output="screen"/>
   
-  <node pkg="gps_to_utm_pkg" type="cone_frenet_projector_cpp" name="cone_frenet_projector" output="screen"/>
+  <!-- <node pkg="gps_to_utm_pkg" type="cone_frenet_projector_cpp" name="cone_frenet_projector" output="screen"/> -->
 
 </launch>
