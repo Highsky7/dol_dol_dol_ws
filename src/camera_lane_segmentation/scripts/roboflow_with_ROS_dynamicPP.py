@@ -82,8 +82,8 @@ class LaneFollowerNode:
         # --- 차선 추적 파라미터 ---
         self.tracked_lanes = {'left': {'coeff': None, 'age': 0}, 'right': {'coeff': None, 'age': 0}}
         self.tracked_center_path = {'coeff': None}
-        self.SMOOTHING_ALPHA = 0.6 
-        self.MAX_LANE_AGE = 7 
+        self.SMOOTHING_ALPHA = 0.6
+        self.MAX_LANE_AGE = 7
 
         # --- PURE PURSUIT 파라미터 ---
         self.L = 0.73  # 차량 축거 (Wheelbase) [m]
@@ -92,8 +92,8 @@ class LaneFollowerNode:
         # throttle 입력 범위 0.3 ~ 0.5에 맞춰 파라미터를 설정합니다. (주행하며 튜닝 권장)
         self.THROTTLE_MIN = 0.4
         self.THROTTLE_MAX = 0.6
-        self.MIN_LOOKAHEAD_DISTANCE = 1.75 # 최소 전방주시거리 (throttle=0.3일 때) [m]
-        self.MAX_LOOKAHEAD_DISTANCE = 2.35 # 최대 전방주시거리 (throttle=0.5일 때) [m]
+        self.MIN_LOOKAHEAD_DISTANCE = 1.8 # 최소 전방주시거리 (throttle=0.3일 때) [m] #1.5 forward ---get much better
+        self.MAX_LOOKAHEAD_DISTANCE = 2.5 # 최대 전방주시거리 (throttle=0.5일 때) [m] #2.5 forward---get much better
         self.current_throttle = self.THROTTLE_MIN # 초기 throttle 값, 최소값으로 안전하게 시작
         # ========================================================================================
 
