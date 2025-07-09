@@ -34,8 +34,8 @@ ros::Subscriber<std_msgs::Float32> sub_throttle("/auto_throttle", throttleCallba
 #define PWM3        9    // 조향 모터 제어 PWM 핀
 
 #define POT_PIN     A0
-#define POT_MIN     167
-#define POT_MAX     822
+#define POT_MIN     171
+#define POT_MAX     817
 #define MAX_STEER_ANGLE 18.0f
 #define STEER_DEAD_BAND 1.0f  // 도 단위 데드밴드
 #define PULSE_MIN   800
