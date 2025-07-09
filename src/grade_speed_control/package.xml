@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>grade_speed_control</name>
+  <version>0.0.1</version>
+  <description>Prevent sudden acceleration/deceleration on slopes.</description>
+
+  <maintainer email="ihw@example.com">ihw</maintainer>
+  <license>MIT</license>
+
+  <!-- 빌드 도구 -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- 빌드/실행 의존성 -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+
+  <export/>
+</package>
