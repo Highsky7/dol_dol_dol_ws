@@ -40,4 +40,8 @@ rosbag record -o my_data.bag \
 /velodyne_nodelet_manager_transform/parameter_descriptions \
 /velodyne_nodelet_manager_transform/parameter_updates \
 /velodyne_packets \
-/velodyne_points
+/velodyne_points \
+/usb_cam/image_raw
+
+
+rosbag record -o mydata.bag /ublox_gps/fix_velocity

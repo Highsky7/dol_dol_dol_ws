@@ -35,10 +35,11 @@ doldol_motor.ino 업로드
 2터미널: rosrun judgement judgement_with_vp.py
 3터미널: roslaunch usb_cam usb_cam.launch
 4터미널: rosrun camera_lane_segmentation roboflow_with_ROS_dynamicPP.py
-5터미널: 가상환경(dy) rosrun yolo_ros_ros1 yolo_track_node.py 
+5터미널: PYTHONPATH=/home/highsky/dynamic_env/lib/python3.8/site-packages 가상환경(dy) rosrun yolo_ros_ros1 yolo_track_node.py
 6터미널: rv                                                     (roslaunch velodyne_pointcloud VLP16_points.launch alias 처리함)
 
 7터미널: roslaunch ublox_gps ublox_zed-f9p.launch               (GPS on)
 8터미널: roslaunch ntrip_ros ntrip_ros.launch                   (핫스팟 연결되고 받아오기 on / RTCM change(SGUI-RTCM30) /home/hannibal/dol_dol_dol_ws/src/ntrip_ros/launch/ntrip_ros.launch)
 
-9터미널: 가상환경(dol)  roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 9, 10, 12 on)
+9터미널: 가상환경(dol)  roslaunch multi_launch_pkg dol_multi_launch.launch     (6, 10, 12 on)
+10터미널: 가상환경(dol) rosrun voxelnext_pkg track_and_2D_and_center_object_detect.py (9 on)
