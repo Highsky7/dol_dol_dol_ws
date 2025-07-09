@@ -40,21 +40,18 @@ class Judgement:
         self.color_gps = ColorRGBA(1.0, 0.0, 1.0, 1.0)
         self.color_none = ColorRGBA(1.0, 1.0, 1.0, 1.0)
 
-        # --- 동적 장애물 대응 로직 ---
+        # --- 동적 장애물 대응 로직 (스로틀과 무관하게 유지) ---
         self.dynamic_obstacle_history = deque(maxlen=5)
         self.is_emergency_stopping = False
         self.emergency_stop_start_time = None
         self.EMERGENCY_STOP_DURATION = rospy.Duration(5.0)
 
-        # --- 속도 계획 파라미터 ---
-        self.max_throttle = rospy.get_param("~max_throttle", 0.6)
-        self.min_throttle = rospy.get_param("~min_throttle", 0.4)
-        self.steering_throttle_reduction_factor = rospy.get_param("~steering_throttle_reduction_factor", 0.02)
-        self.CAUTION_THROTTLE = 0.2
-        self.EMERGENCY_STOP_THROTTLE = 0.0
-
-        rospy.loginfo("Throttle parameters initialized: max_throttle=%.2f, min_throttle=%.2f, reduction_factor=%.4f",
-                      self.max_throttle, self.min_throttle, self.steering_throttle_reduction_factor)
+        # --- 속도 계획 파라미터 (더 이상 사용되지 않음) ---
+        # self.max_throttle = rospy.get_param("~max_throttle", 0.6)
+        # self.min_throttle = rospy.get_param("~min_throttle", 0.4)
+        # self.steering_throttle_reduction_factor = rospy.get_param("~steering_throttle_reduction_factor", 0.02)
+        # self.CAUTION_THROTTLE = 0.2
+        # self.EMERGENCY_STOP_THROTTLE = 0.0
 
         # 주기적 실행을 위한 타이머 (10Hz)
         self.timer = rospy.Timer(rospy.Duration(0.1), self.timer_callback)
@@ -76,10 +73,12 @@ class Judgement:
         self.gps_angle = msg.data
 
     def dynamic_obstacle_callback(self, msg):
+        # 이 로직은 스로틀에는 영향을 주지 않지만, 다른 잠재적 용도를 위해 유지합니다.
         self.dynamic_obstacle_history.append(msg.data)
         if not self.is_emergency_stopping:
             true_count = self.dynamic_obstacle_history.count(True)
             if true_count >= 2:
+                # 긴급 정지 상태는 활성화되지만, publish_throttle 함수에서 이를 사용하지 않습니다.
                 self.is_emergency_stopping = True
                 self.emergency_stop_start_time = rospy.Time.now()
                 rospy.logerr("!!! EMERGENCY STOP TRIGGERED !!! Obstacle detected %d/5 times. Stopping for %.1f seconds.",
@@ -104,42 +103,20 @@ class Judgement:
             self.pub_steering.publish(Float32(data=steering_angle_output))
             self.current_steering_angle = steering_angle_output
             self.steering_source_valid = True
-            # <--- [추가] 터미널 로그 기능 복원
             rospy.loginfo("Published steering: %.2f deg (Source: %s)", steering_angle_output, self.chosen_source)
         else:
             self.steering_source_valid = False
             self.current_steering_angle = 0.0
-            # <--- [추가] 터미널 로그 기능 복원
             rospy.logwarn("No valid steering source found. Steering angle will not be published.")
 
+    # <--- [수정된 부분] ---
     def publish_throttle(self, event):
-        final_throttle = 0.0
-        if self.is_emergency_stopping:
-            if rospy.Time.now() - self.emergency_stop_start_time < self.EMERGENCY_STOP_DURATION:
-                final_throttle = self.EMERGENCY_STOP_THROTTLE
-                rospy.logwarn("!!! EMERGENCY STOPPING !!! Throttle forced to %.2f.", final_throttle)
-            else:
-                self.is_emergency_stopping = False
-                self.emergency_stop_start_time = None
-                self.dynamic_obstacle_history.clear()
-                final_throttle = self.min_throttle
-        elif True in self.dynamic_obstacle_history:
-            final_throttle = self.CAUTION_THROTTLE
-            rospy.logwarn("!! Dynamic Obstacle detected. Applying CAUTION throttle: %.2f", final_throttle)
-        else:
-            if not self.steering_source_valid:
-                final_throttle = self.min_throttle
-                rospy.logwarn("No valid steering source, setting throttle to min_throttle: %.2f", final_throttle)
-            else:
-                abs_steering = abs(self.current_steering_angle)
-                throttle_reduction = abs_steering * self.steering_throttle_reduction_factor
-                calculated_throttle = self.max_throttle - throttle_reduction
-                final_throttle = max(self.min_throttle, min(self.max_throttle, calculated_throttle))
-                # <--- [추가] 상세한 스로틀 계산 로그 복원
-                rospy.loginfo("Current steering: %.2f deg, Throttle reduction: %.2f, Published throttle: %.2f",
-                              self.current_steering_angle, throttle_reduction, final_throttle)
-        
-        self.pub_throttle.publish(Float32(data=final_throttle))
+        """
+        요청에 따라 항상 0.6의 고정된 스로틀 값을 발행합니다.
+        """
+        fixed_throttle = 0.6
+        self.pub_throttle.publish(Float32(data=fixed_throttle))
+        # rospy.loginfo("Publishing fixed throttle: %.2f", fixed_throttle) # 필요시 주석 해제하여 로그 확인
 
     def create_debug_marker(self, marker_id, text, position, color):
         marker = Marker()
@@ -151,7 +128,6 @@ class Judgement:
         marker.action = Marker.ADD
         marker.pose.position = position
         marker.pose.orientation.w = 1.0
-        # <--- [수정] 디버그 마커 텍스트 크기 증가
         marker.scale.z = 0.8
         marker.color = color
         marker.text = text
@@ -166,12 +142,10 @@ class Judgement:
         marker.id = 0
         marker.type = Marker.TEXT_VIEW_FACING
         marker.action = Marker.ADD
-        # <--- [수정] 메인 마커 위치를 우측 상단으로 더 멀리 이동
         marker.pose.position.x = -8.0
         marker.pose.position.y = 8.0
         marker.pose.position.z = 2.0
         marker.pose.orientation.w = 1.0
-        # <--- [수정] 메인 마커 텍스트 크기 증가
         marker.scale.z = 1.6
         marker.text = f"Source: {self.chosen_source.upper()}\nAngle: {self.current_steering_angle:.2f}"
         
@@ -202,7 +176,6 @@ class Judgement:
             'gps': {'angle': self.gps_angle, 'id': 3, 'color': self.color_gps}
         }
         
-        # <--- [수정] 디버그 마커들의 수직 위치 조정 (메인 마커 기준 아래로)
         positions_z = [1.5, 0.5, -0.5] 
 
         for i, source_name in enumerate(ordered_sources):
@@ -210,7 +183,6 @@ class Judgement:
             angle = data.get('angle')
             
             if angle is not None:
-                # <--- [수정] 디버그 마커들의 x,y 위치를 메인 마커와 맞춤
                 position = Point(x=-4.0, y=8.0, z=positions_z[i])
                 text = f"{source_name.upper()}\n{angle:.2f}"
                 self.create_debug_marker(data['id'], text, position, data['color'])
