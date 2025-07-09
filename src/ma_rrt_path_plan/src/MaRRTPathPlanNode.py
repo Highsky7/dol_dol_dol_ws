@@ -50,7 +50,7 @@ class MaRRTPathPlanNode:
 
         # 파라미터화된 변수들
         self.frontConesDist = rospy.get_param('~frontConesDist', 12.0)  # 트리 생성에 고려할 콘의 최대 거리 (미터)
-        self.coneObstacleSize = rospy.get_param('~coneObstacleSize', 0.8)  # 콘 장애물 반지름 (미터)
+        self.coneObstacleSize = rospy.get_param('~coneObstacleSize', 0.7)  # 콘 장애물 반지름 (미터)
         self.iterationNumber = rospy.get_param('~iterationNumber', 100)  # RRT 최대 반복 횟수
         self.planDistance = rospy.get_param('~planDistance', 5.4)  # 최대 트리 확장 거리 (미터)
         self.expandDistance = rospy.get_param('~expandDistance', 0.6)  # 노드 간 이동 거리 (스텝 크기)
