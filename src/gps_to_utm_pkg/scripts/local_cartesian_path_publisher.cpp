@@ -237,7 +237,7 @@ private:
 
             std_msgs::ColorRGBA c;
             if (p.cov >= cov_thresh_) {      // orange
-                c.r = 1.0; c.g = 127.0/255.0; c.b = 0.0; c.a = 0.4;
+                c.r = 1.0; c.g = 0.0; c.b = 0.0; c.a = 1.0;
             } else {                         // 초록색
                 c.r = 0.0; c.g = 1.0; c.b = 0.0; c.a = 0.4;
             }
