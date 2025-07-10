@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import rospy
-from std_msgs.msg import Float32, Float64, Bool, ColorRGBA   # ← Float64 추가
+from std_msgs.msg import Float32, Float64, Bool, ColorRGBA
 from collections import deque
 from visualization_msgs.msg import Marker
 from geometry_msgs.msg import Point
@@ -19,7 +19,8 @@ class Judgement:
         self.sub_rrt = rospy.Subscriber('/auto_steer_angle_rrt', Float32, self.rrt_callback)
         self.sub_gps = rospy.Subscriber('/auto_steer_angle_gps', Float32, self.gps_callback)
         self.sub_dynamic_obstacle = rospy.Subscriber('dynamic_obstacle', Bool, self.dynamic_obstacle_callback)
-        self.sub_linear_vel = rospy.Subscriber('/linear_velocity', Float64, self.linear_vel_callback)  # ← NEW
+        self.sub_linear_vel = rospy.Subscriber('/linear_velocity', Float64, self.linear_vel_callback)
+        self.sub_forced_rrt = rospy.Subscriber('/forced_rrt', Bool, self.forced_rrt_callback)  # ← NEW: RRT 강제 활성화 토픽 구독
 
         # --- 퍼블리셔 설정 ---
         self.pub_steering = rospy.Publisher("steering_angle", Float32, queue_size=10)
@@ -32,6 +33,7 @@ class Judgement:
         self.obstacle_exists = False
         self.rrt_angle = None
         self.gps_angle = None
+        self.force_rrt_active = False  # ← NEW: RRT 강제 활성화 상태 플래그
         self.current_steering_angle = 0.0
         self.steering_source_valid = False
         self.chosen_source = "None"
@@ -42,16 +44,17 @@ class Judgement:
         rospy.loginfo("Max linear velocity threshold set to %.2f m/s", self.MAX_LINEAR_VEL)
 
         # --- RViz 마커 색상 정의 ---
-        self.color_lane = ColorRGBA(0.0, 1.0, 0.0, 1.0)
-        self.color_rrt = ColorRGBA(0.0, 1.0, 1.0, 1.0)
-        self.color_gps = ColorRGBA(1.0, 0.0, 1.0, 1.0)
-        self.color_none = ColorRGBA(1.0, 1.0, 1.0, 1.0)
+        self.color_lane = ColorRGBA(0.0, 1.0, 0.0, 1.0)        # Green
+        self.color_rrt = ColorRGBA(0.0, 1.0, 1.0, 1.0)        # Cyan
+        self.color_gps = ColorRGBA(1.0, 0.0, 1.0, 1.0)        # Magenta
+        self.color_forced_rrt = ColorRGBA(1.0, 0.5, 0.0, 1.0) # Orange ← NEW
+        self.color_none = ColorRGBA(1.0, 1.0, 1.0, 1.0)       # White
 
         # --- 동적 장애물 대응 로직 ---
         self.dynamic_obstacle_history = deque(maxlen=5)
         self.is_emergency_stopping = False
         self.emergency_stop_start_time = None
-        self.EMERGENCY_STOP_DURATION = rospy.Duration(5.0)
+        self.EMERGENCY_STOP_DURATION = rospy.Duration(2.0)
 
         # --- 속도 계획 파라미터 ---
         self.max_throttle = rospy.get_param("~max_throttle", 0.6)
@@ -84,6 +87,11 @@ class Judgement:
     def gps_callback(self, msg):
         self.gps_angle = msg.data
 
+    def forced_rrt_callback(self, msg):  # ← NEW: RRT 강제 활성화 콜백 함수
+        if self.force_rrt_active != msg.data:
+            self.force_rrt_active = msg.data
+            rospy.logwarn("Forced RRT Mode Updated: %s", "ACTIVATED" if self.force_rrt_active else "DEACTIVATED")
+
     def dynamic_obstacle_callback(self, msg):
         self.dynamic_obstacle_history.append(msg.data)
         if not self.is_emergency_stopping:
@@ -97,20 +105,27 @@ class Judgement:
                     true_count, self.EMERGENCY_STOP_DURATION.to_sec()
                 )
 
-    def linear_vel_callback(self, msg):  # ← NEW
+    def linear_vel_callback(self, msg):
         self.linear_velocity = msg.data
 
     # --- 데이터 발행 로직 ---
-    def publish_steering(self, event):
+    def publish_steering(self, event): # ← MODIFIED: 조향각 결정 로직 수정
         steering_angle_output = None
         self.chosen_source = "None"
 
-        if self.lane_detected and self.lane_angle is not None:
+        # 1순위: RRT 강제 활성화 모드
+        if self.force_rrt_active and self.rrt_angle is not None:
+            steering_angle_output = self.rrt_angle
+            self.chosen_source = "forced_rrt"
+        # 2순위: 차선 감지 주행
+        elif self.lane_detected and self.lane_angle is not None:
             steering_angle_output = self.lane_angle
             self.chosen_source = "lane"
+        # 3순위: 정적 장애물 기반 RRT 주행
         elif self.obstacle_exists and self.rrt_angle is not None:
             steering_angle_output = self.rrt_angle
             self.chosen_source = "rrt"
+        # 4순위: GPS 기반 주행
         elif not self.obstacle_exists and self.gps_angle is not None:
             steering_angle_output = self.gps_angle
             self.chosen_source = "gps"
@@ -120,7 +135,7 @@ class Judgement:
             self.current_steering_angle = steering_angle_output
             self.steering_source_valid = True
             rospy.loginfo("Published steering: %.2f deg (Source: %s)",
-                          steering_angle_output, self.chosen_source)
+                          steering_angle_output, self.chosen_source.upper())
         else:
             self.steering_source_valid = False
             self.current_steering_angle = 0.0
@@ -129,44 +144,33 @@ class Judgement:
     def publish_throttle(self, event):
         final_throttle = 0.0
 
-        # 1) EMERGENCY STOP
         if self.is_emergency_stopping:
             if rospy.Time.now() - self.emergency_stop_start_time < self.EMERGENCY_STOP_DURATION:
                 final_throttle = self.EMERGENCY_STOP_THROTTLE
-                rospy.logwarn("!!! EMERGENCY STOPPING !!! Throttle forced to %.2f.",
-                              final_throttle)
+                rospy.logwarn("!!! EMERGENCY STOPPING !!! Throttle forced to %.2f.", final_throttle)
             else:
                 self.is_emergency_stopping = False
                 self.emergency_stop_start_time = None
                 self.dynamic_obstacle_history.clear()
                 final_throttle = self.min_throttle
-
-        # 2) DYNAMIC OBSTACLE CAUTION
         elif True in self.dynamic_obstacle_history:
             final_throttle = self.CAUTION_THROTTLE
-            rospy.logwarn("!! Dynamic Obstacle detected. Applying CAUTION throttle: %.2f",
-                          final_throttle)
-
-        # 3) LINEAR VELOCITY LIMIT
+            rospy.logwarn("!! Dynamic Obstacle detected. Applying CAUTION throttle: %.2f", final_throttle)
         elif self.linear_velocity > self.MAX_LINEAR_VEL:
-            final_throttle = 0.2  # Caution throttle
+            final_throttle = 0.2
             rospy.logwarn(
-                "Velocity %.2f m/s > %.2f m/s, limiting throttle to min_throttle: %.2f",
+                "Velocity %.2f m/s > %.2f m/s, limiting throttle to: %.2f",
                 self.linear_velocity, self.MAX_LINEAR_VEL, final_throttle
             )
-
-        # 4) NORMAL OPERATION
         else:
             if not self.steering_source_valid:
                 final_throttle = self.min_throttle
-                rospy.logwarn("No valid steering source, setting throttle to min_throttle: %.2f",
-                              final_throttle)
+                rospy.logwarn("No valid steering source, setting throttle to min_throttle: %.2f", final_throttle)
             else:
                 abs_steering = abs(self.current_steering_angle)
                 throttle_reduction = abs_steering * self.steering_throttle_reduction_factor
                 calculated_throttle = self.max_throttle - throttle_reduction
-                final_throttle = max(self.min_throttle,
-                                     min(self.max_throttle, calculated_throttle))
+                final_throttle = max(self.min_throttle, min(self.max_throttle, calculated_throttle))
                 rospy.loginfo(
                     "Current steering: %.2f deg, Throttle reduction: %.2f, Published throttle: %.2f",
                     self.current_steering_angle, throttle_reduction, final_throttle
@@ -191,7 +195,7 @@ class Judgement:
         marker.lifetime = rospy.Duration(0.5)
         self.pub_marker.publish(marker)
 
-    def publish_main_marker(self, event):
+    def publish_main_marker(self, event): # ← MODIFIED: 메인 마커 색상 로직 추가
         marker = Marker()
         marker.header.frame_id = "velodyne"
         marker.header.stamp = rospy.Time.now()
@@ -210,6 +214,8 @@ class Judgement:
             marker.color = self.color_lane
         elif self.chosen_source == "rrt":
             marker.color = self.color_rrt
+        elif self.chosen_source == "forced_rrt": # ← NEW
+            marker.color = self.color_forced_rrt
         elif self.chosen_source == "gps":
             marker.color = self.color_gps
         else:
@@ -219,17 +225,23 @@ class Judgement:
         marker.lifetime = rospy.Duration(0.5)
         self.pub_marker.publish(marker)
 
-    def publish_debug_markers(self, event):
+    def publish_debug_markers(self, event): # ← MODIFIED: 디버그 마커 로직 안정화
         ordered_sources = ['lane', 'rrt', 'gps']
-
         active_source = self.chosen_source
-        if active_source in ordered_sources:
-            ordered_sources.remove(active_source)
-            ordered_sources.insert(0, active_source)
+
+        # 'forced_rrt' 상태일 때 'rrt'를 활성 소스로 간주하여 시각화 순서 정렬
+        display_source_for_ordering = 'rrt' if active_source == 'forced_rrt' else active_source
+
+        if display_source_for_ordering in ordered_sources:
+            ordered_sources.remove(display_source_for_ordering)
+            ordered_sources.insert(0, display_source_for_ordering)
+
+        # 'forced_rrt' 활성화 시 RRT 디버그 마커 색상 변경
+        rrt_color = self.color_forced_rrt if self.chosen_source == 'forced_rrt' else self.color_rrt
 
         source_data_map = {
             'lane': {'angle': self.lane_angle, 'id': 1, 'color': self.color_lane},
-            'rrt': {'angle': self.rrt_angle, 'id': 2, 'color': self.color_rrt},
+            'rrt': {'angle': self.rrt_angle, 'id': 2, 'color': rrt_color},
             'gps': {'angle': self.gps_angle, 'id': 3, 'color': self.color_gps}
         }
 
@@ -237,12 +249,12 @@ class Judgement:
 
         for i, source_name in enumerate(ordered_sources):
             data = source_data_map.get(source_name)
-            angle = data.get('angle')
-
-            if angle is not None:
-                position = Point(x=-4.0, y=8.0, z=positions_z[i])
-                text = f"{source_name.upper()}\n{angle:.2f}"
-                self.create_debug_marker(data['id'], text, position, data['color'])
+            if data:
+                angle = data.get('angle')
+                if angle is not None:
+                    position = Point(x=-4.0, y=8.0, z=positions_z[i])
+                    text = f"{source_name.upper()}\n{angle:.2f}"
+                    self.create_debug_marker(data['id'], text, position, data['color'])
 
     # ---------------- Timer ----------------
     def timer_callback(self, event):
