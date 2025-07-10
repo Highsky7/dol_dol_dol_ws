@@ -64,11 +64,17 @@ class LaneFollowerNode:
         p = np.load(opt.param_file)
         self.bev_h, self.bev_w = int(p['warp_h']), int(p['warp_w'])
         self.M=cv2.getPerspectiveTransform(p['src_points'],p['dst_points'])
-        self.mpy,self.y_off,self.mpx=0.0025,1.25,0.003578125   # px→m 변환 계수
+        self.mpy,self.y_off,self.mpx=0.0038125,1.41,0.00240625   # px→m 변환 계수
 
         self.trk={'left':{'c':None,'age':0},'right':{'c':None,'age':0}}
         self.center={'c':None}; self.ALPHA,self.MAX_AGE=0.6,7
-        self.L=0.73; self.T_MIN,self.T_MAX=0.4,0.6; self.L_MIN,self.L_MAX=1.75,2.35; self.throttle=self.T_MIN
+        
+        # ==================== 수정된 부분 1: Ld 멤버 변수 추가 및 초기화 ==================== #
+        self.L=0.73; self.T_MIN,self.T_MAX=0.4,0.6; self.L_MIN,self.L_MAX=1.75,2.35
+        self.throttle=self.T_MIN
+        # Ld(Lookahead distance)를 클래스 멤버로 관리하고, 안정적인 주행을 위해 최소값으로 초기화합니다.
+        self.Ld = self.L_MIN
+        # ==================== 수정된 부분 끝 =========================================== #
 
         # 교통 콘 위치 저장을 위한 변수
         self.cones = []  # 교통 콘의 (x, y) 좌표를 저장하는 리스트
@@ -100,9 +106,21 @@ class LaneFollowerNode:
         rospy.loginfo(f"[TF] velodyne→camera ({tx:.2f},{ty:.2f},{tz:.2f})")
 
     # --------- 콜백 함수 --------- #
-    def thr_cb(self,m): 
-        """ 스로틀 값 업데이트 """
-        self.throttle=np.clip(m.data,self.T_MIN,self.T_MAX)
+    # ==================== 수정된 부분 2: throttle 콜백 로직 변경 ==================== #
+    def thr_cb(self, m):
+        """
+        스로틀 값과 Lookahead Distance를 업데이트합니다.
+        수신된 스로틀 값이 T_MIN보다 낮을 경우 Ld 값을 업데이트하지 않고
+        이전 값을 유지하여 주행 중 오실레이션을 방지합니다.
+        """
+        subscribed_throttle = m.data
+        if subscribed_throttle >= self.T_MIN:
+            # 유효한 스로틀 값이 들어오면, throttle과 Ld를 모두 업데이트합니다.
+            self.throttle = np.clip(subscribed_throttle, self.T_MIN, self.T_MAX)
+            self.Ld = self.L_MIN + (self.L_MAX - self.L_MIN) * ((self.throttle - self.T_MIN) / (self.T_MAX - self.T_MIN))
+        # else: subscribed_throttle < self.T_MIN 이면 아무것도 하지 않음으로써
+        # self.Ld가 이전 값을 유지하도록 합니다.
+    # ==================== 수정된 부분 끝 =========================================== #
 
     def img_cb(self,msg):
         """ 이미지 수신 및 처리 """
@@ -191,7 +209,11 @@ class LaneFollowerNode:
             self.center['c']=center_coeff if self.center['c'] is None else self.ALPHA*center_coeff+(1-self.ALPHA)*self.center['c']
         cC=self.center['c']
 
-        Ld=self.L_MIN+(self.L_MAX-self.L_MIN)*((self.throttle-self.T_MIN)/(self.T_MAX-self.T_MIN))
+        # ==================== 수정된 부분 3: Ld 계산 로직 변경 ==================== #
+        # thr_cb 콜백에서 관리되는 self.Ld 값을 직접 사용합니다.
+        Ld = self.Ld
+        # ==================== 수정된 부분 끝 =========================================== #
+        
         goal=None; steer_deg=None
         if cC is not None:
             for y in range(self.bev_h-1,-1,-1):
@@ -205,8 +227,8 @@ class LaneFollowerNode:
                 self.pub_steer.publish(Float32(data=steer_deg))
 
         # BEV 영역 내 콘 확인 및 /forced_rrt 발행
-        x_min, x_max = 1.25, 2.85  # BEV x 경계 (미터 단위)
-        y_min, y_max = -1.145, 1.145  # BEV y 경계 (미터 단위)
+        x_min, x_max = 1.41, 2.95  # BEV x 경계 (미터 단위)
+        y_min, y_max = -1.22, 1.22  # BEV y 경계 (미터 단위)
         cone_in_bev = any(x_min <= x <= x_max and y_min <= y <= y_max for x, y in self.cones)
         forced_rrt = lane_ok and cone_in_bev  # 차선과 콘 모두 있을 때 True
         self.pub_forced_rrt.publish(Bool(data=forced_rrt))
@@ -240,7 +262,7 @@ class LaneFollowerNode:
             m.header.stamp, m.header.frame_id=now,"camera"
             m.ns,m.id="lane",idx
             if coeff is None:
-                m.action=Marker.DELETE; return m
+                m.action=Marker.DELETE; return m  #<-- 차선 없으면 삭제 명령
             m.action=Marker.ADD; m.type=Marker.LINE_STRIP; m.scale.x=0.05
             m.color.r,m.color.g,m.color.b,m.color.a=*color,1.0; m.pose.orientation.w=1.0
             for y in range(self.bev_h-1,self.bev_h//2,-8):
@@ -261,11 +283,11 @@ class LaneFollowerNode:
         bev_area_marker.scale.x = 0.03
         bev_area_marker.color.r, bev_area_marker.color.g, bev_area_marker.color.b, bev_area_marker.color.a = 0.0, 1.0, 1.0, 1.0
         bev_points = [
-            Point(x=2.85, y=-1.145, z=0.0),  # 앞-오른쪽
-            Point(x=2.85, y=1.145, z=0.0),   # 앞-왼쪽
-            Point(x=1.25, y=1.145, z=0.0),   # 뒤-왼쪽
-            Point(x=1.25, y=-1.145, z=0.0),  # 뒤-오른쪽
-            Point(x=2.85, y=-1.145, z=0.0)   # 시작점으로 돌아가 닫힌 도형 형성
+            Point(x=2.95, y=-1.22, z=0.0),  # 앞-오른쪽
+            Point(x=2.95, y=1.22, z=0.0),   # 앞-왼쪽
+            Point(x=1.41, y=1.22, z=0.0),   # 뒤-왼쪽
+            Point(x=1.41, y=-1.22, z=0.0),  # 뒤-오른쪽
+            Point(x=2.95, y=-1.22, z=0.0)   # 시작점으로 돌아가 닫힌 도형 형성
         ]
         bev_area_marker.points = bev_points
         marr.markers.append(bev_area_marker)
@@ -302,7 +324,7 @@ def main():
     ap.add_argument('--img-size',type=int,default=640)
     ap.add_argument('--conf-thres',type=float,default=0.6)
     ap.add_argument('--iou-thres',type=float,default=0.5)
-    ap.add_argument('--param-file',type=str,default='./bev_params_y_5.npz')
+    ap.add_argument('--param-file',type=str,default='./bev_params_7.npz')
     opt,_=ap.parse_known_args()
     LaneFollowerNode(opt); rospy.spin()
 
