@@ -125,7 +125,7 @@ class LaneFollowerNode:
         for i in range(1,n):
             if st[i,cv2.CC_STAT_AREA]<100: continue
             ys,xs=np.where(lbl==i)
-            c=polyfit_lane(ys,xs); 
+            c=polyfit_lane(ys,xs);
             if c is None: continue
             dets.append({'c':c,'xb':np.polyval(c,self.bev_h-1)})
         dets.sort(key=lambda d:d['xb'])
@@ -219,6 +219,35 @@ class LaneFollowerNode:
                 m.points.append(Point(x=xv,y=yv,z=0.0))
             return m
         marr.markers=[lane_m(cL,0,(1,0,0)), lane_m(cR,1,(0,0,1))]
+
+        # ==================== 수정된 부분 시작 ==================== #
+        # 요청된 BEV 영역을 시각화하기 위한 마커 생성
+        bev_area_marker = Marker()
+        bev_area_marker.header.stamp = now
+        bev_area_marker.header.frame_id = "camera"
+        bev_area_marker.ns = "bev_roi_area"
+        bev_area_marker.id = 100 # 다른 마커와 겹치지 않는 ID
+        bev_area_marker.type = Marker.LINE_STRIP
+        bev_area_marker.action = Marker.ADD
+        bev_area_marker.pose.orientation.w = 1.0
+        bev_area_marker.scale.x = 0.03  # 선 두께
+        bev_area_marker.color.r, bev_area_marker.color.g, bev_area_marker.color.b, bev_area_marker.color.a = 0.0, 1.0, 1.0, 1.0 # 하늘색(Cyan)
+
+        # 사각형의 4개 꼭짓점 정의 (x: 1.25~2.85m, y: -1.145~1.145m)
+        # LINE_STRIP을 닫힌 사각형으로 만들기 위해 마지막에 시작점을 다시 추가
+        bev_points = [
+            Point(x=2.85, y=-1.145, z=0.0), # 앞-오른쪽
+            Point(x=2.85, y=1.145, z=0.0),  # 앞-왼쪽
+            Point(x=1.25, y=1.145, z=0.0),  # 뒤-왼쪽
+            Point(x=1.25, y=-1.145, z=0.0), # 뒤-오른쪽
+            Point(x=2.85, y=-1.145, z=0.0)  # 도형을 닫기 위해 시작점 추가
+        ]
+        bev_area_marker.points = bev_points
+
+        # 생성한 BEV 영역 마커를 MarkerArray에 추가
+        marr.markers.append(bev_area_marker)
+        # ==================== 수정된 부분 끝 ==================== #
+
         self.pub_markers.publish(marr)
 
         # Path (빈 Path도 publish!)
@@ -245,7 +274,7 @@ class LaneFollowerNode:
 def main():
     rospy.init_node("lane_follower_node",anonymous=True)
     ap=argparse.ArgumentParser()
-    ap.add_argument('--weights',type=str,default='./weights2.pt')
+    ap.add_argument('--weights',type=str,default='./weights3.pt')
     ap.add_argument('--device',default='0')
     ap.add_argument('--img-size',type=int,default=640)
     ap.add_argument('--conf-thres',type=float,default=0.6)
