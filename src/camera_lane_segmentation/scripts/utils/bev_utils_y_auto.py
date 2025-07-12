@@ -34,9 +34,9 @@ def parse_args():
                         help='BEV 결과 영상 너비 (기본 640)')
     parser.add_argument('--warp-height', type=int, default=640,
                         help='BEV 결과 영상 높이 (기본 640)')
-    parser.add_argument('--out-npz', type=str, default='bev_params_y_5.npz',
+    parser.add_argument('--out-npz', type=str, default='bev_params_7.npz',
                         help='저장할 NPZ 파라미터 파일 이름')
-    parser.add_argument('--out-txt', type=str, default='selected_bev_src_points_y_aligned.txt',
+    parser.add_argument('--out-txt', type=str, default='selected_bev_src_points_7.txt',
                         help='저장할 TXT 좌표 파일 이름')
     return parser.parse_args()
 
