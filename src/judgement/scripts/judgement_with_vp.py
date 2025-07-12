@@ -54,7 +54,7 @@ class Judgement:
         self.dynamic_obstacle_history = deque(maxlen=5)
         self.is_emergency_stopping = False
         self.emergency_stop_start_time = None
-        self.EMERGENCY_STOP_DURATION = rospy.Duration(2.0)
+        self.EMERGENCY_STOP_DURATION = rospy.Duration(5.0)
 
         # --- 속도 계획 파라미터 ---
         self.max_throttle = rospy.get_param("~max_throttle", 0.6)
@@ -255,6 +255,7 @@ class Judgement:
                     position = Point(x=-4.0, y=8.0, z=positions_z[i])
                     text = f"{source_name.upper()}\n{angle:.2f}"
                     self.create_debug_marker(data['id'], text, position, data['color'])
+                    
 
     # ---------------- Timer ----------------
     def timer_callback(self, event):
