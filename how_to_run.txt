@@ -37,7 +37,7 @@ doldol_motor.ino 업로드
 이후 ctrl+shift+t
 ----------------------------------------------------------------------------------------
 4터미널: roslaunch usb_cam usb_cam.launch
-5터미널: rosrun camera_lane_segmentation roboflow_with_ROS_dynamicPP_TF.py
+5터미널: rosrun camera_lane_segmentation roboflow_final.py
 6터미널: gb후에
 export PYTHONPATH에 *******
 /home/highsky/dynamic_env/lib/python3.8/site-packages:
