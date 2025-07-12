@@ -45,3 +45,5 @@ rosbag record -o my_data.bag \
 
 
 rosbag record -o mydata.bag /ublox_gps/fix_velocity
+rosbag record -o moving1.bag /usb_cam/image_raw /steering_angle
+
