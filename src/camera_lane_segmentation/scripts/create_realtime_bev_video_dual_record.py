@@ -98,7 +98,7 @@ def bev_transform_and_save_realtime(opt):
                 print("[경고] 카메라에서 FPS를 얻을 수 없어 30으로 설정합니다.")
                 fps = 30
             
-            fourcc = cv2.VideoWriter_fourcc(*'H264')
+            fourcc = cv2.VideoWriter_fourcc(*'H264')  # H.264 코덱 사용
             
             ### 추가된 부분: 원본 영상의 가로, 세로 크기를 가져옵니다. ###
             h, w, _ = im0s.shape

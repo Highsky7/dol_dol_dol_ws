@@ -41,10 +41,10 @@ def make_parser():
     """
     parser = argparse.ArgumentParser(description="영상 파일을 BEV(Bird's-Eye-View) 영상으로 변환하고 저장하는 스크립트")
     parser.add_argument('--source', type=str,
-                        default='/home/highsky/Downloads/2025-06-29-144725.mp4',
+                        default='/home/highsky/Downloads/2025-07-09-161352.mp4',
                         help='변환할 원본 영상 파일 경로. 예: /path/to/video.mp4')
     parser.add_argument('--img-size', type=int, default=640, help='처리할 이미지 해상도 (LoadImages 클래스에 전달)')
-    parser.add_argument('--param-file', type=str, default='./bev_params_3.npz', help='BEV 파라미터 파일 경로. 예: ./bev_params_1.npz')
+    parser.add_argument('--param-file', type=str, default='./bev_params_y_5.npz', help='BEV 파라미터 파일 경로. 예: ./bev_params_1.npz')
     parser.add_argument('--nosave', action='store_true', help='결과 영상 저장 안 함')
     parser.add_argument('--output-dir', type=str, default='runs/bev_output', help='결과 영상이 저장될 폴더')
     return parser
