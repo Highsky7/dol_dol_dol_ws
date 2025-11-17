@@ -72,10 +72,12 @@
 - **SORT tracking** with Kalman filter trajectory prediction
 
 #### Vision-Based Lane Detection
-- **YOLOPv2** segmentation with CLAHE preprocessing
-- **RANSAC + EKF** filtering for robust lane extraction
+- **Custom YOLO** segmentation model trained on Roboflow platform
+- **Custom dataset** specific to competition track environment
+- **Morphological filtering** for robust lane extraction
+- **2nd order polynomial fitting** for smooth lane curves
 - **Bird's-eye-view** transformation
-- **Roboflow integration** for easy retraining
+- **Dynamic lookahead distance** (1.75m - 2.35m, throttle-adaptive)
 
 #### Wall Detection for Tunnels
 - **Point cloud compression** for wall representation
@@ -151,14 +153,14 @@
 │                     PERCEPTION LAYER                              │
 ├───────────────────────────────────────────────────────────────────┤
 │  ┌──────────────┐  ┌──────────────┐  ┌────────────────────────┐ │
-│  │  VoxelNeXt   │  │   YOLOPv2    │  │  GPS → Local XY        │ │
-│  │  3D Detection│  │   + EKF      │  │  Global Yaw Estimator  │ │
+│  │  VoxelNeXt   │  │ Custom YOLO  │  │  GPS → Local XY        │ │
+│  │  3D Detection│  │ Segmentation │  │  Global Yaw Estimator  │ │
 │  └──────┬───────┘  └──────┬───────┘  └──────┬─────────────────┘ │
 │         │                 │                  │                    │
 │  ┌──────▼───────┐  ┌──────▼───────┐         │                    │
 │  │ SORT Tracking│  │ Lane Fitting │         │                    │
-│  │ + Trajectory │  │ (RANSAC+EKF) │         │                    │
-│  │  Prediction  │  │              │         │                    │
+│  │ + Trajectory │  │ (Polynomial) │         │                    │
+│  │  Prediction  │  │ +Morphology  │         │                    │
 │  └──────┬───────┘  └──────┬───────┘         │                    │
 │         │                 │                  │                    │
 │  ┌──────▼─────────────────▼──────────────────▼─────────────────┐ │
@@ -432,12 +434,19 @@ cd ~/dol_dol_dol_ws/src/voxelnext_pkg/models
 # Place .pth file here
 ```
 
-#### YOLOPv2 Model (Lane Segmentation)
+#### Custom YOLO Model (Lane Segmentation)
 ```bash
-cd ~/dol_dol_dol_ws/src/camera_lane_segmentation/models
-# Download YOLOPv2 weights
-# Place .pt file here
+cd ~/dol_dol_dol_ws/src/camera_lane_segmentation/scripts
+# Train your custom model on Roboflow platform or use pretrained weights
+# Default weight file: weights2.pt
+# Place .pt file in the scripts directory
 ```
+
+**Roboflow Training:**
+1. Create account on [Roboflow](https://roboflow.com/)
+2. Upload and annotate lane images (segmentation masks)
+3. Train using Roboflow or export for local training with Ultralytics YOLO
+4. Download trained weights (.pt file)
 
 ### 7. Arduino Setup
 
@@ -494,9 +503,8 @@ rosrun judgement judgement_with_vp.py
 #### Terminal 3: Lane Detection
 ```bash
 conda activate dol
-rosrun camera_lane_segmentation without_EKF_camera1_CLAHE.py
-# or for EKF version:
-# rosrun camera_lane_segmentation YOLOPv2_with_EKF_with_vehicle_coordinate.py
+rosrun camera_lane_segmentation roboflow_final.py
+# Uses custom YOLO model trained on Roboflow with competition track dataset
 ```
 
 #### Terminal 4: Velodyne LiDAR
@@ -573,7 +581,7 @@ rosrun judgement judgement_with_vp.py
 
 # Terminal 4: Camera
 conda activate dol
-rosrun camera_lane_segmentation without_EKF_camera1_CLAHE.py
+rosrun camera_lane_segmentation roboflow_final.py
 
 # Terminal 5: VoxelNeXt
 conda activate dol
@@ -680,18 +688,38 @@ VoxelNeXt-based 3D object detection from LiDAR.
 ---
 
 #### **camera_lane_segmentation**
-Vision-based lane detection with multiple algorithms.
+Vision-based lane detection using custom YOLO model trained on Roboflow.
 
-**Scripts:**
-- `without_EKF_camera1_CLAHE.py` - CLAHE + lane detection (no filter)
-- `YOLOPv2_with_EKF_with_vehicle_coordinate.py` - YOLOPv2 + EKF + coordinate transform
-- `roboflow_final.py` - Roboflow API integration
+**Main Script:** `roboflow_final.py` (Competition-ready version)
+
+**Algorithm Pipeline:**
+1. **Bird's-Eye-View (BEV) transformation** - Perspective transformation to top-down view
+2. **Custom YOLO segmentation** - Trained on Roboflow with competition track dataset
+3. **Morphological filtering** - Close operation + small component removal + top-2 selection
+4. **Lane extraction** - Connected components analysis
+5. **Polynomial fitting** - 2nd order polynomial for smooth lane curves
+6. **Lane tracking** - Temporal smoothing with alpha=0.6, max age=7 frames
+7. **Center path generation** - Compute center line from left/right lanes
+8. **Pure pursuit control** - Dynamic lookahead distance (1.75m - 2.35m based on throttle)
+9. **Forced RRT logic** - Switches to RRT when cone detected in BEV region
+
+**Key Features:**
+- **Ultralytics YOLO** framework (not YOLOPv2)
+- **Custom dataset** specific to track environment
+- **Dynamic lookahead** adapts to vehicle speed
+- **Robust tracking** handles single lane detection
+- **TF integration** publishes velodyne→camera transform
 
 **Topics:**
-- Published: `/auto_steer_angle_lane` (std_msgs/Float32)
-- Published: `/lane_detection_status` (std_msgs/Bool)
+- Subscribed: `/usb_cam/image_raw`, `/auto_throttle`, `/track`
+- Published: `/auto_steer_angle_lane` (Float32), `/lane_detection_status` (Bool), `/forced_rrt` (Bool)
+- Visualization: `/lane_markers` (MarkerArray), `/center_path` (Path), `/lookahead_point` (Marker)
 
-**BEV Parameters:** `bev_params*.npz` files in workspace root
+**Configuration:**
+- Default weights: `scripts/weights2.pt`
+- BEV parameters: `bev_params_y_5.npz` (default) or `bev_params_7.npz`
+- Vehicle wheelbase: 0.73m
+- Throttle range: 0.4 - 0.6
 
 ---
 
@@ -869,10 +897,10 @@ graph TD
 1. Arduino enters brake mode (mode 0)
 2. GPS waits for RTK Fix (requires NTRIP corrections)
 3. Reference path loaded from CSV (e.g., `jeju_left.csv`)
-4. TF tree established (reference → antenna → velodyne)
+4. TF tree established (reference → antenna → velodyne → camera)
 5. VoxelNeXt model loaded to GPU
-6. YOLOPv2 model loaded
-7. BEV parameters loaded (`bev_params.npz`)
+6. Custom YOLO model loaded from Roboflow weights (`weights2.pt`)
+7. BEV parameters loaded (`bev_params_y_5.npz`)
 
 ### 2. Perception Loop (10 Hz)
 
@@ -891,7 +919,8 @@ graph TD
 │  VoxelNeXt → 3D Bounding Boxes                  │
 │  SORT → Tracked Objects + IDs                   │
 │  Trajectory Prediction → Future Positions       │
-│  YOLOPv2 → Lane Mask → RANSAC → Lane Angle      │
+│  Custom YOLO → Lane Mask → Polynomial Fit       │
+│    → Lane Tracking → Center Path → Steering     │
 │  GPS → Local XY + Global Yaw                    │
 │  Classification → Dynamic/Static Labels          │
 └──────────────────┬──────────────────────────────┘
@@ -1143,17 +1172,21 @@ To recalibrate Bird's-Eye-View transformation:
    ```bash
    rosrun image_view image_view image:=/usb_cam/image_raw
    ```
-2. **Adjust lighting conditions** (CLAHE helps but has limits)
-3. **Recalibrate BEV parameters:**
-   - Ensure `bev_params.npz` matches camera
-   - Check `selected_bev_src_points.txt`
-4. **Verify model file:**
+2. **Verify custom YOLO weights:**
    ```bash
-   ls src/camera_lane_segmentation/models/*.pt
+   ls src/camera_lane_segmentation/scripts/weights2.pt
    ```
-5. **Try different scripts:**
-   - `without_EKF_camera1_CLAHE.py` (simpler, faster)
-   - `YOLOPv2_with_EKF_with_vehicle_coordinate.py` (more robust)
+3. **Recalibrate BEV parameters:**
+   - Ensure `bev_params_y_5.npz` matches camera setup
+   - Check `selected_bev_src_points.txt`
+4. **Adjust detection parameters in roboflow_final.py:**
+   - Line 199: Lower `conf >= 0.5` threshold to 0.3
+   - Line 409: Adjust `--conf-thres` argument
+5. **Check morphological filtering:**
+   - Line 62: Reduce `min_size=10000` if lanes not detected
+6. **Verify Roboflow model training:**
+   - Ensure model was trained on similar lighting/track conditions
+   - Consider retraining with more diverse dataset
 
 ---
 
@@ -1271,10 +1304,10 @@ To recalibrate Bird's-Eye-View transformation:
 | Component | Frequency | Latency | Hardware |
 |-----------|-----------|---------|----------|
 | **VoxelNeXt** | 10 Hz | 100 ms | RTX 3080 |
-| **YOLOPv2** | 15 Hz | 66 ms | Same GPU |
+| **Custom YOLO (Roboflow)** | 15 Hz | 66 ms | Same GPU |
 | **SORT Tracking** | 10 Hz | 10 ms | CPU |
 | **RRT Planning** | 10 Hz | 100 ms | CPU |
-| **Pure Pursuit** | 20 Hz | 50 ms | CPU |
+| **Pure Pursuit (Lane)** | 15 Hz | 66 ms | CPU |
 | **Judgement** | 20 Hz | 5 ms | CPU |
 | **Arduino Control** | 50 Hz | 20 ms | Arduino |
 | **Overall Loop** | 10 Hz | ~200 ms | End-to-end |
@@ -1347,7 +1380,8 @@ This project builds upon excellent open-source work:
 | **OpenPCDet** | OpenMMLab | Apache 2.0 | Detection framework |
 | **LeGO-LOAM** | Tixiao Shan, Brendan Englot<br/>IROS 2018 | BSD | LiDAR odometry |
 | **SORT** | Alex Bewley et al.<br/>ICIP 2016 | GPL 3.0 | Object tracking |
-| **YOLOPv2** | - | GPL 3.0 | Lane segmentation |
+| **Ultralytics YOLO** | Ultralytics | AGPL 3.0 | YOLO framework for lane detection |
+| **Roboflow** | Roboflow Inc. | - | Custom dataset training platform |
 | **spconv** | Yan Yan | Apache 2.0 | Sparse convolution |
 
 ### Research Papers
